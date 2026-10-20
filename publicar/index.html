@@ -172,7 +172,7 @@ a { color: var(--accent) }
     <ul class="sub">
       <li><b>Avisos oficiales (mandan sobre esta página):</b> <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">lluvia diaria en Tobalaba</a>.</li>
       <li><b>Pronóstico del tiempo:</b> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, que entrega los pronósticos de los centros de Europa (ECMWF y ECMWF-IA), Alemania (ICON), EE.UU. (GFS), Canadá (GEM) y Reino Unido (UKMO), con unos 200 escenarios en total.</li>
-      <li><b>Nubes en vivo:</b> satélite GOES-19 de NOAA, canal infrarrojo, vía <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>. La temperatura de la cima de cada nube sale de su <a href="https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml" target="_blank" rel="noopener">tabla de colores</a>. Llega con 40 a 60 min de atraso.</li>
+      <li><b>Nubes en vivo:</b> satélite GOES-19 de NOAA, canal infrarrojo, vía <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>. La temperatura de la cima de cada nube sale de su <a href="https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml" target="_blank" rel="noopener">tabla de colores</a>. Llega con unos 30 a 40 min de atraso (el satélite toma una imagen cada 10 min).</li>
       <li><b>Rayos en vivo:</b> detector de rayos del GOES-19 (GLM), vía <a href="https://realearth.ssec.wisc.edu/" target="_blank" rel="noopener">RealEarth</a> de la Universidad de Wisconsin; los datos originales están en <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>. Llega con unos 5 min de atraso.</li>
       <li><b>Cómo responde un cerro quemado a la lluvia:</b> la fórmula del Servicio Geológico de EE.UU. para aluviones después de incendios, de Staley y otros (2017), <i>Geomorphology</i> 278: 149-162 (<a href="https://doi.org/10.1016/j.geomorph.2016.10.019" target="_blank" rel="noopener">artículo</a> · <a href="https://www.usgs.gov/programs/landslide-hazards/science/postfire-debris-flow-hazards" target="_blank" rel="noopener">cómo la usa el USGS</a>).</li>
       <li><b>Cuánto llueve en pocos minutos:</b> Bell (1969), la relación entre la lluvia de 15, 30 y 60 minutos.</li>
@@ -364,7 +364,7 @@ async function ultimaHora(nom) { // se prueban las últimas 3 h a la vez y se to
   const base = Math.floor(Date.now() / 600000) * 600, ts = Array.from({ length: 18 }, (_, k) => base - (k + 1) * 600);
   const ok = await Promise.all(ts.map(t => pixeles(wmsUrl(nom, 16, 0.5, t), 16).then(d => d.some((v, i) => i % 4 === 3 && v > 0)).catch(() => false)));
   const k = ok.indexOf(true);
-  return k < 0 ? base - 3600 : ts[k] - 600;
+  return k < 0 ? base - 3600 : ts[k]; // la más nueva con datos sobre Santiago (antes se restaban 10 min de margen)
 }
 async function cargarNubes() {
   layers.forEach(l => map.removeLayer(l)); layers = [];
@@ -486,7 +486,7 @@ async function leerMovimiento(t1) {
   // km/h hacia el este (mx) y el norte (my): centro de la masa fría si hay, si no la búsqueda en bloque
   const [mx, my, limite] = cenC && cenB ? [(cenB[0] - cenC[0]) * kx / (2400 / 3600), -(cenB[1] - cenC[1]) * ky / (2400 / 3600), false]
     : mejor ? [mejor.sx * kx / horasDt, -mejor.sy * ky / horasDt, Math.max(Math.abs(mejor.sx), Math.abs(mejor.sy)) === M] : [null, null, false];
-  // la imagen llega con 40-60 min de atraso: se corre con la velocidad medida hasta este momento (estimación)
+  // la imagen llega con ~30-40 min de atraso: se corre con la velocidad medida hasta este momento (estimación)
   const dth = (Date.now() / 1000 - t1) / 3600, ex = mx == null ? 0 : Math.round(mx * dth / kx), ey = my == null ? 0 : Math.round(-my * dth / ky);
   const frio = {};
   for (const cu of CU) {
@@ -506,12 +506,12 @@ async function leerMovimiento(t1) {
 }
 const RUMBO = ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'];
 async function medirSatelite() {
-  if (!frames.length) { const nom = CAPAS.ir[0], t0 = await ultimaHora(nom); frames = Array.from({ length: 10 }, (_, k) => t0 - (9 - k) * 1200); }
-  // las 4 más recientes a la vez; gana la más nueva que llegue completa
-  const r = await Promise.all(frames.slice(-4).map(t => leerSatelite(t).catch(() => null)));
-  for (let k = r.length - 1; k >= 0; k--) if (r[k]) return r[k];
-  for (let k = frames.length - 5; k >= 0; k--) { const x = await leerSatelite(frames[k]).catch(() => null); if (x) return x; }
-  return null;
+  // El GOES toma una imagen cada 10 min y GIBS la publica ~30 min después. Cada vez se busca la más nueva (sin el margen
+  // de 10 min de antes) y gana la primera que llegue completa; antes se leían los cuadros del mapa del ciclo
+  // anterior y el dato quedaba 10-20 min más viejo de lo necesario (20-oct: a las 19:13 mostraba 18:20 con 18:40 publicada).
+  const t0 = await ultimaHora(CAPAS.ir[0]), ts = [0, 1, 2, 3, 4, 5].map(k => t0 - k * 600);
+  const r = await Promise.all(ts.map(t => leerSatelite(t).catch(() => null)));
+  return r.find(Boolean) ?? null;
 }
 function textoCercania() {
   const s = satelite?.porCuenca[sel], cu = CU.find(c => c.id === sel);
@@ -637,17 +637,18 @@ function pintar() {
     poligonos[c.id].setStyle({ color: COLOR[n], fillColor: COLOR[n], weight: c.id === sel ? 4 : 2 });
     poligonos[c.id].setTooltipContent(`${c.nombre}: hoy ${pct(o.porDia[0])}, mañana ${pct(o.porDia[1] ?? 0)}`);
   }
-  // resumen: el sector más riesgoso de hoy y mañana
-  const top = filas[0], j = top.o.porDia[0] >= (top.o.porDia[1] ?? 0) ? 0 : 1, P = top.o.porDia[j], n = nivel(P);
+  // resumen: la quebrada más riesgosa entre hoy y mañana. El número grande es SIEMPRE hoy (lo que queda del día) y mañana
+  // va escrito al lado: antes mostraba el día más alto y se leía como «ahora» (20-oct: 7 % de mañana arriba, 3 % de hoy abajo).
+  const top = filas[0], P = top.o.porDia[0], P1 = top.o.porDia[1] ?? 0, j = P1 > P ? 1 : 0, n = nivel(P), nMax = nivel(Math.max(P, P1));
   REP = top.c.id;
   $('resumen').style.setProperty('--sev', `var(--${n})`);
-  $('rmax').firstChild.textContent = pct(P); $('rniv').textContent = NIVTXT[n];
-  const iPk = pico(top.o.hora, R.dia, j);
-  $('rtit').textContent = `${top.c.nombre} (${top.c.comuna}): ${pct(P)} ${j ? 'mañana' : 'hoy'}`;
+  $('rmax').firstChild.textContent = pct(P); $('rniv').textContent = `${NIVTXT[n]} hoy`;
+  const iPk = pico(top.o.hora, R.dia, j), cuando = `${j ? 'mañana a las ' : 'las '}${hora(horas[iPk])}`;
+  $('rtit').textContent = `${top.c.nombre} (${top.c.comuna}): ${pct(P)} hoy · ${j ? 'mañana sube a' : 'mañana'} ${pct(P1)}`;
   const cuantas = l => filas.filter(f => nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)) === l).length;
-  $('rtxt').innerHTML = `Es ${fmt(P / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. Hora más crítica: <b>${hora(horas[iPk])}</b>. ` +
-    `De ${CU.length} quebradas: ${cuantas('bad')} en riesgo alto, ${cuantas('warn')} moderado, ${cuantas('ok')} bajo. ` +
-    (n === 'ok' ? 'Atento a Senapred.' : `Si vives en el perímetro de la ${top.c.nombre.replace(/^Quebradas? /, 'quebrada ')}, sal antes de las ${hora(horas[iPk])} y vuelve cuando pase. Sigue las instrucciones de Senapred.`);
+  $('rtxt').innerHTML = `${j ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(P, P1) / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. Hora más crítica: <b>${cuando}</b>. ` +
+    `De ${CU.length} quebradas (hoy y mañana): ${cuantas('bad')} en riesgo alto, ${cuantas('warn')} moderado, ${cuantas('ok')} bajo. ` +
+    (nMax === 'ok' ? 'Atento a Senapred.' : `Si vives en el perímetro de la ${top.c.nombre.replace(/^Quebradas? /, 'quebrada ')}, sal antes de ${cuando} y vuelve cuando pase. Sigue las instrucciones de Senapred.`);
 
   $('ranking').innerHTML = `<thead><tr><th>Quebrada</th>${fechas.map((f, k) => `<th class="num">${nomDia(horas[R.dia.indexOf(k)], k)}</th>`).join('')}<th class="num">Peor hora</th></tr></thead><tbody>` +
     filas.map(({ c, o }) => {
