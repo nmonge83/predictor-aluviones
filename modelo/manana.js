@@ -22,7 +22,8 @@ const get = async u => { for (let k = 0; k < 4; k++) { const r = await fetch(u);
       if (!d) continue;
       const ix = new Map(d.hourly.time.map((t, i) => [t, i]));
       const esc = { time: met('time').length ? idx.map(i => g.time[i]) : [], li: met('lifted_index'), cin: met('convective_inhibition'), iso: met('freezing_level_height'), v700: met('wind_speed_700hPa'), d700: met('wind_direction_700hPa'), hr700: met('relative_humidity_700hPa') };
-      esc.p = esc.time.map(t => d.hourly.precipitation[ix.get(t)] || 0);
+      esc.p = esc.time.map(t => d.hourly.precipitation[ix.get(t)]);
+      if (esc.p.some(x => x == null)) continue; // una hora sin dato no es lluvia cero
       const r = M.simular(esc, cu, esc.time.map(() => 0), 1, 400, 7);
       const hp = Array.from(r.hora), k = hp.indexOf(Math.max(...hp));
       res.push({ m, p: r.porDia[0], mm: esc.p.reduce((a, b) => a + b, 0), pico: new Date(esc.time[k] * 1000).toLocaleTimeString('es-CL', { timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) });

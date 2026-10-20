@@ -13,22 +13,24 @@ const esc = { time: h.time, p: h.precipitation, li: h.lifted_index, cin: h.conve
 function evaluar(n = 150, etiquetas = y) {
   const { porDia } = M.simular(esc, HONDA, dia, dias.length, n, 11);
   let ll = 0;
-  porDia.forEach((p, j) => { const q = Math.min(1 - 1e-6, Math.max(1e-6, p)); ll += etiquetas[j] ? Math.log(q) : Math.log(1 - q); });
+  porDia.forEach((p, j) => { if (etiquetas[j] == null) return; const q = Math.min(1 - 1e-6, Math.max(1e-6, p)); ll += etiquetas[j] ? Math.log(q) : Math.log(1 - q); });
   return { ll, porDia };
 }
 const puesto = (pd, j) => [...pd].filter(x => x > pd[j]).length + 1;
 
 // Búsqueda en grilla de lo que el dato puede decidir: umbral de inestabilidad, chance de celda, fuerza de la celda y lluvia frontal.
-const GRILLA = { kRef: [1.5, 2.3], li0: [-5, -4, -3], qMax: [0.6, 1], mCelda: [4, 6, 8], rf15: [0.15, 0.2], escala: [0.3, 0.4, 0.6, 0.8], betaV: (process.env.BETAV || '0,1').split(',').map(Number), rho: (process.env.RHO || '0,0.8,0.95').split(',').map(Number) };
+const GRILLA = { kRef: [1, 1.5, 2.3], li0: [-5, -4, -3], qMax: [0.6, 1], mCelda: [4, 6, 8], rf15: [0.15, 0.2], escala: [0.3, 0.4, 0.6, 0.8, 1, 1.2], betaV: (process.env.BETAV || '0,1').split(',').map(Number), rho: (process.env.RHO || '0,0.8,0.95').split(',').map(Number) };
 const fijar = b => Object.assign(M.PAR, { kRef: b.kRef, li0: b.li0, qMax: b.qMax, mCelda: b.mCelda, rFrente: [b.rf15, b.rf15 + 0.25], escala: b.escala, betaV: b.betaV, rho: b.rho });
 function ajustar(etiquetas) {
-  let best = null;
+  const todos = [];
   for (const kRef of GRILLA.kRef) for (const li0 of GRILLA.li0) for (const qMax of GRILLA.qMax) for (const mCelda of GRILLA.mCelda)
     for (const rf15 of GRILLA.rf15) for (const escala of GRILLA.escala) for (const betaV of GRILLA.betaV) for (const rho of GRILLA.rho) {
       const b = { kRef, li0, qMax, mCelda, rf15, escala, betaV, rho }; fijar(b);
-      const { ll } = evaluar(30, etiquetas);
-      if (!best || ll > best.ll) best = { ll, ...b };
+      todos.push({ ll: evaluar(30, etiquetas).ll, ...b });
     }
+  // con 30 sorteos la log-verosimilitud varía ±0,2: los 20 mejores se vuelven a medir con 400, para no quedarse con el que tuvo suerte
+  const best = todos.sort((a, b) => b.ll - a.ll).slice(0, 20).map(b => { fijar(b); return { ...b, ll: evaluar(400, etiquetas).ll }; })
+    .reduce((a, b) => b.ll > a.ll ? b : a);
   fijar(best);
   return best;
 }
@@ -48,7 +50,7 @@ console.log(`aluviones esperados en los ${dias.length} días: ${suma.toFixed(2)}
 
 // Sacar un factor a la vez: cuánto empeora el ajuste.
 const base = { ...M.PAR };
-const prueba = (nom, cambio) => { Object.assign(M.PAR, cambio); const r = evaluar(150); console.log(`  sin ${nom.padEnd(26)} log-ver. ${r.ll.toFixed(2)} · puestos ${y.map((v, j) => v ? puesto(r.porDia, j) : null).filter(Boolean)}`); Object.assign(M.PAR, base); };
+const prueba = (nom, cambio) => { Object.assign(M.PAR, cambio); const r = evaluar(400); /* los mismos 400 sorteos que el completo */ console.log(`  sin ${nom.padEnd(26)} log-ver. ${r.ll.toFixed(2)} · puestos ${y.map((v, j) => v ? puesto(r.porDia, j) : null).filter(Boolean)}`); Object.assign(M.PAR, base); };
 console.log('\nsacando un factor a la vez (completo: ' + ll.toFixed(2) + '):');
 prueba('tormentas (inestabilidad)', { qMax: 0 });
 prueba('realce por el cerro', { kRef: 1 });
@@ -60,11 +62,14 @@ prueba('velocidad de la tormenta', { betaV: 0 });
 prueba('correlación entre horas', { rho: 0 });
 
 // Validación cruzada: se calibra sin un aluvión y se mira dónde queda ese día.
+// El aluvión sale de la verosimilitud Y de la lista de aluviones: si no, el ajuste igual sabe que se llevó el barro.
 console.log('\ndejando un aluvión fuera:');
+const todosAluv = HONDA.aluviones;
 for (const s of ['2026-01-31', '2026-10-08']) {
-  const y2 = y.map((v, j) => dias[j] === s ? 0 : v);
-  const b2 = ajustar(y2); const r = evaluar(150);
+  const y2 = y.map((v, j) => dias[j] === s ? null : v); // null: el día no entra en la verosimilitud (con 0 contaría como «sin aluvión»)
+  HONDA.aluviones = todosAluv.filter(e => diaDe(e) !== s);
+  const b2 = ajustar(y2); const r = evaluar(400);
   console.log(`  ${s}: ${(r.porDia[idx.get(s)] * 100).toFixed(1)}%, puesto ${puesto(r.porDia, idx.get(s))} de ${dias.length}  (ajuste: ${JSON.stringify(b2)})`);
-  Object.assign(M.PAR, base);
+  Object.assign(M.PAR, base); HONDA.aluviones = todosAluv;
 }
 console.log('\nPAR final:', JSON.stringify({ kRef: base.kRef, li0: base.li0, qMax: base.qMax, mCelda: base.mCelda, rFrente: base.rFrente, escala: base.escala, betaV: base.betaV, rho: base.rho }));

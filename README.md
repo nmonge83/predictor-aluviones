@@ -20,7 +20,7 @@ Se calibró con los 295 días desde el incendio de diciembre de 2025 en la Quebr
 
 - `index.html`: la app completa, en un solo archivo.
 - `modelo/cadena.js`: el modelo. `modelo/cuencas.json`: las cuencas. `python3 modelo/armar.py` los copia dentro de `index.html`.
-- `modelo/calibrar.js`: la calibración. `modelo/base.js`: la tasa base de cada quebrada. `modelo/manana.js`: lo que habría dicho cada mañana.
+- `modelo/calibrar.js`: la calibración. `modelo/bayes.js`: el promedio de Bayes sobre toda la grilla de calibración, en vez del mejor ajuste. `modelo/base.js`: la tasa base de cada quebrada. `modelo/manana.js`: lo que habría dicho cada mañana.
 - `modelo/relieve.py` y `modelo/cuencas.py`: relieve (Terrarium de AWS) y delimitación de cuencas (D8).
 - `prueba.js`: prueba (`node prueba.js`).
 

@@ -6,7 +6,7 @@ const FUEGO = Date.parse('2025-12-29T03:00:00Z') / 1000;             // incendio
 const PAR = {
   // 1. lluvia en la cuenca
   nieve: 300,                  // la cota de nieve queda ~300 m bajo la isoterma 0 °C
-  kRef: 1.5, uRef: 20, kSig: 0.3, usarViento: false, // lluvia en el cerro / lluvia del modelo (calibrado; uRef = viento cuesta arriba del 8-oct, km/h)
+  kRef: 1, uRef: 20, kSig: 0.3, usarViento: false, // lluvia en el cerro / lluvia del modelo (calibrado entre 1 y 2,3: el dato no pide realce; uRef = viento cuesta arriba del 8-oct, km/h)
   // 2. ¿pasa una tormenta por encima?
   qMax: 1, li0: -4, liEsc: 1, cinEsc: 50,   // calibrado: la chance sube fuerte con índice de levantamiento bajo −4
   // 3. minutos más intensos
@@ -22,8 +22,8 @@ const PAR = {
   tauVeg: 730,                 // días: la quema se "cierra" con la vegetación (e-folding de 2 años)
   // 5. material suelto disponible
   delta: 0.5, tauRec: 90,      // cada aluvión se lleva la mitad del material; se repone en ~3 meses
-  escala: 0.6,                 // recalibración global (ajustada con los 295 días)
-  sinQuema: 0.027,             // cuencas sin quemar: el registro da ~1 aluvión cada 30 años por quebrada (Macul 1993);
+  escala: 0.8,                 // recalibración global (ajustada con los 295 días, grilla 0,3–1,2)
+  sinQuema: 0.033,             // cuencas sin quemar: el registro da ~1 aluvión cada 30 años por quebrada (Macul 1993);
                                // sin este factor el modelo esperaba 0,5–0,9 por quebrada en 295 días, 20 a 30 veces más
 };
 
@@ -69,13 +69,15 @@ function material(t, aluviones) {
 // dia[i] = índice de día de la hora i. Devuelve la prob. media por hora y, por día, la del peor momento.
 function simular(esc, cu, dia, nDias, nDraws, seed) {
   const n = esc.p.length, r = rng(seed);
+  // el material se mide al empezar el día: un aluvión de ese mismo día no puede rebajar su propia probabilidad
+  const ini = new Map(); for (let i = 0; i < n; i++) if (!ini.has(dia[i])) ini.set(dia[i], esc.time[i]);
   const hora = new Float64Array(n), acum = new Float64Array(n), porDia = new Float64Array(nDias), maxDia = new Float64Array(nDias);
   const lluvia = new Float64Array(n), q = new Float64Array(n), rec = new Float64Array(n), mat = new Float64Array(n), avance = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     lluvia[i] = (esc.p[i] || 0) * kCerro(esc.v700[i], esc.d700[i], esc.hr700[i]) * fLiquida(esc.iso[i], cu.hyp);
     let li = null; for (let k = Math.max(0, i - 2); k <= Math.min(n - 1, i + 2); k++) if (esc.li[k] != null) li = li == null ? esc.li[k] : Math.min(li, esc.li[k]);
     q[i] = esc.forzar?.has(i) ? 1 : pCelda(li, esc.cin[i]);
-    rec[i] = recuperacion(esc.time[i]); mat[i] = material(esc.time[i], cu.aluviones);
+    rec[i] = recuperacion(esc.time[i]); mat[i] = material(ini.get(dia[i]), cu.aluviones);
     // una celda rápida pasa en pocos minutos y deja menos agua en la cuenca; una lenta se queda encima
     avance[i] = Math.min(PAR.fMax, (PAR.vRef / Math.max(5, esc.v700[i] ?? PAR.vRef)) ** PAR.betaV);
   }
