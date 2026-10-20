@@ -75,6 +75,7 @@ a { color: var(--accent) }
   <header>
     <h1>Predictor de aluviones · precordillera de Santiago</h1>
     <p class="sub" id="upd">Descargando pronósticos de 6 centros meteorológicos para 15 quebradas…</p>
+    <p class="sub"><a href="#metodo">Cómo se calcula</a> · <a href="#fuentes">Fuentes</a></p>
   </header>
 
   <section class="card resumen" id="resumen">
@@ -126,7 +127,7 @@ a { color: var(--accent) }
   </section>
 
   <section class="card">
-    <h2>Cómo funciona el modelo</h2>
+    <h2 id="metodo">Cómo funciona el modelo</h2>
     <p style="margin-bottom:10px">Un aluvión en una cuenca quemada no lo gatilla la lluvia acumulada: lo gatilla el agua que corre sobre el suelo quemado durante un chubasco de pocos minutos. El 6-oct cayeron 111 mm en Tobalaba y no pasó nada; el 8-oct cayeron 35 mm con tormenta y hubo aluvión. El modelo encadena cinco pasos, hora a hora y para cada uno de los ~200 escenarios de pronóstico:</p>
     <ul class="sub">
       <li><b>1. Lluvia en la cuenca:</b> lluvia del pronóstico × parte de la cuenca bajo la cota de nieve (isoterma − 300 m, con la curva de altitudes de cada cuenca). Se probó realzarla por el cerro, de 1 a 2,3 veces, y el dato no lo pide.</li>
@@ -165,11 +166,17 @@ a { color: var(--accent) }
     </div>
   </section>
 
-  <section class="card">
-    <h2>Fuentes oficiales y en vivo</h2>
+  <section class="card" id="fuentes">
+    <h2>Fuentes</h2>
+    <p class="sub" style="margin-bottom:8px">Todo lo que usa esta página es público y se puede revisar. El código y los datos de la calibración están en <a href="https://github.com/nmonge83/predictor-aluviones" target="_blank" rel="noopener">GitHub</a>.</p>
     <ul class="sub">
-      <li><a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">Alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">Lluvia diaria en Tobalaba</a></li>
-      <li>Datos: Open-Meteo (ECMWF, ECMWF-IA, ICON, GFS, GEM, UKMO), NASA GIBS (GOES-Este), relieve Terrarium de AWS, cauces de OpenStreetMap.</li>
+      <li><b>Avisos oficiales (mandan sobre esta página):</b> <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">lluvia diaria en Tobalaba</a>.</li>
+      <li><b>Pronóstico del tiempo:</b> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, que entrega los pronósticos de los centros de Europa (ECMWF y ECMWF-IA), Alemania (ICON), EE.UU. (GFS), Canadá (GEM) y Reino Unido (UKMO), con unos 200 escenarios en total.</li>
+      <li><b>Nubes en vivo:</b> satélite GOES-19 de NOAA, canal infrarrojo, vía <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>. La temperatura de la cima de cada nube sale de su <a href="https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml" target="_blank" rel="noopener">tabla de colores</a>. Llega con 40 a 60 min de atraso.</li>
+      <li><b>Rayos en vivo:</b> detector de rayos del GOES-19 (GLM), vía <a href="https://realearth.ssec.wisc.edu/" target="_blank" rel="noopener">RealEarth</a> de la Universidad de Wisconsin; los datos originales están en <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>. Llega con unos 5 min de atraso.</li>
+      <li><b>Cómo responde un cerro quemado a la lluvia:</b> la fórmula del Servicio Geológico de EE.UU. para aluviones después de incendios, de Staley y otros (2017), <i>Geomorphology</i> 278: 149-162 (<a href="https://doi.org/10.1016/j.geomorph.2016.10.019" target="_blank" rel="noopener">artículo</a> · <a href="https://www.usgs.gov/programs/landslide-hazards/science/postfire-debris-flow-hazards" target="_blank" rel="noopener">cómo la usa el USGS</a>).</li>
+      <li><b>Cuánto llueve en pocos minutos:</b> Bell (1969), la relación entre la lluvia de 15, 30 y 60 minutos.</li>
+      <li><b>Relieve, cauces y mapa:</b> <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">relieve Terrarium (AWS)</a>, <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>, Esri y Leaflet.</li>
     </ul>
   </section>
 </main>
