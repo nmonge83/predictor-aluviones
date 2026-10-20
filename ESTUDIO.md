@@ -18,7 +18,7 @@
 
 **Chile después de incendios.** Para Viña del Mar después del incendio de 2024, el CIGIDEN estimó de forma preliminar que 20 mm en 3 horas bastan para activar procesos en las laderas quemadas ([CIGIDEN](https://www.cigiden.cl/informe-de-danos-fase-de-rehabilitacion-y-reconstruccion-incendios-02-y-03-de-febrero-de-2024-vina-del-mar-region-de-valparaiso/)). No encontré un umbral calibrado y revisado por pares para la precordillera de Santiago.
 
-**Cómo se avisa en EE.UU.** El USGS calcula los umbrales de cada incendio y el Servicio Meteorológico los compara con la lluvia del radar. Los avisos de vigilancia salen con 12 a 24 h de anticipación; las alertas, con minutos a 45 min ([USGS, informe 2010](https://pubs.usgs.gov/of/2010/1039/pdf/OF10-1039.pdf); [Congreso de EE.UU.](https://www.congress.gov/crs-product/R47618)).
+**Cómo se avisa en EE.UU.** El USGS calcula los umbrales de cada incendio y el Servicio Meteorológico los compara con la lluvia del radar. Los avisos de vigilancia salen con 12 a 24 h de anticipación; las alertas, con minutos a 45 min ([ficha del USGS sobre el sistema NOAA-USGS](https://pubs.usgs.gov/fs/2005/3104/pdf/FS-2005-3104.pdf); [artículo del sistema](https://www.researchgate.net/publication/234358962_NOAAUSGS_Demonstration_Flash-Flood_and_Debris-Flow_Early-Warning_System); [Congreso de EE.UU.](https://www.congress.gov/crs-product/R47618)).
 
 **Rayos.** Se usan para anticipar chaparrones y crecidas repentinas en tormentas convectivas (proyecto europeo [FLASH](https://cordis.europa.eu/project/id/36852)). Su ausencia no descarta un chaparrón: las bandas de los frentes fríos pueden ser muy intensas.
 
@@ -39,7 +39,7 @@ Queda dentro del rango medido en California (15 a 56 mm/h).
 
 1. **No tiene radar ni pluviómetro en la cuenca.** Usa pronósticos, satélite y rayos. En EE.UU. la alerta se basa en la lluvia medida por radar: es lo que más falta.
 2. **La recuperación es más lenta que en California.** El umbral sube ~33 % en un año, contra ~100 % en el incendio Fish.
-3. **Las bandas de los frentes fríos no se modelan aparte.** La lluvia frontal se reparte pareja (15 % de la hora en 15 min), y los modelos globales suavizan esas bandas. Puede quedarse corto en un evento tipo Montecito.
+3. **Las bandas de los frentes fríos no se modelan aparte, y la calibración rebaja la lluvia frontal.** Con lluvia frontal el modelo usa un 15 % de la hora en los 15 min más intensos. Una lluvia perfectamente pareja ya daría el 25 %, así que el 15 % no es físico: es lo que mejor explica los 295 días con la lluvia que dan los pronósticos (la calibración lo dejó en el borde inferior de lo que probó). Además, los modelos globales suavizan esas bandas. Las dos cosas empujan para el mismo lado: puede quedarse corto en un evento tipo Montecito.
 4. **Se calibró con 2 aluviones.** Por eso se usa Bayes y los rangos son anchos.
 
 **Prueba contra los 295 días** (cambiando un supuesto a la vez, el resto fijo; log-verosimilitud más alta es mejor; actual −4,38):

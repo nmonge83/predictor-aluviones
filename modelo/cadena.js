@@ -15,7 +15,7 @@ const PAR = {
   rho: 0.95,                   // correlación entre horas de un mismo día (calibrado): un día largo de lluvia inestable débil no suma
                                // tantas oportunidades independientes como horas tiene (6-may y 2-oct, falsas alarmas)
   vRef: 30, betaV: 1, fMax: 2, // tiempo de la celda sobre la cuenca ∝ 1/velocidad: lluvia de la celda × (vRef/v)^betaV (8-oct: ~30 km/h)
-  rFrente: [0.15, 0.40],       // idem con lluvia frontal pareja (calibrado)
+  rFrente: [0.15, 0.40],       // lluvia frontal: factor calibrado, MENOR que el 25 % de una lluvia pareja (ver ESTUDIO.md)
   // 4. cuenca quemada (USGS, Staley et al. 2017, modelo M1: B, Ct, Cf, Cs por duración)
   usgs: [[15, -3.63, 0.41, 0.67, 0.70], [30, -3.61, 0.26, 0.39, 0.50], [60, -3.21, 0.17, 0.20, 0.22]],
   sev: [0.5, 0.85], F: [0.25, 0.45], S: [0.20, 0.30], // T = quemada · empinada · sev (severidad moderada o alta)

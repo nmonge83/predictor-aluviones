@@ -132,7 +132,7 @@ a { color: var(--accent) }
     <ul class="sub">
       <li><b>1. Lluvia en la cuenca:</b> lluvia del pronóstico × parte de la cuenca bajo la cota de nieve (isoterma − 300 m, con la curva de altitudes de cada cuenca). Se probó realzarla por el cerro, de 1 a 2,3 veces, y el dato no lo pide.</li>
       <li><b>2. ¿Pasa una tormenta encima?</b> Chance por hora que sube con la inestabilidad del aire (índice de levantamiento bajo −4) y baja con la inhibición convectiva. Si caen rayos sobre la cuenca (detector de rayos del GOES, últimos 15 min), la chance de esta hora es 100 %. El color del infrarrojo no basta: el 20-oct una capa de nubes a −52 °C, igual de fría que las tormentas de los aluviones, se pintó amarilla sobre la cuenca con lluvia pareja y sin un solo rayo. En los dos aluviones sí hubo: el 31-ene, 36 a 83 rayos cada 10 min a menos de 10 km de la Quebrada Honda; el 8-oct, 60. Los rayos confirman una tormenta, pero que no haya rayos no la descarta: en Montecito (California, 2018) el aluvión lo gatilló una banda angosta de lluvia muy intensa a lo largo de un frente frío, con 157 mm/h en 5 min. Por eso, sin rayos, el modelo no baja el riesgo: sigue con el pronóstico.</li>
-      <li><b>3. Minutos más intensos:</b> bajo una celda lenta llueve ~8 veces lo que da el modelo y el 57 % de la hora cae en 15 min; con lluvia frontal pareja, solo el 15 %. Una celda rápida deja menos agua: el tiempo que pasa sobre la cuenca es su tamaño dividido por su velocidad (viento a 3 km de altura; el 8-oct, ~30 km/h).</li>
+      <li><b>3. Minutos más intensos:</b> bajo una celda lenta llueve ~8 veces lo que da el modelo y el 57 % de la hora cae en 15 min; con lluvia frontal, la calibración usa un 15 %, menos del 25 % que daría una lluvia perfectamente pareja: con los datos de esta quebrada, la lluvia frontal de los pronósticos resultó menos peligrosa de lo que dice la fórmula. Por eso el modelo puede quedarse corto con una banda de frente frío muy intensa. Una celda rápida deja menos agua: el tiempo que pasa sobre la cuenca es su tamaño dividido por su velocidad (viento a 3 km de altura; el 8-oct, ~30 km/h).</li>
       <li><b>4. Respuesta de la cuenca quemada:</b> regresión del Servicio Geológico de EE.UU. para cuencas quemadas (Staley et al. 2017, M1), con la lluvia de 15, 30 y 60 min, la fracción quemada y empinada de cada cuenca, y la quema que se va cerrando con la vegetación (vida media de 2 años).</li>
       <li><b>5. Material disponible:</b> cada aluvión se lleva la mitad del barro suelto, que se repone en ~3 meses. Por eso, días después del 8-oct, la misma tormenta pesa menos.</li>
       <li><b>Por día:</b> la probabilidad del peor momento del día. Las horas de un mismo día no son oportunidades independientes: un día largo de lluvia inestable débil no vale lo mismo que muchas tormentas separadas. Cada centro meteorológico pesa lo mismo.</li>
@@ -201,7 +201,7 @@ const PAR = {
   rho: 0.95,                   // correlación entre horas de un mismo día (calibrado): un día largo de lluvia inestable débil no suma
                                // tantas oportunidades independientes como horas tiene (6-may y 2-oct, falsas alarmas)
   vRef: 30, betaV: 1, fMax: 2, // tiempo de la celda sobre la cuenca ∝ 1/velocidad: lluvia de la celda × (vRef/v)^betaV (8-oct: ~30 km/h)
-  rFrente: [0.15, 0.40],       // idem con lluvia frontal pareja (calibrado)
+  rFrente: [0.15, 0.40],       // lluvia frontal: factor calibrado, MENOR que el 25 % de una lluvia pareja (ver ESTUDIO.md)
   // 4. cuenca quemada (USGS, Staley et al. 2017, modelo M1: B, Ct, Cf, Cs por duración)
   usgs: [[15, -3.63, 0.41, 0.67, 0.70], [30, -3.61, 0.26, 0.39, 0.50], [60, -3.21, 0.17, 0.20, 0.22]],
   sev: [0.5, 0.85], F: [0.25, 0.45], S: [0.20, 0.30], // T = quemada · empinada · sev (severidad moderada o alta)
@@ -504,10 +504,12 @@ async function leerMovimiento(t1, g) {
   const dth = (Date.now() / 1000 - t1) / 3600, ex = mx == null ? 0 : Math.round(mx * dth / kx), ey = my == null ? 0 : Math.round(-my * dth / ky);
   const frio = {};
   for (const cu of CU) {
-    const [la, lo] = cu.centro; let nA = 0, cA = 0, nB = 0, cB = 0, nE = 0, cE = 0, cerca = null;
+    // cobertura en la zona de la quebrada (su radio + 5 km), no en 25 km a la redonda: con 25 km una nube chica encima
+    // casi no movía el porcentaje y una capa que rodeaba la quebrada sin tocarla la daba por cubierta (panel, 20-oct)
+    const [la, lo] = cu.centro, rz = Math.sqrt(cu.km2 / Math.PI) + 5; let nA = 0, cA = 0, nB = 0, cB = 0, nE = 0, cE = 0, cerca = null;
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const dx = (BAS[1] - r + (x + 0.5) * paso - lo) * 111.32 * cosLa, dy = (BAS[0] + r - (y + 0.5) * paso - la) * 110.57, d = Math.hypot(dx, dy), a = A[y * N + x], b = B[y * N + x];
-      if (d < 25) {
+      if (d < rz) {
         if (a === a) { nA++; if (a < -40) cA++; } if (b === b) { nB++; if (b < -40) cB++; }
         const xs = x - ex, ys = y - ey, e = xs >= 0 && xs < N && ys >= 0 && ys < N ? B[ys * N + xs] : NaN;
         if (e === e) { nE++; if (e < -40) cE++; }
@@ -614,7 +616,7 @@ function textoCercania() {
   if (ry?.encima) txt = `${cu.nombre}, ${hora(ry.t)}: caen rayos sobre la cuenca. El modelo cuenta la tormenta en la hora actual.`;
   else if (s.irEncima) txt = `${cu.nombre}, ${hora(satelite.t)}: hay nubes muy frías encima, sin rayos: probablemente no es una celda de tormenta, pero puede llover fuerte. El modelo sigue con el pronóstico.`;
   else if (s.nubes) txt = `${cu.nombre}, ${hora(satelite.t)}: hay nubes frías encima, pero no una tormenta fuerte${f ? ` (la más cercana está ${donde(f)})` : ''}. El modelo sigue con el pronóstico.`;
-  else if (!b) txt = `${cu.nombre}, ${hora(satelite.t)}: sin nubes de tormenta a menos de 150 km.`;
+  else if (!b) txt = `${cu.nombre}, ${hora(satelite.t)}: sin nubes de tormenta a menos de 130 km.`;
   else txt = `${cu.nombre}, ${hora(satelite.t)}: sin tormenta encima. La nube más fría está ${donde(b)}.`;
   if (ry && !ry.encima) txt += ry.dist == null ? ' Sin rayos cerca en los últimos 15 min.' : ` Rayo más cercano en los últimos 15 min: ${donde(ry)}.`;
   $('cerca').textContent = txt;
@@ -633,25 +635,27 @@ function pintarReporte() {
     const va = vel == null ? '' : dir ? ` hacia el ${dir} a ${mv.limite ? 'más de 140' : fmt(vel)} km/h` : ' casi sin moverse';
     const h1 = hora(mv.t1), est = fr.estimado; // cobertura a la hora de la imagen y estimada para ahora
     if ((est ?? fr.ahora) >= 0.5) items.push(`<b>Nube de lluvia:</b> encima de la quebrada${va ? `, moviéndose${va}` : ''}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'));
-    else if (fr.ahora >= 0.5 || (fr.antes ?? 0) >= 0.5) items.push(`<b>Nube de lluvia:</b> se está yendo${va}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)} de la quebrada` + (est != null ? `; ahora debería quedar ~${pc(est)}.` : '.'));
+    else if (fr.ahora >= 0.5 || (fr.antes ?? 0) >= 0.5) items.push(`<b>Nube de lluvia:</b> se está yendo${va}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)} de la zona de la quebrada` + (est != null ? `; ahora debería quedar ~${pc(est)}.` : '.'));
     else if (fr.ahora >= 0.15) items.push(`<b>Nube de lluvia:</b> sobre parte de la quebrada` + (fr.antes != null && fr.ahora - fr.antes > 0.1 ? ', y creciendo' : '') + `${va ? `, moviéndose${va}` : ''}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'));
     else if (fr.cerca && vel != null && dir) {
       const hacia = (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist; // km/h hacia la quebrada
       const llega = mv.t1 + fr.cerca.dist / Math.max(hacia, 1e-6) * 3600;
       items.push(`<b>Nube de lluvia:</b> a las ${h1} la más cercana estaba a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}` +
         (hacia > 5 ? (llega > NOW ? ` y viene hacia acá: llegaría cerca de las ${hora(llega)}.` : ' y venía hacia acá: podría estar llegando.') : `, moviéndose${va}: no viene hacia acá.`));
-    } else items.push(`<b>Nube de lluvia:</b> ${fr.cerca ? `a las ${h1} la más cercana estaba a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}.` : `ninguna a menos de 150 km (satélite de las ${h1}).`}`);
+    } else items.push(`<b>Nube de lluvia:</b> ${fr.cerca ? `a las ${h1} la más cercana estaba a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}.` : `ninguna a menos de 130 km (satélite de las ${h1}).`}`);
   }
   const ry = s?.rayo;
   if (ry) items.push(ry.encima ? `<b>Rayos:</b> caen sobre la quebrada (${hora(ry.t)}): es una celda de tormenta, como en los dos aluviones.`
-    : ry.dist == null ? '<b>Rayos:</b> ninguno a menos de 150 km en los últimos 15 min.' : `<b>Rayos:</b> el más cercano, a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}, en los últimos 15 min.`);
+    : ry.dist == null ? '<b>Rayos:</b> ninguno a menos de 130 km en los últimos 15 min.' /* el recuadro mide ±1,5°: ~139 km al este y al oeste */ : `<b>Rayos:</b> el más cercano, a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}, en los últimos 15 min.`);
   const L = Array.from(o.lluviaMed.slice(0, 12), x => x ?? 0), H = R.horas.slice(0, 12), fuerza = x => x < 2 ? 'débil' : x < 6 ? 'moderada' : 'fuerte';
-  if (L[0] >= 0.5 || L[1] >= 0.5) {
-    let k = 0; while (k < L.length && L[k] >= 0.5) k++;
-    items.push(`<b>Lluvia:</b> ${fuerza(Math.max(...L.slice(0, Math.max(k, 1))))} ` + (k < L.length ? `hasta cerca de las ${hora(H[k])}; después, casi nada.` : 'por al menos 12 horas más.') + ' (pronóstico)');
-  } else {
-    const k = L.findIndex(x => x >= 0.5);
-    items.push(`<b>Lluvia:</b> ${k < 0 ? 'no se espera en las próximas 12 horas.' : `vuelve cerca de las ${hora(H[k])}, ${fuerza(Math.max(...L.slice(k)))}.`} (pronóstico)`);
+  // episodio: cuándo empieza (ini), cuándo termina (fin) y si vuelve después (otra), dentro de 12 h
+  const ini = L.findIndex(x => x >= 0.5);
+  if (ini < 0) items.push('<b>Lluvia:</b> no se espera en las próximas 12 horas. (pronóstico)');
+  else {
+    let fin = ini; while (fin < L.length && L[fin] >= 0.5) fin++;
+    const otra = L.findIndex((x, i) => i > fin && x >= 0.5);
+    const hasta = fin >= L.length ? 'por al menos 12 horas más' : `hasta cerca de las ${hora(H[fin])}` + (otra < 0 ? '; después, casi nada' : `; vuelve cerca de las ${hora(H[otra])}`);
+    items.push(`<b>Lluvia:</b> ${ini ? `empieza cerca de las ${hora(H[ini])}, ` : ''}${fuerza(Math.max(...L.slice(ini, fin)))} ${hasta}. (pronóstico)`);
   }
   $('rrep').innerHTML = `<b>Ahora en la ${c.nombre.replace(/^Quebradas? /, 'quebrada ')}</b><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul>`;
   $('rrep').hidden = false;
