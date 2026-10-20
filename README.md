@@ -2,7 +2,7 @@
 
 Probabilidad de aluvión por día y por hora en 15 quebradas, de Colina a Pirque, con nubes del satélite en vivo.
 
-**Herramienta experimental e independiente, no es un aviso oficial.** Si Senapred o tu municipio piden evacuar, sigue esa instrucción.
+**Proyecto aficionado e independiente, no es un aviso oficial.** Se basa en datos públicos de fuentes confiables (NOAA, NASA, el Servicio Geológico de EE.UU. y los grandes centros meteorológicos), pero no reemplaza a nadie: prefiere siempre los datos y las indicaciones de las autoridades (Senapred, la Dirección Meteorológica de Chile y tu municipio). Si piden evacuar, evacúa.
 
 ## Cómo funciona
 
