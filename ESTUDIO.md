@@ -58,6 +58,6 @@ Los datos de la quebrada apuntan, igual que la literatura, a una recuperación m
 
 ## 3. Qué cambiar
 
-1. **Hecho (20-oct):** la calibración y Bayes prueban recuperación de 180, 365 y 730 días y reposición del barro de 90, 365 y 730 días. Solos, los 295 días empujan a los bordes (no alcanzan para fijarlas), así que el modelo usa 365 y 365 (lo que sugiere la literatura, sin bordes: log-ver. −3,95 frente a −4,38 antes) y Bayes parte de la literatura (365 como lo más probable) y la corrige con los datos.
+1. **Hecho (20-oct):** la calibración y Bayes prueban recuperación de 180, 365 y 730 días y reposición del barro de 90, 365 y 730 días. Solos, los 295 días empujan a los bordes (no alcanzan para fijarlas), así que el modelo usa 365 y 365 (lo que sugiere la literatura, sin bordes: log-ver. −3,95 frente a −4,38 antes) y Bayes parte de la literatura (365 como lo más probable) y la corrige con los datos. Resultado de Bayes (20-oct, noche): con la priori de la literatura y sin ella da lo mismo, recuperación media de ~390 días y reposición del barro de ~410 días. Los bordes eran un pico angosto: el grueso de los datos ya apunta a ~1 año, igual que la literatura.
 2. **Decir en la página que una banda de frente frío puede ser peligrosa sin rayos.** La regla de los rayos confirma una tormenta, pero no la descarta.
 3. **El mejor dato posible: un pluviómetro con registro cada 5 minutos dentro de la cuenca**, o el radar de la DMC si publica datos.
