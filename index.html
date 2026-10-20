@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Predictor de aluviones Santiago</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Tablero de guardia: resumen arriba, mapa y ranking de quebradas lado a lado, detalle del sector elegido, validación al final */
+:root {
+  --bg: #eef2f1; --panel: #ffffff; --fg: #15201c; --muted: #56655f; --line: #d5dedb; --soft: #e4ebe9;
+  --accent: #2b6c8c; --ok: #2c7a4b; --warn: #b26b0a; --bad: #b8322a;
+  --display: "Archivo", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1412; --panel: #161f1c; --fg: #e4ebe8; --muted: #93a39c; --line: #2a3632; --soft: #1e2926;
+    --accent: #6cb2d4; --ok: #4fbf7d; --warn: #e2a33f; --bad: #ef6b5b; color-scheme: dark; }
+}
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif;
+  padding-block: 16px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 1240px; margin: 0 auto; display: grid; gap: 16px }
+h1 { font: 800 1.55rem/1.15 var(--display); margin: 0; text-wrap: balance }
+h2 { font: 700 1.02rem/1.3 var(--display); margin: 0 0 10px; text-wrap: balance }
+p { margin: 0 }
+.sub { color: var(--muted); font-size: .86rem }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0 }
+.resumen { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; border-left: 6px solid var(--sev, var(--line)) }
+.big { font: 800 3.6rem/1 var(--display); color: var(--sev, var(--fg)); font-variant-numeric: tabular-nums; min-width: 3.4ch }
+.big small { font-size: .9rem; display: block; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-top: 4px }
+.resumen .txt { display: grid; gap: 6px; min-width: 0 }
+.grid2 { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px }
+#map { height: 520px; border-radius: 8px; background: var(--soft) }
+.ctrl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-block: 10px 6px; font-size: .85rem }
+button, .chip { text-decoration: none; font: 600 .78rem var(--mono); border: 1px solid var(--line); background: var(--soft); color: var(--fg);
+  border-radius: 6px; padding: 6px 10px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center }
+button:focus-visible, .chip:focus-within, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px }
+.tbl { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; font-variant-numeric: tabular-nums }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle }
+th { font: 600 .72rem var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em }
+td.num, th.num { text-align: right; white-space: nowrap }
+#ranking tbody tr { cursor: pointer }
+#ranking tbody tr:hover, #ranking tbody tr.sel { background: var(--soft) }
+#ranking td b { font: 700 .92rem var(--display) }
+.pill { font: 600 .76rem var(--mono); padding: 2px 8px; border-radius: 99px; color: var(--panel); background: var(--c, var(--muted)); display: inline-block; min-width: 3.4em; text-align: center }
+.factores { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 12px }
+.fact b { display: block; font: 600 1.15rem var(--mono); font-variant-numeric: tabular-nums }
+.fact span { color: var(--muted); font-size: .8rem }
+.dias { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px }
+.dia { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; border-top: 4px solid var(--c) }
+.dia b { font: 700 1.4rem/1.1 var(--mono); color: var(--c); display: block }
+.dia span { font-size: .78rem; color: var(--muted) }
+svg text { fill: var(--muted); font: 11px var(--mono) }
+ul { margin: 0; padding-left: 18px; display: grid; gap: 6px }
+a { color: var(--accent) }
+.cerca { margin: 4px 0 8px; font-weight: 600 }
+.cerca.alerta { color: var(--bad) }
+.err { color: var(--bad) }
+.aviso { margin: 0; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--warn); background: var(--panel); font-size: .88rem }
+.leyenda { display: flex; gap: 12px; flex-wrap: wrap; font-size: .78rem; color: var(--muted) }
+.leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c); vertical-align: -1px; margin-right: 4px }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr } #map { height: 400px } }
+@media (max-width: 560px) { #ranking th:nth-child(4), #ranking td:nth-child(4), #ranking th:nth-child(5), #ranking td:nth-child(5) { display: none } }
+@media (max-width: 520px) { .resumen { grid-template-columns: 1fr; gap: 10px } .big { font-size: 3rem } .dias { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+</style>
+</head>
+<body>
+<main>
+  <p class="aviso" role="note"><b>Herramienta experimental e independiente, no es un aviso oficial.</b> Si Senapred o tu municipio piden evacuar, sigue esa instrucción aunque aquí el riesgo se vea bajo.</p>
+  <header>
+    <h1>Predictor de aluviones · precordillera de Santiago</h1>
+    <p class="sub" id="upd">Descargando pronósticos de 6 centros meteorológicos para 15 quebradas…</p>
+  </header>
+
+  <section class="card resumen" id="resumen">
+    <div class="big" id="rmax">–<small id="rniv">calculando</small></div>
+    <div class="txt">
+      <h2 id="rtit" style="margin:0">Calculando el riesgo de cada quebrada</h2>
+      <p class="sub" id="rtxt"></p>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Quebradas, nubes y tormentas en vivo</h2>
+      <div id="map" role="img" aria-label="Mapa de las quebradas coloreadas por riesgo, con nubes del satélite"></div>
+      <div class="ctrl">
+        <button id="play" type="button">▶ Animar últimas 3 h</button>
+        <label class="chip"><input type="radio" name="capa" value="ir" checked> Infrarrojo</label>
+        <label class="chip"><input type="radio" name="capa" value="geo"> Color</label>
+        <label class="chip"><input type="radio" name="capa" value="no"> Sin nubes</label>
+        <a class="chip" href="https://zoom.earth/maps/satellite/#view=-33.45,-70.6,8z" target="_blank" rel="noopener">Zoom Earth ↗</a>
+        <span class="sub" id="frame"></span>
+      </div>
+      <p id="cerca" class="cerca">Midiendo la distancia a la tormenta más cercana…</p>
+      <div class="leyenda"><span style="--c:var(--bad)"><i></i>alto (≥ 15 %)</span><span style="--c:var(--warn)"><i></i>moderado (5–15 %)</span><span style="--c:var(--ok)"><i></i>bajo (&lt; 5 %)</span><span>Nubes: gris = bajas; azul = altas; verde, amarillo y rojo = tormenta. Llegan con 30–50 min de retraso.</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Riesgo por quebrada y por día</h2>
+      <div class="tbl"><table id="ranking"><tbody><tr><td class="sub">Calculando…</td></tr></tbody></table></div>
+      <p class="sub" style="margin-top:8px">Probabilidad de que se gatille un aluvión ese día. Para comparar, un día cualquiera desde el incendio: 0,7 % en la Quebrada Honda, ~0,3 % en las quemadas a medias y ~0,01 % en las sin quemar. Toca una quebrada para ver su detalle hora a hora.</p>
+    </section>
+  </div>
+
+  <section class="card" id="detalle">
+    <h2 id="dtit">Detalle</h2>
+    <p class="sub" id="dnota" style="margin-bottom:10px"></p>
+    <div class="dias" id="ddias"></div>
+    <div id="dchart"></div>
+    <p class="sub">Barras: probabilidad de que el aluvión se gatille en esa hora. Línea: chance de que una celda de tormenta pase sobre la cuenca.</p>
+    <div class="factores" id="dfact"></div>
+  </section>
+
+  <section class="card">
+    <h2>Cómo funciona el modelo</h2>
+    <p style="margin-bottom:10px">Un aluvión en una cuenca quemada no lo gatilla la lluvia acumulada: lo gatilla el agua que corre sobre el suelo quemado durante un chubasco de pocos minutos. El 6-oct cayeron 111 mm en Tobalaba y no pasó nada; el 8-oct cayeron 35 mm con tormenta y hubo aluvión. El modelo encadena cinco pasos, hora a hora y para cada uno de los ~200 escenarios de pronóstico:</p>
+    <ul class="sub">
+      <li><b>1. Lluvia en la cuenca:</b> lluvia del pronóstico × 1,5 por el cerro × parte de la cuenca bajo la cota de nieve (isoterma − 300 m, con la curva de altitudes de cada cuenca).</li>
+      <li><b>2. ¿Pasa una tormenta encima?</b> Chance por hora que sube con la inestabilidad del aire (índice de levantamiento bajo −4) y baja con la inhibición convectiva. Si el satélite muestra una tormenta sobre la cuenca ahora, la chance de esta hora es 100 %.</li>
+      <li><b>3. Minutos más intensos:</b> bajo una celda lenta llueve ~8 veces lo que da el modelo y el 57 % de la hora cae en 15 min; con lluvia frontal pareja, solo el 15 %. Una celda rápida deja menos agua: el tiempo que pasa sobre la cuenca es su tamaño dividido por su velocidad (viento a 3 km de altura; el 8-oct, ~30 km/h).</li>
+      <li><b>4. Respuesta de la cuenca quemada:</b> regresión del Servicio Geológico de EE.UU. para cuencas quemadas (Staley et al. 2017, M1), con la lluvia de 15, 30 y 60 min, la fracción quemada y empinada de cada cuenca, y la quema que se va cerrando con la vegetación (vida media de 2 años).</li>
+      <li><b>5. Material disponible:</b> cada aluvión se lleva la mitad del barro suelto, que se repone en ~3 meses. Por eso, días después del 8-oct, la misma tormenta pesa menos.</li>
+      <li><b>Por día:</b> la probabilidad del peor momento del día. Las horas de un mismo día no son oportunidades independientes: un día largo de lluvia inestable débil no vale lo mismo que muchas tormentas separadas. Cada centro meteorológico pesa lo mismo.</li>
+      <li><b>Calibración:</b> los 295 días desde el incendio en la Quebrada Honda (2 aluviones), por máxima verosimilitud: el modelo espera 2,6 aluviones en ese período y hubo 2. En Las Ondas y Los Almendros (quemadas a medias) espera 1,0 y 1,1; hubo 1 en cada una. Para las quebradas sin quemar se usó el registro histórico, ~1 aluvión cada 30 años por quebrada (Macul en 1993): sin ese ajuste, el modelo las ponía 20 a 30 veces más riesgosas de lo que han sido.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Validación en la Quebrada Honda (29-dic-2025 al 19-oct-2026)</h2>
+    <div class="grid2" style="gap:24px">
+      <div class="tbl"><table>
+        <tr><th>Día</th><th class="num">Modelo</th><th class="num">Puesto</th><th>Qué pasó</th></tr>
+        <tr><td>8-oct</td><td class="num"><b>27,0 %</b></td><td class="num">1 de 295</td><td><b>Aluvión</b></td></tr>
+        <tr><td>31-ene</td><td class="num"><b>25,3 %</b></td><td class="num">2</td><td><b>Aluvión</b></td></tr>
+        <tr><td>6-may (22 mm en Tobalaba)</td><td class="num">18,0 %</td><td class="num">3</td><td>Nada (falsa alarma)</td></tr>
+        <tr><td>2-oct</td><td class="num">12,2 %</td><td class="num">4</td><td>Nada (falsa alarma)</td></tr>
+        <tr><td>13-oct (alerta roja)</td><td class="num">11,2 %</td><td class="num">6</td><td>Nada</td></tr>
+        <tr><td>17-jul (88 mm)</td><td class="num">9,2 %</td><td class="num">9</td><td>Nada</td></tr>
+        <tr><td>6-oct (111 mm)</td><td class="num">2,5 %</td><td class="num">25</td><td>Nada</td></tr>
+        <tr><td>12-oct (alerta roja)</td><td class="num">0,9 %</td><td class="num">56</td><td>Nada</td></tr>
+      </table></div>
+      <ul class="sub">
+        <li><b>A las 8 de la mañana</b>, con las corridas de la madrugada (<code>modelo/manana.js</code>): el 8-oct el modelo habría dado <b>10,5 %</b> (rango 7–14 % según el modelo meteorológico) y habría marcado como hora más crítica las <b>17:00</b>; el aluvión bajó entre las 16:50 y las 17:00. El 6-oct daba 1,4 %, el 7-oct 2,2 %, el 12-oct 1,2 % y el 13-oct 7,6 %. El 20-oct a la misma hora daba 14,2 %.</li>
+        <li>Los dos aluviones quedan en los puestos 1 y 2 de 295 días. Calibrando sin uno de ellos, ese día igual queda en el puesto 3 (31-ene) y 1 (8-oct).</li>
+        <li>Error cuadrático (Brier) 0,0042, mejor que la climatología (0,0067).</li>
+        <li><b>El 6-may sigue siendo la falsa alarma más fuerte</b>, y no es un error del pronóstico: cayeron 22 mm en Tobalaba entre las 15 y las 21 h con el aire inestable, igual que en los dos aluviones. Una probabilidad de 18 % significa que de cada cinco días así, en cuatro no pasa nada. En los cuatro días más riesgosos el modelo esperaba 0,8 aluviones y hubo 2: si se equivoca, es por quedarse corto.</li>
+        <li><b>El factor que decide es la inestabilidad del aire.</b> Si se saca, los aluviones caen a los puestos 44 y 19. La velocidad de la tormenta y la correlación entre horas mejoran el ajuste un poco (bajan el 2-oct de 19 % a 12 % y el 6-may de 22 % a 18 %). Hacer depender la lluvia del viento cuesta arriba lo empeora, porque infla los temporales de invierno. La recuperación de la quema, el material arrastrado y la inhibición convectiva aportan poco: con dos aluviones no se pueden medir bien.</li>
+        <li>Las 12 quebradas sin quema, de Colina a Pirque, usan el mismo modelo con quema cero, escalado al registro histórico. Las de Colina, La Dehesa, Puente Alto, San José de Maipo y Pirque se ubicaron con el relieve y se nombraron por su sector en OpenStreetMap. Sus probabilidades son bajas en números absolutos; lo que conviene mirar es cuántas veces su día normal marcan.</li>
+        <li>Limitaciones: dos aluviones para calibrar (lo que más precisión daría es un pluviómetro dentro de la Quebrada Honda y más eventos), sin pluviómetro dentro de las cuencas, fracción quemada de Las Ondas y Los Almendros estimada, y los modelos globales ven mal las tormentas chicas. Complementa a Senapred; no lo reemplaza.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Fuentes oficiales y en vivo</h2>
+    <ul class="sub">
+      <li><a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">Alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">Lluvia diaria en Tobalaba</a></li>
+      <li>Datos: Open-Meteo (ECMWF, ECMWF-IA, ICON, GFS, GEM, UKMO), NASA GIBS (GOES-Este), relieve Terrarium de AWS, cauces de OpenStreetMap.</li>
+    </ul>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// <cadena>  Modelo en cadena: atmósfera → lluvia en la cuenca → minutos intensos → cuenca quemada → aluvión.
+// Se usa tal cual dentro de index.html y en modelo/calibrar.js.
+// Cada cuenca trae: hyp (cota de cada 5 % del área), quemada (fracción con quema moderada o alta),
+// empinada (fracción con pendiente ≥ 23°) y aluviones (instantes unix de sus aluviones anteriores).
+const FUEGO = Date.parse('2025-12-29T03:00:00Z') / 1000;             // incendio de San Carlos de Apoquindo (00 h de Chile)
+const PAR = {
+  // 1. lluvia en la cuenca
+  nieve: 300,                  // la cota de nieve queda ~300 m bajo la isoterma 0 °C
+  kRef: 1.5, uRef: 20, kSig: 0.3, usarViento: false, // lluvia en el cerro / lluvia del modelo (calibrado; uRef = viento cuesta arriba del 8-oct, km/h)
+  // 2. ¿pasa una tormenta por encima?
+  qMax: 1, li0: -4, liEsc: 1, cinEsc: 50,   // calibrado: la chance sube fuerte con índice de levantamiento bajo −4
+  // 3. minutos más intensos
+  mCelda: 8, mSig: 0.5,        // bajo una celda lenta (30 km/h) llueve ~8 veces lo que da el modelo en la hora (calibrado)
+  rCelda: [0.57, 0.79],        // fracción de la hora pico en 15 y 30 min bajo tormenta (Bell 1969)
+  rho: 0.95,                   // correlación entre horas de un mismo día (calibrado): un día largo de lluvia inestable débil no suma
+                               // tantas oportunidades independientes como horas tiene (6-may y 2-oct, falsas alarmas)
+  vRef: 30, betaV: 1, fMax: 2, // tiempo de la celda sobre la cuenca ∝ 1/velocidad: lluvia de la celda × (vRef/v)^betaV (8-oct: ~30 km/h)
+  rFrente: [0.15, 0.40],       // idem con lluvia frontal pareja (calibrado)
+  // 4. cuenca quemada (USGS, Staley et al. 2017, modelo M1: B, Ct, Cf, Cs por duración)
+  usgs: [[15, -3.63, 0.41, 0.67, 0.70], [30, -3.61, 0.26, 0.39, 0.50], [60, -3.21, 0.17, 0.20, 0.22]],
+  sev: [0.5, 0.85], F: [0.25, 0.45], S: [0.20, 0.30], // T = quemada · empinada · sev (severidad moderada o alta)
+  tauVeg: 730,                 // días: la quema se "cierra" con la vegetación (e-folding de 2 años)
+  // 5. material suelto disponible
+  delta: 0.5, tauRec: 90,      // cada aluvión se lleva la mitad del material; se repone en ~3 meses
+  escala: 0.6,                 // recalibración global (ajustada con los 295 días)
+  sinQuema: 0.027,             // cuencas sin quemar: el registro da ~1 aluvión cada 30 años por quebrada (Macul 1993);
+                               // sin este factor el modelo esperaba 0,5–0,9 por quebrada en 295 días, 20 a 30 veces más
+};
+
+const rad = Math.PI / 180;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const logistic = x => 1 / (1 + Math.exp(-x));
+function rng(seed) { return () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gauss = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const unif = (r, [a, b]) => a + (b - a) * r();
+function Phi(x) { const z = Math.abs(x) / Math.SQRT2, t = 1 / (1 + 0.3275911 * z); const e = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z); return x >= 0 ? (1 + e) / 2 : (1 - e) / 2; }
+
+// Fracción de la cuenca donde cae agua y no nieve (curva de altitudes).
+function fLiquida(iso, h) {
+  if (iso == null || !isFinite(iso)) return 1;
+  const cota = iso - PAR.nieve;
+  if (cota <= h[0]) return 0;
+  if (cota >= h[20]) return 1;
+  for (let i = 1; i < 21; i++) if (cota < h[i]) return (i - 1 + (cota - h[i - 1]) / (h[i] - h[i - 1])) / 20;
+  return 1;
+}
+// Viento de 700 hPa que sube por la ladera oeste de los Andes (componente hacia el este, km/h).
+const cuestaArriba = (v, dir) => v == null || dir == null ? 0 : Math.max(0, -v * Math.sin(dir * rad));
+// Realce por el cerro: crece con el viento cuesta arriba y con la humedad que trae.
+// La calibración mostró que hacerlo depender del viento infla los temporales de invierno (17-jul, 88 mm, sin aluvión):
+// por defecto es constante; usarViento = true lo vuelve a activar para comparar.
+const kCerro = (v, dir, hr) => PAR.usarViento ? 1 + (PAR.kRef - 1) * clamp(cuestaArriba(v, dir) / PAR.uRef, 0, 2) * clamp((hr ?? 100) / 100, 0, 1) : PAR.kRef;
+// Probabilidad por hora de que una celda de tormenta pase sobre la cuenca.
+// Sube con la inestabilidad (−índice de levantamiento) y baja con la inhibición convectiva (la «tapa»).
+const pCelda = (li, cin) => li == null ? 0 : PAR.qMax * logistic((PAR.li0 - li) / PAR.liEsc) * Math.exp(-Math.max(0, cin || 0) / PAR.cinEsc);
+// Recuperación de la quema y material disponible en el instante t (s unix).
+const recuperacion = t => Math.exp(-Math.max(0, t - FUEGO) / 86400 / PAR.tauVeg);
+function material(t, aluviones) {
+  let s = 1, t0 = FUEGO;
+  for (const e of aluviones) {
+    if (e >= t) break;
+    s = 1 - (1 - s) * Math.exp(-(e - t0) / 86400 / PAR.tauRec);
+    s *= 1 - PAR.delta; t0 = e;
+  }
+  return 1 - (1 - s) * Math.exp(-(t - t0) / 86400 / PAR.tauRec);
+}
+
+// esc: { time (s unix), p (mm/h), li, cin, v700, d700, hr700, iso, forzar? (Set de índices con tormenta vista en el satélite) }
+// dia[i] = índice de día de la hora i. Devuelve la prob. media por hora y, por día, la del peor momento.
+function simular(esc, cu, dia, nDias, nDraws, seed) {
+  const n = esc.p.length, r = rng(seed);
+  const hora = new Float64Array(n), porDia = new Float64Array(nDias), maxDia = new Float64Array(nDias);
+  const lluvia = new Float64Array(n), q = new Float64Array(n), rec = new Float64Array(n), mat = new Float64Array(n), avance = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    lluvia[i] = (esc.p[i] || 0) * kCerro(esc.v700[i], esc.d700[i], esc.hr700[i]) * fLiquida(esc.iso[i], cu.hyp);
+    let li = null; for (let k = Math.max(0, i - 2); k <= Math.min(n - 1, i + 2); k++) if (esc.li[k] != null) li = li == null ? esc.li[k] : Math.min(li, esc.li[k]);
+    q[i] = esc.forzar?.has(i) ? 1 : pCelda(li, esc.cin[i]);
+    rec[i] = recuperacion(esc.time[i]); mat[i] = material(esc.time[i], cu.aluviones);
+    // una celda rápida pasa en pocos minutos y deja menos agua en la cuenca; una lenta se queda encima
+    avance[i] = Math.min(PAR.fMax, (PAR.vRef / Math.max(5, esc.v700[i] ?? PAR.vRef)) ** PAR.betaV);
+  }
+  const p0 = PAR.usgs.map(([, B]) => logistic(B));
+  const fQuema = PAR.sinQuema + (1 - PAR.sinQuema) * Math.min(1, cu.quemada / 0.95); // 1 en la Quebrada Honda, sinQuema sin quema
+  for (let d = 0; d < nDraws; d++) {
+    const kN = Math.exp(PAR.kSig * gauss(r)), mC = PAR.mCelda * Math.exp(PAR.mSig * gauss(r));
+    const T = cu.quemada * cu.empinada * unif(r, PAR.sev), F = cu.quemada * unif(r, PAR.F), S = unif(r, PAR.S);
+    maxDia.fill(0);
+    // cópula gaussiana: las horas de un mismo día comparten parte de su suerte (rho)
+    const zDia = new Float64Array(nDias); for (let j = 0; j < nDias; j++) zDia[j] = gauss(r);
+    const a = Math.sqrt(PAR.rho), b = Math.sqrt(1 - PAR.rho);
+    for (let i = 0; i < n; i++) {
+      const hit = (PAR.rho ? Phi(a * zDia[dia[i]] + b * gauss(r)) : r()) < q[i], R60 = lluvia[i] * kN * (hit ? mC * avance[i] : 1);
+      if (R60 <= 0) continue;
+      const [r15, r30] = hit ? PAR.rCelda : PAR.rFrente, R = [R60 * r15, R60 * r30, R60];
+      let pu = 0;
+      // ponytail: se resta la probabilidad con lluvia cero (2–4 %), para que una hora seca dé 0
+      PAR.usgs.forEach(([, B, ct, cf, cs], k) => { pu += Math.max(0, (logistic(B + (ct * T * rec[i] + cf * F * rec[i] + cs * S) * R[k]) - p0[k]) / (1 - p0[k])); });
+      const h = PAR.escala * fQuema * mat[i] * pu / 3;
+      hora[i] += h;
+      if (h > maxDia[dia[i]]) maxDia[dia[i]] = h;
+    }
+    for (let j = 0; j < nDias; j++) porDia[j] += maxDia[j];
+  }
+  for (let i = 0; i < n; i++) hora[i] /= nDraws;
+  for (let j = 0; j < nDias; j++) porDia[j] /= nDraws;
+  return { hora, porDia, lluvia, q, rec, mat, avance };
+}
+// </cadena>
+/* <cuencas> */ const CUENCAS = [{"id":"honda","nombre":"Quebrada Honda","comuna":"Las Condes · San Carlos de Apoquindo","quemada":0.95,"aluviones":["2026-01-31T18:00","2026-10-08T17:00"],"nota":"Incendio dic-2025 sobre casi toda la cuenca. Aluviones el 31-ene y el 8-oct-2026.","centro":[-33.4052,-70.4733],"km2":8.5,"hyp":[843,972,1082,1135,1193,1241,1284,1324,1357,1399,1437,1479,1511,1552,1592,1630,1683,1738,1816,1921,2195],"empinada":0.6,"borde":[[-33.39817,-70.5178],[-33.39731,-70.52089],[-33.39645,-70.52089],[-33.39645,-70.50956],[-33.39731,-70.50956],[-33.39731,-70.5075],[-33.39817,-70.5075],[-33.39817,-70.49617],[-33.39903,-70.49617],[-33.39903,-70.49308],[-33.39731,-70.49205],[-33.39645,-70.48896],[-33.39558,-70.48896],[-33.39558,-70.48381],[-33.39472,-70.48381],[-33.39558,-70.47763],[-33.39386,-70.4766],[-33.39386,-70.47557],[-33.39472,-70.47557],[-33.39472,-70.47042],[-33.39386,-70.47042],[-33.39386,-70.46939],[-33.39472,-70.46939],[-33.39472,-70.46733],[-33.39558,-70.46733],[-33.39558,-70.46012],[-33.39645,-70.46012],[-33.39645,-70.45703],[-33.39731,-70.45703],[-33.39731,-70.45394],[-33.39989,-70.45394],[-33.39989,-70.45291],[-33.41886,-70.45291],[-33.41886,-70.45394],[-33.418,-70.45394],[-33.41886,-70.46012],[-33.418,-70.46012],[-33.418,-70.46218],[-33.41713,-70.46218],[-33.41627,-70.46424],[-33.41713,-70.46424],[-33.41713,-70.4663],[-33.418,-70.4663],[-33.418,-70.47248],[-33.41886,-70.47248],[-33.41886,-70.47454],[-33.41972,-70.47454],[-33.42058,-70.47763],[-33.41886,-70.47866],[-33.41886,-70.47969],[-33.41541,-70.48072],[-33.41541,-70.48175],[-33.4111,-70.48175],[-33.4111,-70.48278],[-33.40938,-70.48278],[-33.40851,-70.48587],[-33.40765,-70.48587],[-33.40507,-70.48999],[-33.40076,-70.49411],[-33.40076,-70.50544],[-33.39903,-70.50647],[-33.39903,-70.5178],[-33.39817,-70.5178]],"base":0.00881},{"id":"ondas","nombre":"Quebrada Las Ondas","comuna":"Las Condes · Álvaro del Portillo","quemada":0.5,"aluviones":["2026-10-08T17:00"],"nota":"Se activó el 8-oct. Quema parcial estimada.","centro":[-33.3889,-70.4916],"km2":3.7,"hyp":[849,890,909,924,936,949,961,973,986,1003,1021,1043,1063,1092,1121,1154,1186,1224,1262,1326,1451],"empinada":0.31,"borde":[[-33.39731,-70.49205],[-33.39903,-70.49308],[-33.39903,-70.49617],[-33.39817,-70.49617],[-33.39817,-70.4972],[-33.39645,-70.4972],[-33.39472,-70.50029],[-33.393,-70.50029],[-33.39214,-70.50235],[-33.39041,-70.50235],[-33.38783,-70.50647],[-33.3861,-70.50647],[-33.38438,-70.50956],[-33.38179,-70.50956],[-33.38265,-70.50338],[-33.38352,-70.50338],[-33.38352,-70.49926],[-33.38265,-70.49926],[-33.38265,-70.4972],[-33.38352,-70.4972],[-33.38352,-70.48896],[-33.38093,-70.4869],[-33.38093,-70.48484],[-33.38179,-70.48484],[-33.38093,-70.48175],[-33.38352,-70.47969],[-33.38352,-70.47866],[-33.38524,-70.47866],[-33.38524,-70.47969],[-33.38783,-70.47969],[-33.38783,-70.47866],[-33.39127,-70.47763],[-33.39127,-70.4766],[-33.39472,-70.4766],[-33.39472,-70.47763],[-33.39558,-70.47763],[-33.39472,-70.48381],[-33.39558,-70.48381],[-33.39558,-70.48896],[-33.39645,-70.48896],[-33.39731,-70.49205]],"base":0.00333},{"id":"almendros","nombre":"Quebradas Grande y Los Almendros","comuna":"Las Condes · Camino El Alba","quemada":0.5,"aluviones":["2026-01-31T18:00"],"nota":"Flujos de barro el 31-ene (Sernageomin). Quema parcial estimada.","centro":[-33.4196,-70.5016],"km2":5.4,"hyp":[844,875,898,919,939,959,982,998,1016,1030,1055,1084,1114,1153,1189,1226,1279,1341,1408,1474,1583],"empinada":0.47,"borde":[[-33.43006,-70.50029],[-33.43006,-70.5075],[-33.42834,-70.50853],[-33.4292,-70.51162],[-33.42403,-70.51265],[-33.42403,-70.51368],[-33.42231,-70.51368],[-33.42231,-70.51471],[-33.41972,-70.51471],[-33.41972,-70.5178],[-33.41627,-70.5178],[-33.41627,-70.51677],[-33.41455,-70.51677],[-33.41455,-70.51574],[-33.41196,-70.51574],[-33.41196,-70.51368],[-33.4111,-70.51368],[-33.4111,-70.50956],[-33.41024,-70.50956],[-33.41024,-70.50647],[-33.40851,-70.50544],[-33.40851,-70.50132],[-33.40765,-70.50132],[-33.40765,-70.49205],[-33.40851,-70.49205],[-33.40851,-70.49102],[-33.41024,-70.49102],[-33.41024,-70.49205],[-33.41196,-70.49205],[-33.41196,-70.49308],[-33.41455,-70.49308],[-33.41455,-70.49205],[-33.41972,-70.49205],[-33.41972,-70.49102],[-33.42317,-70.49102],[-33.42403,-70.48587],[-33.4292,-70.48587],[-33.43006,-70.48793],[-33.43093,-70.48793],[-33.43093,-70.49514],[-33.43179,-70.49514],[-33.43179,-70.49823],[-33.43093,-70.49823],[-33.43093,-70.50029],[-33.43006,-70.50029]],"base":0.00375},{"id":"ramon","nombre":"Quebrada de Ramón","comuna":"La Reina · Aguas de Ramón","quemada":0,"aluviones":[],"nota":"Sin quema reciente.","centro":[-33.4483,-70.4621],"km2":36,"hyp":[844,1140,1335,1450,1514,1581,1653,1730,1808,1890,1958,2040,2126,2209,2294,2382,2477,2568,2685,2832,3234],"empinada":0.83,"borde":[[-33.46023,-70.42819],[-33.46368,-70.42922],[-33.46541,-70.43437],[-33.47144,-70.43437],[-33.47144,-70.43334],[-33.47403,-70.43334],[-33.47403,-70.43231],[-33.47661,-70.43231],[-33.47661,-70.43334],[-33.48092,-70.43334],[-33.48351,-70.43746],[-33.48609,-70.43746],[-33.48609,-70.44467],[-33.48523,-70.44467],[-33.48523,-70.44673],[-33.48437,-70.44673],[-33.48437,-70.44879],[-33.48351,-70.44879],[-33.48351,-70.45188],[-33.48092,-70.45394],[-33.48092,-70.456],[-33.47661,-70.46012],[-33.47661,-70.46218],[-33.47575,-70.46218],[-33.47575,-70.47248],[-33.47403,-70.47351],[-33.47403,-70.47557],[-33.47058,-70.4766],[-33.46885,-70.47969],[-33.46713,-70.47969],[-33.46627,-70.48278],[-33.46454,-70.48278],[-33.46368,-70.48587],[-33.46196,-70.48587],[-33.46196,-70.4869],[-33.45937,-70.4869],[-33.45937,-70.48793],[-33.45592,-70.48896],[-33.45161,-70.49514],[-33.44644,-70.49514],[-33.44644,-70.4972],[-33.44472,-70.4972],[-33.44213,-70.50132],[-33.44041,-70.50132],[-33.44041,-70.50235],[-33.43782,-70.50441],[-33.43782,-70.50647],[-33.43696,-70.50647],[-33.43696,-70.50853],[-33.4361,-70.50853],[-33.4361,-70.51368],[-33.43351,-70.51574],[-33.43351,-70.5178],[-33.43265,-70.5178],[-33.43265,-70.51677],[-33.43093,-70.51677],[-33.43093,-70.51574],[-33.42834,-70.51368],[-33.42834,-70.51162],[-33.4292,-70.51162],[-33.42834,-70.50853],[-33.43006,-70.5075],[-33.43006,-70.50029],[-33.43093,-70.50029],[-33.43093,-70.49823],[-33.43179,-70.49823],[-33.43179,-70.49514],[-33.43093,-70.49514],[-33.43093,-70.48793],[-33.43006,-70.48793],[-33.4292,-70.48587],[-33.42403,-70.48587],[-33.42489,-70.47866],[-33.42403,-70.47866],[-33.42403,-70.47763],[-33.42058,-70.47763],[-33.41972,-70.47454],[-33.41886,-70.47454],[-33.41886,-70.47248],[-33.418,-70.47248],[-33.418,-70.4663],[-33.41713,-70.4663],[-33.41713,-70.46424],[-33.41627,-70.46424],[-33.41713,-70.46218],[-33.418,-70.46218],[-33.418,-70.46012],[-33.41886,-70.46012],[-33.418,-70.45394],[-33.41886,-70.45394],[-33.41972,-70.44982],[-33.42144,-70.44982],[-33.42231,-70.44673],[-33.42489,-70.44467],[-33.42662,-70.43437],[-33.42834,-70.43437],[-33.42834,-70.43334],[-33.43351,-70.43334],[-33.43351,-70.43231],[-33.4361,-70.43231],[-33.4361,-70.43128],[-33.43868,-70.43128],[-33.43868,-70.43025],[-33.44041,-70.43025],[-33.44041,-70.43128],[-33.44472,-70.43128],[-33.44472,-70.43231],[-33.44558,-70.43231],[-33.44558,-70.43128],[-33.44644,-70.43128],[-33.44644,-70.43025],[-33.44817,-70.43025],[-33.44903,-70.42819],[-33.46023,-70.42819]],"base":7.69e-05},{"id":"nido","nombre":"Quebrada Nido de Águilas","comuna":"Peñalolén","quemada":0,"aluviones":[],"nota":"Sin quema reciente.","centro":[-33.4786,-70.4895],"km2":4.4,"hyp":[842,946,1097,1219,1287,1350,1401,1458,1531,1596,1666,1742,1823,1877,1959,2033,2115,2180,2258,2342,2555],"empinada":0.89,"borde":[[-33.47489,-70.47351],[-33.47575,-70.47145],[-33.48092,-70.47145],[-33.48092,-70.47248],[-33.48437,-70.47248],[-33.48437,-70.47351],[-33.48609,-70.47351],[-33.48696,-70.47866],[-33.48782,-70.47866],[-33.48782,-70.48072],[-33.48868,-70.48072],[-33.48868,-70.48587],[-33.48782,-70.48587],[-33.48609,-70.49205],[-33.48437,-70.49205],[-33.48437,-70.49411],[-33.48178,-70.49617],[-33.48178,-70.50029],[-33.48006,-70.50132],[-33.4792,-70.50338],[-33.47747,-70.50338],[-33.47747,-70.51677],[-33.47316,-70.52089],[-33.4723,-70.51471],[-33.47403,-70.51368],[-33.47403,-70.51162],[-33.47575,-70.51059],[-33.47575,-70.5075],[-33.47316,-70.50544],[-33.47316,-70.4766],[-33.47403,-70.4766],[-33.47403,-70.47351],[-33.47489,-70.47351]],"base":9.8e-05},{"id":"macul","nombre":"Quebrada de Macul","comuna":"Peñalolén · La Florida","quemada":0,"aluviones":[],"nota":"Aluvión de 1993. Única con obras de control (piscinas decantadoras).","centro":[-33.5019,-70.4735],"km2":23.4,"hyp":[844,1204,1346,1456,1558,1655,1747,1836,1923,2003,2077,2153,2222,2290,2366,2437,2508,2602,2726,2892,3247],"empinada":0.93,"borde":[[-33.49816,-70.50956],[-33.49816,-70.50441],[-33.4973,-70.50441],[-33.49644,-70.50235],[-33.49299,-70.50235],[-33.49299,-70.50132],[-33.49213,-70.50132],[-33.4904,-70.49514],[-33.48868,-70.49411],[-33.48868,-70.49205],[-33.48782,-70.49205],[-33.48782,-70.48999],[-33.48696,-70.48999],[-33.48696,-70.48793],[-33.48782,-70.48793],[-33.48782,-70.48587],[-33.48868,-70.48587],[-33.48868,-70.48072],[-33.48782,-70.48072],[-33.48782,-70.47866],[-33.48696,-70.47866],[-33.48609,-70.47351],[-33.48437,-70.47351],[-33.48437,-70.47248],[-33.48092,-70.47248],[-33.48092,-70.47145],[-33.47575,-70.47145],[-33.47575,-70.46218],[-33.47661,-70.46218],[-33.47661,-70.46012],[-33.48092,-70.456],[-33.48092,-70.45394],[-33.48351,-70.45188],[-33.48351,-70.44879],[-33.48437,-70.44879],[-33.48437,-70.44673],[-33.48523,-70.44673],[-33.48523,-70.44467],[-33.48609,-70.44467],[-33.48609,-70.43849],[-33.48954,-70.43849],[-33.48954,-70.43746],[-33.49902,-70.43746],[-33.49902,-70.43849],[-33.50075,-70.43849],[-33.50161,-70.44055],[-33.50333,-70.44055],[-33.5042,-70.44261],[-33.50592,-70.44364],[-33.50592,-70.44879],[-33.50851,-70.45085],[-33.50851,-70.45291],[-33.51023,-70.45394],[-33.51282,-70.45806],[-33.51454,-70.45806],[-33.51454,-70.46012],[-33.51626,-70.46012],[-33.51626,-70.46321],[-33.51799,-70.46424],[-33.51885,-70.4663],[-33.5223,-70.4663],[-33.5223,-70.46733],[-33.52575,-70.46733],[-33.52575,-70.46836],[-33.52747,-70.46836],[-33.52919,-70.47557],[-33.53178,-70.47763],[-33.53092,-70.48381],[-33.53006,-70.48381],[-33.53006,-70.4869],[-33.52919,-70.4869],[-33.52919,-70.49102],[-33.52747,-70.49102],[-33.52747,-70.49205],[-33.52488,-70.49205],[-33.52488,-70.49308],[-33.52144,-70.49308],[-33.52144,-70.49411],[-33.51799,-70.49411],[-33.5154,-70.49823],[-33.51368,-70.49823],[-33.51368,-70.50029],[-33.51023,-70.50132],[-33.50851,-70.50441],[-33.50592,-70.50441]],"base":7.15e-05},{"id":"locanas","nombre":"Quebrada Lo Cañas","comuna":"La Florida","quemada":0,"aluviones":[],"nota":"Sin quema reciente.","centro":[-33.534,-70.4976],"km2":4.4,"hyp":[841,1002,1119,1224,1311,1394,1456,1522,1585,1637,1697,1755,1821,1874,1946,2001,2072,2134,2215,2315,2466],"empinada":0.86,"borde":[[-33.53868,-70.50441],[-33.53695,-70.50853],[-33.53609,-70.50853],[-33.53609,-70.50956],[-33.53437,-70.50956],[-33.53437,-70.51059],[-33.53178,-70.51265],[-33.53178,-70.52089],[-33.53092,-70.52089],[-33.53006,-70.52604],[-33.52919,-70.52604],[-33.52919,-70.51986],[-33.52833,-70.51986],[-33.52919,-70.50441],[-33.52833,-70.50441],[-33.52833,-70.49926],[-33.52747,-70.49926],[-33.52747,-70.49205],[-33.52919,-70.49102],[-33.52919,-70.4869],[-33.53006,-70.4869],[-33.53006,-70.48381],[-33.53092,-70.48381],[-33.53092,-70.48072],[-33.53178,-70.48072],[-33.53178,-70.47969],[-33.53781,-70.47969],[-33.53868,-70.48278],[-33.53954,-70.48278],[-33.53954,-70.48484],[-33.5404,-70.48484],[-33.5404,-70.48587],[-33.54299,-70.48587],[-33.54385,-70.48896],[-33.54471,-70.48896],[-33.54471,-70.49617],[-33.54385,-70.49617],[-33.54385,-70.49823],[-33.5404,-70.50132],[-33.53868,-70.50441]],"base":9.98e-05},{"id":"arrayan","nombre":"Estero El Arrayán","comuna":"Lo Barnechea · Huallalolén","quemada":0,"aluviones":[],"nota":"Incluye Huallalolén y Ñilhue, con activaciones recurrentes.","centro":[-33.2747,-70.4297],"km2":132.7,"hyp":[885,1170,1327,1433,1525,1602,1670,1739,1805,1867,1936,2009,2090,2170,2259,2341,2422,2521,2648,2803,3309],"empinada":0.71,"borde":[[-33.21112,-70.38596],[-33.21112,-70.35403],[-33.21284,-70.35403],[-33.21284,-70.35506],[-33.21456,-70.35506],[-33.21456,-70.35609],[-33.21801,-70.35712],[-33.21887,-70.35918],[-33.22491,-70.35918],[-33.22491,-70.36021],[-33.22663,-70.36021],[-33.22663,-70.35918],[-33.22749,-70.35918],[-33.22749,-70.36021],[-33.2318,-70.36021],[-33.23439,-70.36433],[-33.23784,-70.36433],[-33.23784,-70.3633],[-33.23956,-70.3633],[-33.23956,-70.36433],[-33.24215,-70.36433],[-33.24301,-70.36639],[-33.24473,-70.36639],[-33.24473,-70.36742],[-33.2456,-70.36742],[-33.2456,-70.36948],[-33.24646,-70.36948],[-33.24732,-70.37154],[-33.25163,-70.37154],[-33.25163,-70.37257],[-33.25335,-70.37257],[-33.2568,-70.37772],[-33.25853,-70.37772],[-33.25853,-70.37875],[-33.26197,-70.37875],[-33.26456,-70.38287],[-33.26715,-70.38287],[-33.26715,-70.3839],[-33.27749,-70.3839],[-33.27749,-70.38287],[-33.27921,-70.38287],[-33.27921,-70.3839],[-33.28783,-70.3839],[-33.28956,-70.38699],[-33.29387,-70.38699],[-33.29387,-70.38802],[-33.29559,-70.38802],[-33.29645,-70.38596],[-33.30076,-70.38596],[-33.30076,-70.38699],[-33.30249,-70.38596],[-33.30249,-70.38699],[-33.30507,-70.38699],[-33.30507,-70.38802],[-33.3068,-70.38802],[-33.3068,-70.38905],[-33.30938,-70.38905],[-33.31025,-70.3942],[-33.31111,-70.3942],[-33.31197,-70.39626],[-33.31369,-70.39626],[-33.31369,-70.39729],[-33.32059,-70.39729],[-33.32145,-70.40038],[-33.3249,-70.40141],[-33.3249,-70.40553],[-33.32835,-70.40759],[-33.32921,-70.41171],[-33.33093,-70.41274],[-33.3318,-70.4148],[-33.33352,-70.4148],[-33.33438,-70.41892],[-33.33697,-70.42098],[-33.33697,-70.42201],[-33.34042,-70.42304],[-33.34042,-70.4251],[-33.34128,-70.4251],[-33.34214,-70.42819],[-33.34386,-70.42819],[-33.34559,-70.43128],[-33.34731,-70.43128],[-33.34731,-70.43231],[-33.34904,-70.43231],[-33.34904,-70.4354],[-33.35076,-70.4354],[-33.35076,-70.43643],[-33.35248,-70.43746],[-33.35335,-70.44364],[-33.35421,-70.44364],[-33.35421,-70.44879],[-33.35507,-70.44879],[-33.35507,-70.44982],[-33.35421,-70.44982],[-33.35421,-70.45703],[-33.35248,-70.45703],[-33.35248,-70.45806],[-33.35162,-70.45806],[-33.35076,-70.46115],[-33.35162,-70.46115],[-33.35162,-70.46321],[-33.35248,-70.46321],[-33.35248,-70.46527],[-33.35335,-70.46527],[-33.35335,-70.46836],[-33.35421,-70.46836],[-33.35507,-70.47248],[-33.35766,-70.47454],[-33.35852,-70.47763],[-33.35938,-70.47763],[-33.35938,-70.48381],[-33.35679,-70.48381],[-33.35593,-70.48587],[-33.35335,-70.48587],[-33.35335,-70.48484],[-33.35076,-70.48484],[-33.35076,-70.48381],[-33.34645,-70.48381],[-33.34645,-70.48278],[-33.33955,-70.48381],[-33.33955,-70.48278],[-33.33783,-70.48175],[-33.33783,-70.48278],[-33.33611,-70.48278],[-33.33611,-70.48381],[-33.33438,-70.48381],[-33.33438,-70.48278],[-33.3318,-70.48278],[-33.3318,-70.48175],[-33.32749,-70.48175],[-33.32749,-70.48072],[-33.32576,-70.48072],[-33.32576,-70.47866],[-33.32145,-70.47454],[-33.32145,-70.47248],[-33.31973,-70.47248],[-33.31973,-70.47145],[-33.31542,-70.47145],[-33.31456,-70.47454],[-33.31197,-70.4766],[-33.31111,-70.47969],[-33.30766,-70.48072],[-33.30766,-70.48175],[-33.30507,-70.48175],[-33.30507,-70.48278],[-33.30335,-70.48278],[-33.30335,-70.48175],[-33.29473,-70.48175],[-33.29473,-70.48072],[-33.28697,-70.48175],[-33.28697,-70.48072],[-33.28525,-70.47969],[-33.28525,-70.47866],[-33.28352,-70.47866],[-33.2818,-70.47557],[-33.27921,-70.47557],[-33.27835,-70.47763],[-33.27146,-70.47763],[-33.27146,-70.47866],[-33.26801,-70.47866],[-33.26801,-70.47969],[-33.2637,-70.47969],[-33.26284,-70.47763],[-33.25766,-70.4766],[-33.25766,-70.47454],[-33.2568,-70.47454],[-33.2568,-70.47248],[-33.25594,-70.47248],[-33.25508,-70.46939],[-33.25163,-70.46939],[-33.25163,-70.47042],[-33.24646,-70.47042],[-33.24646,-70.47145],[-33.24301,-70.47145],[-33.24301,-70.47248],[-33.24042,-70.47248],[-33.24042,-70.47351],[-33.23698,-70.47351],[-33.23611,-70.47145],[-33.2318,-70.47145],[-33.2318,-70.47248],[-33.22836,-70.47248],[-33.22836,-70.47145],[-33.22749,-70.47145],[-33.22663,-70.47454],[-33.22146,-70.47454],[-33.22146,-70.47351],[-33.21974,-70.47351],[-33.21974,-70.47248],[-33.21801,-70.47248],[-33.21715,-70.47042],[-33.21112,-70.47042],[-33.21112,-70.38596]],"base":7.91e-05},{"id":"chicureo","nombre":"Quebradas de Chicureo","comuna":"Colina · Chicureo","quemada":0,"aluviones":[],"nota":"Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap.","centro":[-33.2478,-70.5774],"km2":8.5,"hyp":[849,960,1009,1050,1084,1117,1151,1184,1217,1253,1290,1324,1364,1404,1445,1494,1535,1584,1642,1716,1823],"empinada":0.73,"borde":[[-33.23525,-70.58578],[-33.23525,-70.58475],[-33.23439,-70.58475],[-33.23439,-70.56724],[-33.23525,-70.56724],[-33.23525,-70.56415],[-33.23611,-70.56415],[-33.23611,-70.56312],[-33.23784,-70.56312],[-33.2387,-70.56003],[-33.24042,-70.56003],[-33.24129,-70.55797],[-33.24387,-70.55797],[-33.24473,-70.56003],[-33.24646,-70.56003],[-33.24646,-70.56106],[-33.25249,-70.56003],[-33.25766,-70.56827],[-33.26111,-70.56827],[-33.26197,-70.57033],[-33.2637,-70.57033],[-33.26456,-70.57239],[-33.26542,-70.57239],[-33.26542,-70.57445],[-33.2637,-70.57445],[-33.26284,-70.57754],[-33.26025,-70.5796],[-33.26025,-70.58681],[-33.25939,-70.58681],[-33.25939,-70.58887],[-33.25766,-70.5899],[-33.25766,-70.59093],[-33.25594,-70.59093],[-33.25508,-70.59299],[-33.25422,-70.59299],[-33.25422,-70.59505],[-33.25163,-70.59711],[-33.25163,-70.60123],[-33.24732,-70.59711],[-33.24732,-70.59402],[-33.24387,-70.59299],[-33.24387,-70.59196],[-33.24129,-70.59196],[-33.24129,-70.59093],[-33.23956,-70.59093],[-33.23956,-70.59196],[-33.2387,-70.59196],[-33.23611,-70.58784],[-33.23525,-70.58784],[-33.23525,-70.58578]],"base":0.000112},{"id":"dehesa","nombre":"Quebradas de La Dehesa","comuna":"Lo Barnechea · La Dehesa","quemada":0,"aluviones":[],"nota":"Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap.","centro":[-33.3145,-70.5058],"km2":20.2,"hyp":[841,880,899,915,936,960,988,1021,1055,1093,1141,1196,1258,1331,1394,1445,1521,1600,1678,1825,2322],"empinada":0.3,"borde":[[-33.2887,-70.48175],[-33.29042,-70.48175],[-33.29042,-70.48072],[-33.29473,-70.48072],[-33.29473,-70.48175],[-33.30335,-70.48175],[-33.30335,-70.48278],[-33.30507,-70.48278],[-33.30507,-70.48175],[-33.30766,-70.48175],[-33.30766,-70.48072],[-33.31025,-70.48072],[-33.31111,-70.48278],[-33.31456,-70.48381],[-33.31542,-70.48587],[-33.318,-70.48587],[-33.318,-70.4869],[-33.31973,-70.4869],[-33.32145,-70.48999],[-33.32404,-70.48999],[-33.3249,-70.49205],[-33.32576,-70.49205],[-33.32662,-70.50029],[-33.32749,-70.50029],[-33.32749,-70.50235],[-33.32921,-70.50338],[-33.32921,-70.50647],[-33.33007,-70.50647],[-33.33007,-70.5075],[-33.33697,-70.50853],[-33.33697,-70.50956],[-33.33869,-70.50956],[-33.34042,-70.51265],[-33.34214,-70.51265],[-33.34386,-70.51574],[-33.34645,-70.51574],[-33.34817,-70.51883],[-33.35076,-70.51883],[-33.35076,-70.51986],[-33.35162,-70.51986],[-33.35162,-70.52089],[-33.3499,-70.52192],[-33.3499,-70.52707],[-33.34904,-70.52707],[-33.34904,-70.52913],[-33.34473,-70.53325],[-33.34473,-70.53634],[-33.343,-70.53634],[-33.343,-70.53737],[-33.34128,-70.53737],[-33.34128,-70.5384],[-33.34042,-70.5384],[-33.33869,-70.53428],[-33.33438,-70.53428],[-33.33438,-70.53325],[-33.3318,-70.53325],[-33.33093,-70.53119],[-33.32059,-70.53119],[-33.32059,-70.53016],[-33.31714,-70.52707],[-33.31714,-70.51986],[-33.31456,-70.51986],[-33.31456,-70.51883],[-33.31111,-70.51883],[-33.31111,-70.5178],[-33.30938,-70.5178],[-33.3068,-70.51368],[-33.30507,-70.51368],[-33.30335,-70.51059],[-33.29904,-70.51059],[-33.29904,-70.51162],[-33.29645,-70.51162],[-33.29645,-70.51265],[-33.29473,-70.51265],[-33.29387,-70.5075],[-33.29214,-70.50647],[-33.29214,-70.50544],[-33.2887,-70.50441],[-33.28697,-70.50132],[-33.28525,-70.50132],[-33.28525,-70.50029],[-33.28439,-70.50029],[-33.28439,-70.4972],[-33.28352,-70.4972],[-33.2818,-70.49102],[-33.27921,-70.48896],[-33.27921,-70.48484],[-33.27835,-70.48484],[-33.27835,-70.48278],[-33.27921,-70.48278],[-33.27921,-70.48072],[-33.28008,-70.48072],[-33.28008,-70.47557],[-33.2818,-70.47557],[-33.28352,-70.47866],[-33.28525,-70.47866],[-33.28697,-70.48175],[-33.2887,-70.48175]],"base":0.00011},{"id":"penon","nombre":"Quebradas de El Peñón","comuna":"Puente Alto · Santa María del Peñón","quemada":0,"aluviones":[],"nota":"Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap.","centro":[-33.5518,-70.4974],"km2":2.5,"hyp":[848,1039,1314,1414,1481,1525,1576,1625,1660,1706,1741,1769,1807,1839,1882,1925,1963,2001,2060,2116,2240],"empinada":0.89,"borde":[[-33.54471,-70.49205],[-33.54471,-70.48896],[-33.54385,-70.48896],[-33.54471,-70.48587],[-33.55074,-70.48587],[-33.55074,-70.4869],[-33.55505,-70.4869],[-33.55505,-70.48793],[-33.55678,-70.48793],[-33.55678,-70.49102],[-33.55764,-70.49102],[-33.55678,-70.49926],[-33.55764,-70.49926],[-33.55764,-70.50132],[-33.5585,-70.50132],[-33.5585,-70.50647],[-33.55936,-70.50647],[-33.55936,-70.5075],[-33.5585,-70.5075],[-33.5585,-70.50647]],"base":0.000106},{"id":"canelo","nombre":"Quebrada de El Canelo","comuna":"San José de Maipo · El Canelo","quemada":0,"aluviones":[],"nota":"Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap.","centro":[-33.5385,-70.4512],"km2":20,"hyp":[843,1113,1252,1362,1463,1554,1644,1729,1808,1890,1967,2041,2112,2184,2258,2329,2406,2483,2618,2808,3145],"empinada":0.96,"borde":[[-33.51971,-70.43643],[-33.53092,-70.43643],[-33.5335,-70.43231],[-33.53523,-70.43231],[-33.53523,-70.43128],[-33.53781,-70.43128],[-33.53781,-70.43025],[-33.53954,-70.43025],[-33.53954,-70.42922],[-33.54471,-70.42922],[-33.54471,-70.43025],[-33.54816,-70.43128],[-33.54816,-70.43231],[-33.55333,-70.43334],[-33.55333,-70.43437],[-33.56109,-70.43437],[-33.56109,-70.4354],[-33.56281,-70.4354],[-33.56367,-70.43746],[-33.5654,-70.43746],[-33.5654,-70.43849],[-33.56712,-70.43849],[-33.56712,-70.43952],[-33.57057,-70.43952],[-33.57057,-70.44055],[-33.57229,-70.44158],[-33.57316,-70.44467],[-33.57574,-70.44467],[-33.57747,-70.44776],[-33.5766,-70.44776],[-33.5766,-70.44879],[-33.57316,-70.44879],[-33.57316,-70.44982],[-33.57143,-70.44982],[-33.57143,-70.45085],[-33.56798,-70.45085],[-33.56798,-70.45188],[-33.56626,-70.45188],[-33.56626,-70.45291],[-33.56454,-70.45291],[-33.56195,-70.45703],[-33.56023,-70.45703],[-33.56023,-70.45806],[-33.55936,-70.45806],[-33.5585,-70.46321],[-33.55764,-70.46321],[-33.55764,-70.46527],[-33.55678,-70.46527],[-33.55592,-70.46836],[-33.55505,-70.46836],[-33.55505,-70.46733],[-33.55247,-70.46733],[-33.55247,-70.4663],[-33.54471,-70.4663],[-33.54299,-70.47248],[-33.54126,-70.47351],[-33.54126,-70.47557],[-33.53954,-70.4766],[-33.53781,-70.47969],[-33.53178,-70.47969],[-33.53178,-70.47763],[-33.52919,-70.47557],[-33.52919,-70.47351],[-33.52833,-70.47351],[-33.52833,-70.46939],[-33.52747,-70.46939],[-33.52747,-70.46836],[-33.52575,-70.46836],[-33.52575,-70.46733],[-33.5223,-70.46733],[-33.5223,-70.4663],[-33.51885,-70.4663],[-33.51799,-70.46424],[-33.51626,-70.46321],[-33.51626,-70.46012],[-33.51454,-70.46012],[-33.51454,-70.45806],[-33.51282,-70.45806],[-33.51023,-70.45394],[-33.50851,-70.45291],[-33.50851,-70.45085],[-33.50592,-70.44879],[-33.50592,-70.44364],[-33.50937,-70.44261],[-33.51109,-70.43952],[-33.51713,-70.43849],[-33.51713,-70.43746],[-33.51885,-70.43746],[-33.51885,-70.43643],[-33.51971,-70.43643]],"base":7.9e-05},{"id":"manzano","nombre":"Estero El Manzano","comuna":"San José de Maipo · El Manzano","quemada":0,"aluviones":[],"nota":"Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap.","centro":[-33.5221,-70.3995],"km2":58.2,"hyp":[849,1087,1224,1338,1445,1555,1666,1773,1867,1953,2039,2126,2197,2278,2340,2402,2460,2547,2693,2932,3224],"empinada":0.65,"borde":[[-33.48265,-70.37463],[-33.48265,-70.37051],[-33.48351,-70.37051],[-33.48523,-70.36433],[-33.48696,-70.3633],[-33.48696,-70.35712],[-33.48609,-70.35712],[-33.48609,-70.35506],[-33.48782,-70.35403],[-33.4904,-70.34991],[-33.49127,-70.34991],[-33.49127,-70.35094],[-33.49385,-70.35094],[-33.49385,-70.35197],[-33.49471,-70.35197],[-33.49471,-70.35094],[-33.4973,-70.35094],[-33.4973,-70.35197],[-33.49902,-70.35197],[-33.49902,-70.353],[-33.50247,-70.353],[-33.50247,-70.35403],[-33.50937,-70.35403],[-33.50937,-70.35506],[-33.51195,-70.35506],[-33.51195,-70.35609],[-33.51368,-70.35609],[-33.51368,-70.36433],[-33.5154,-70.36536],[-33.5154,-70.36639],[-33.51713,-70.36639],[-33.51885,-70.36948],[-33.5223,-70.37051],[-33.52316,-70.37257],[-33.52488,-70.37257],[-33.52488,-70.37154],[-33.52661,-70.37154],[-33.52661,-70.37051],[-33.5335,-70.37051],[-33.5335,-70.37154],[-33.53523,-70.37154],[-33.53523,-70.37257],[-33.53695,-70.37257],[-33.53695,-70.3736],[-33.53954,-70.3736],[-33.53954,-70.37257],[-33.5404,-70.37257],[-33.5404,-70.3736],[-33.54126,-70.3736],[-33.54126,-70.37257],[-33.54385,-70.37257],[-33.54385,-70.3736],[-33.54557,-70.3736],[-33.5473,-70.37669],[-33.55333,-70.37669],[-33.55419,-70.37875],[-33.5585,-70.37875],[-33.5585,-70.37772],[-33.56109,-70.37772],[-33.56195,-70.37978],[-33.56367,-70.37978],[-33.56367,-70.38081],[-33.5654,-70.38081],[-33.5654,-70.38184],[-33.56885,-70.38184],[-33.56885,-70.38287],[-33.57143,-70.38287],[-33.57143,-70.3839],[-33.57488,-70.3839],[-33.57488,-70.38596],[-33.57574,-70.38596],[-33.57574,-70.3942],[-33.5766,-70.3942],[-33.5766,-70.39626],[-33.57833,-70.39729],[-33.57833,-70.40038],[-33.57919,-70.40038],[-33.58005,-70.40244],[-33.58264,-70.40244],[-33.58264,-70.4045],[-33.58609,-70.4045],[-33.58609,-70.40553],[-33.58695,-70.40553],[-33.58695,-70.40759],[-33.58609,-70.40759],[-33.58609,-70.40965],[-33.58522,-70.40965],[-33.58522,-70.41274],[-33.5835,-70.41274],[-33.5835,-70.41377],[-33.58264,-70.41377],[-33.58264,-70.41274],[-33.58005,-70.41274],[-33.58005,-70.41171],[-33.57833,-70.41171],[-33.57833,-70.41068],[-33.57402,-70.41068],[-33.57316,-70.40862],[-33.57057,-70.40862],[-33.57057,-70.40759],[-33.56367,-70.40759],[-33.56281,-70.41068],[-33.55936,-70.41068],[-33.55936,-70.41171],[-33.55764,-70.41171],[-33.55678,-70.42407],[-33.55419,-70.42407],[-33.55419,-70.4251],[-33.54816,-70.42613],[-33.54816,-70.42716],[-33.54643,-70.42716],[-33.54643,-70.42819],[-33.54471,-70.42819],[-33.54471,-70.42922],[-33.53954,-70.42922],[-33.53954,-70.43025],[-33.53781,-70.43025],[-33.53781,-70.43128],[-33.53523,-70.43128],[-33.53523,-70.43231],[-33.5335,-70.43231],[-33.53092,-70.43643],[-33.51885,-70.43643],[-33.51885,-70.43746],[-33.51713,-70.43746],[-33.51713,-70.43849],[-33.51109,-70.43952],[-33.51109,-70.44055],[-33.50937,-70.44158],[-33.50937,-70.44261],[-33.50764,-70.44261],[-33.50764,-70.44364],[-33.50506,-70.44364],[-33.50333,-70.44055],[-33.50161,-70.44055],[-33.50161,-70.43952],[-33.50075,-70.43952],[-33.50075,-70.43849],[-33.49902,-70.43849],[-33.49902,-70.43746],[-33.48954,-70.43746],[-33.48954,-70.43849],[-33.48609,-70.43849],[-33.48609,-70.43746],[-33.48351,-70.43746],[-33.48265,-70.4354],[-33.48092,-70.43437],[-33.48178,-70.42922],[-33.48437,-70.42922],[-33.48351,-70.42716],[-33.48265,-70.42716],[-33.48178,-70.41789],[-33.48265,-70.41789],[-33.48351,-70.41377],[-33.48523,-70.41274],[-33.48523,-70.40965],[-33.48782,-70.40759],[-33.48868,-70.4045],[-33.48954,-70.4045],[-33.48954,-70.39626],[-33.4904,-70.39626],[-33.4904,-70.39317],[-33.48868,-70.39214],[-33.48868,-70.39008],[-33.48696,-70.38905],[-33.48609,-70.38184],[-33.48351,-70.37978],[-33.48265,-70.37463]],"base":7.35e-05},{"id":"sanjorge","nombre":"Quebradas del cerro San Jorge","comuna":"Pirque","quemada":0,"aluviones":[],"nota":"Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap.","centro":[-33.6487,-70.458],"km2":38.9,"hyp":[846,1053,1142,1212,1282,1349,1414,1481,1555,1627,1700,1771,1847,1929,2004,2081,2138,2183,2244,2331,2504],"empinada":0.7,"borde":[[-33.67746,-70.43643],[-33.67918,-70.43746],[-33.67918,-70.43849],[-33.68091,-70.43849],[-33.68091,-70.43952],[-33.68349,-70.43952],[-33.68349,-70.44055],[-33.68435,-70.44055],[-33.68435,-70.44364],[-33.68608,-70.44467],[-33.68608,-70.44673],[-33.68522,-70.44673],[-33.68522,-70.45394],[-33.68263,-70.45394],[-33.68263,-70.45497],[-33.68091,-70.45497],[-33.68004,-70.45703],[-33.67918,-70.45703],[-33.67918,-70.46012],[-33.67832,-70.46012],[-33.67746,-70.46218],[-33.67573,-70.46218],[-33.67573,-70.46321],[-33.67229,-70.46424],[-33.67229,-70.4766],[-33.67315,-70.4766],[-33.67315,-70.47866],[-33.67229,-70.47866],[-33.6697,-70.48278],[-33.66711,-70.48278],[-33.66711,-70.48381],[-33.66539,-70.48381],[-33.66539,-70.48484],[-33.66194,-70.48484],[-33.66194,-70.48587],[-33.66022,-70.48587],[-33.65936,-70.48793],[-33.65677,-70.48793],[-33.65677,-70.48896],[-33.65591,-70.48896],[-33.65591,-70.49205],[-33.65505,-70.49205],[-33.65505,-70.49411],[-33.65418,-70.49411],[-33.65418,-70.49617],[-33.65332,-70.49617],[-33.65332,-70.49823],[-33.6516,-70.49926],[-33.65074,-70.50441],[-33.64901,-70.50441],[-33.64901,-70.50647],[-33.64729,-70.5075],[-33.64729,-70.50853],[-33.64556,-70.50853],[-33.64556,-70.50956],[-33.63953,-70.50956],[-33.63953,-70.50853],[-33.63867,-70.50853],[-33.63867,-70.50441],[-33.63781,-70.50441],[-33.63694,-70.50132],[-33.63608,-70.50132],[-33.63608,-70.50235],[-33.63263,-70.50235],[-33.63263,-70.50338],[-33.62832,-70.50338],[-33.62832,-70.50441],[-33.62574,-70.50441],[-33.62574,-70.50338],[-33.62488,-70.50338],[-33.62488,-70.50235],[-33.62574,-70.50235],[-33.62574,-70.50029],[-33.62488,-70.50029],[-33.62488,-70.49514],[-33.62401,-70.49514],[-33.62315,-70.49205],[-33.62401,-70.49205],[-33.62401,-70.48793],[-33.62488,-70.48793],[-33.62488,-70.48278],[-33.6266,-70.48278],[-33.62746,-70.48072],[-33.62919,-70.47969],[-33.62919,-70.47454],[-33.63005,-70.47454],[-33.63005,-70.47248],[-33.63091,-70.47248],[-33.63091,-70.47042],[-33.63177,-70.47042],[-33.63091,-70.46321],[-33.63177,-70.46321],[-33.63263,-70.45806],[-33.63177,-70.45806],[-33.63177,-70.456],[-33.63005,-70.45497],[-33.63005,-70.45291],[-33.62919,-70.45291],[-33.62919,-70.44879],[-33.62832,-70.44879],[-33.62746,-70.44673],[-33.62574,-70.44673],[-33.62488,-70.44364],[-33.62401,-70.44364],[-33.62401,-70.43849],[-33.62315,-70.43849],[-33.62229,-70.4354],[-33.62143,-70.4354],[-33.62143,-70.42716],[-33.62574,-70.42716],[-33.62574,-70.42613],[-33.62832,-70.42613],[-33.62832,-70.4251],[-33.63091,-70.4251],[-33.63091,-70.42407],[-33.63177,-70.42407],[-33.63177,-70.4251],[-33.63263,-70.4251],[-33.63263,-70.42407],[-33.63608,-70.42407],[-33.63608,-70.42304],[-33.63867,-70.42098],[-33.63867,-70.41686],[-33.64039,-70.41686],[-33.64384,-70.41171],[-33.64556,-70.41171],[-33.64729,-70.40862],[-33.65074,-70.40862],[-33.65246,-70.41171],[-33.65591,-70.41274],[-33.65591,-70.41583],[-33.65763,-70.41686],[-33.65763,-70.41892],[-33.66194,-70.42304],[-33.66194,-70.42922],[-33.66453,-70.42922],[-33.66453,-70.43025],[-33.66625,-70.43128],[-33.66625,-70.43334],[-33.66711,-70.43334],[-33.66711,-70.43231],[-33.66884,-70.43231],[-33.6697,-70.43025],[-33.67487,-70.43128],[-33.67487,-70.43231],[-33.6766,-70.43334],[-33.67746,-70.43643]],"base":9.73e-05},{"id":"principal","nombre":"Quebradas de El Principal","comuna":"Pirque · El Principal","quemada":0,"aluviones":[],"nota":"Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap.","centro":[-33.6871,-70.4792],"km2":11.3,"hyp":[843,1053,1132,1205,1265,1324,1379,1437,1493,1539,1589,1642,1688,1736,1786,1847,1910,1973,2075,2220,2407],"empinada":0.75,"borde":[[-33.70246,-70.4972],[-33.70246,-70.49926],[-33.70159,-70.49926],[-33.70073,-70.51677],[-33.69987,-70.51677],[-33.69987,-70.5075],[-33.69815,-70.50647],[-33.69815,-70.50544],[-33.69211,-70.50544],[-33.69125,-70.49823],[-33.69039,-70.49823],[-33.69039,-70.49617],[-33.68953,-70.49617],[-33.68866,-70.49411],[-33.68694,-70.49411],[-33.68349,-70.48896],[-33.68004,-70.48896],[-33.68004,-70.48793],[-33.67229,-70.48896],[-33.67229,-70.48793],[-33.67142,-70.48793],[-33.6697,-70.48175],[-33.67315,-70.47866],[-33.67315,-70.4766],[-33.67229,-70.4766],[-33.67229,-70.46424],[-33.67401,-70.46424],[-33.67401,-70.46321],[-33.67573,-70.46321],[-33.67573,-70.46218],[-33.67746,-70.46218],[-33.67832,-70.46012],[-33.67918,-70.46012],[-33.67918,-70.45703],[-33.68004,-70.45703],[-33.68091,-70.45497],[-33.68263,-70.45497],[-33.68263,-70.45394],[-33.68522,-70.45394],[-33.68522,-70.45291],[-33.68694,-70.45291],[-33.6878,-70.45497],[-33.68866,-70.45497],[-33.68866,-70.45703],[-33.69039,-70.45806],[-33.69125,-70.46218],[-33.69297,-70.46218],[-33.69297,-70.46321],[-33.69384,-70.46321],[-33.69384,-70.46424],[-33.69556,-70.46424],[-33.69556,-70.46527],[-33.70073,-70.4663],[-33.70073,-70.46733],[-33.70246,-70.46836],[-33.70246,-70.47351],[-33.70332,-70.47351],[-33.70332,-70.4766],[-33.70418,-70.4766],[-33.70418,-70.47969],[-33.70159,-70.48175],[-33.70246,-70.4972]],"base":0.000105}]; /* </cuencas> */
+</script>
+<script>
+(() => {
+const Q = 'timeformat=unixtime&past_days=1&forecast_days=4';
+const CENTROS = [['ecmwf_ifs025', 'ECMWF'], ['ecmwf_aifs025', 'ECMWF-IA'], ['icon_seamless', 'ICON'], ['gfs025', 'GFS'], ['gem_global', 'GEM'], ['ukmo_global_ensemble_20km', 'UKMO']];
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => (n == null || !isFinite(n)) ? '–' : n.toLocaleString('es-CL', { maximumFractionDigits: d, minimumFractionDigits: d });
+const pct = x => x < 0.0001 ? '<0,01 %' : fmt(x * 100, x < 0.001 ? 2 : x < 0.01 ? 1 : 0) + ' %';
+const TZ = 'America/Santiago';
+const hora = (t, o = {}) => new Date(t * 1000).toLocaleString('es-CL', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...o }).replace(',', '');
+const fecha = t => new Date(t * 1000).toLocaleDateString('sv-SE', { timeZone: TZ });
+const nomDia = (t, k) => k === 0 ? 'Hoy' : k === 1 ? 'Mañana' : new Date(t * 1000).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'long' }).replace(/^./, c => c.toUpperCase());
+const nivel = p => p >= 0.15 ? 'bad' : p >= 0.05 ? 'warn' : 'ok';
+const NIVTXT = { bad: 'riesgo alto', warn: 'riesgo moderado', ok: 'riesgo bajo' };
+const quant = (a, q) => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
+async function getJSON(u) { // Open-Meteo responde 429 o se sobrecarga (5xx) en días de tormenta: se reintenta con espera creciente
+  for (let k = 0; ; k++) {
+    const r = await fetch(u).catch(() => null);
+    if (r?.ok) return r.json();
+    if ((!r || r.status === 429 || r.status >= 500) && k < 4) { await new Promise(ok => setTimeout(ok, 4000 * (k + 1))); continue; }
+    if (!r) throw new Error('sin conexión');
+    const j = await r.json().catch(() => ({}));
+    throw new Error(j.reason || 'error ' + r.status);
+  }
+}
+const CU = CUENCAS.map(c => ({ ...c, aluviones: c.aluviones.map(x => Date.parse(x + ':00-03:00') / 1000) })); // instantes unix, como los usa el modelo
+const LATS = CU.map(c => c.centro[0]).join(','), LONS = CU.map(c => c.centro[1]).join(',');
+let sel = 'honda', R = null, NOW = null;
+
+// ---------------- Mapa ----------------
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+const map = L.map('map');
+L.tileLayer(dark ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+                 : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+  { maxZoom: 14, attribution: 'Esri · NASA GIBS / NOAA GOES · OpenStreetMap' }).addTo(map);
+map.createPane('cuencas').style.zIndex = 450;
+const COLOR = { bad: '#d23a2f', warn: '#e09a1a', ok: '#2f9e5b', na: '#7d8b86' };
+const poligonos = {};
+for (const c of CU) {
+  poligonos[c.id] = L.polygon(c.borde, { pane: 'cuencas', color: COLOR.na, weight: 2, fillOpacity: 0.35 }).addTo(map)
+    .bindTooltip(c.nombre, { sticky: true }).on('click', () => elegir(c.id));
+}
+map.fitBounds(L.featureGroup(Object.values(poligonos)).getBounds().pad(0.15));
+
+const GIBS = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best', BAS = [-33.43, -70.50];
+const CAPAS = { ir: ['GOES-East_ABI_Band13_Clean_Infrared', 'GoogleMapsCompatible_Level6', 6, 0.7], geo: ['GOES-East_ABI_GeoColor', 'GoogleMapsCompatible_Level7', 7, 0.8] };
+let frames = [], capa = 'ir', idx = 0, timer = null, layers = [], satelite = null;
+const iso = t => new Date(t * 1000).toISOString().slice(0, 19) + 'Z';
+const wmsUrl = (capaGibs, px, r, t) => `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=${capaGibs}&CRS=EPSG:4326&FORMAT=image/png&WIDTH=${px}&HEIGHT=${px}&BBOX=${BAS[0] - r},${BAS[1] - r},${BAS[0] + r},${BAS[1] + r}&TIME=${iso(t)}`;
+async function pixeles(url, px) { // con plazo: GIBS a veces deja colgada la imagen que aún está procesando
+  // onload y no decode(): decode() puede no resolverse nunca si la pestaña está en segundo plano
+  const img = new Image(); img.crossOrigin = 'anonymous';
+  await new Promise((ok, no) => {
+    const plazo = setTimeout(() => { img.src = ''; no(new Error('plazo')); }, 8000);
+    img.onload = () => { clearTimeout(plazo); ok(); };
+    img.onerror = () => { clearTimeout(plazo); no(new Error('imagen')); };
+    img.src = url;
+  });
+  const cv = document.createElement('canvas'); cv.width = cv.height = px;
+  const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
+  return cx.getImageData(0, 0, px, px).data;
+}
+// GIBS publica la hora nueva antes de que lleguen los datos de Chile, y guarda en caché las respuestas vacías:
+// se usa la imagen anterior a la primera que ya tiene píxeles sobre Santiago.
+async function ultimaHora(nom) { // se prueban las últimas 3 h a la vez y se toma la más nueva con datos
+  const base = Math.floor(Date.now() / 600000) * 600, ts = Array.from({ length: 18 }, (_, k) => base - (k + 1) * 600);
+  const ok = await Promise.all(ts.map(t => pixeles(wmsUrl(nom, 16, 0.5, t), 16).then(d => d.some((v, i) => i % 4 === 3 && v > 0)).catch(() => false)));
+  const k = ok.indexOf(true);
+  return k < 0 ? base - 3600 : ts[k] - 600;
+}
+async function cargarNubes() {
+  layers.forEach(l => map.removeLayer(l)); layers = [];
+  if (capa === 'no') { frames = []; $('frame').textContent = ''; return; }
+  const [nom, tms, maxN, op] = CAPAS[capa], t0 = await ultimaHora(nom);
+  frames = Array.from({ length: 10 }, (_, k) => t0 - (9 - k) * 1200);
+  layers = frames.map(t => L.tileLayer(`${GIBS}/${nom}/default/${iso(t)}/${tms}/{z}/{y}/{x}.png`, { maxNativeZoom: maxN, maxZoom: 14, opacity: 0 }).addTo(map));
+  mostrar(frames.length - 1);
+}
+function mostrar(k) {
+  idx = k; layers.forEach((l, j) => l.setOpacity(j === k ? CAPAS[capa][3] : 0));
+  if (frames[k]) $('frame').textContent = 'Imagen de las ' + hora(frames[k]);
+}
+$('play').onclick = () => {
+  if (timer) { clearInterval(timer); timer = null; $('play').textContent = '▶ Animar últimas 3 h'; mostrar(frames.length - 1); return; }
+  if (!frames.length) return;
+  $('play').textContent = '■ Detener'; timer = setInterval(() => mostrar((idx + 1) % frames.length), 700);
+};
+document.querySelectorAll('input[name=capa]').forEach(el => el.onchange = () => { capa = el.value; cargarNubes(); });
+
+// Lee los colores del infrarrojo: qué hay sobre cada cuenca y a cuántos km está la tormenta más cercana.
+function tipoNube(r, g, b) { // escala de GIBS: gris → celeste → azul → verde → amarillo → rojo, de más tibio a más frío
+  if (Math.abs(r - g) < 14 && Math.abs(g - b) < 14) return 0;
+  if (r > 150 && b < 120) return 3;
+  if (g > b + 15) return 2;
+  return 1;
+}
+async function leerSatelite(t) {
+  const N = 150, paso = 3 / N; // 2 km por píxel, la resolución del infrarrojo de GOES
+  const d = await pixeles(wmsUrl(CAPAS.ir[0], N, 1.5, t), N);
+  let op = 0; for (let k = 3; k < d.length; k += 4) if (d[k]) op++;
+  if (op < 0.8 * N * N) return null; // imagen todavía incompleta
+  const cosLa = Math.cos(BAS[0] * Math.PI / 180), tormentas = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const k = (y * N + x) * 4; if (!d[k + 3]) continue;
+    const c = tipoNube(d[k], d[k + 1], d[k + 2]);
+    if (c >= 2) tormentas.push([BAS[0] + 1.5 - (y + 0.5) * paso, BAS[1] - 1.5 + (x + 0.5) * paso, c]);
+  }
+  const porCuenca = {};
+  for (const cu of CU) {
+    const [la, lo] = cu.centro, radio = Math.sqrt(cu.km2 / Math.PI) + 2;
+    let best = null;
+    for (const [a, b, c] of tormentas) {
+      const dx = (b - lo) * 111.32 * cosLa, dy = (a - la) * 110.57, dist = Math.hypot(dx, dy);
+      if (!best || dist < best.dist) best = { dist, dx, dy, fuerte: c === 3 };
+    }
+    porCuenca[cu.id] = { best, encima: !!best && best.dist <= radio };
+  }
+  return { t, porCuenca };
+}
+const RUMBO = ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'];
+async function medirSatelite() {
+  if (!frames.length) { const nom = CAPAS.ir[0], t0 = await ultimaHora(nom); frames = Array.from({ length: 10 }, (_, k) => t0 - (9 - k) * 1200); }
+  // las 4 más recientes a la vez; gana la más nueva que llegue completa
+  const r = await Promise.all(frames.slice(-4).map(t => leerSatelite(t).catch(() => null)));
+  for (let k = r.length - 1; k >= 0; k--) if (r[k]) return r[k];
+  for (let k = frames.length - 5; k >= 0; k--) { const x = await leerSatelite(frames[k]).catch(() => null); if (x) return x; }
+  return null;
+}
+function textoCercania() {
+  const s = satelite?.porCuenca[sel], cu = CU.find(c => c.id === sel);
+  if (!s) { $('cerca').textContent = 'No se pudo leer la imagen del satélite.'; return; }
+  const b = s.best;
+  let txt;
+  if (s.encima) txt = `${cu.nombre}, ${hora(satelite.t)}: hay una ${b.fuerte ? 'tormenta fuerte' : 'nube de tormenta'} sobre la cuenca. El modelo ya la cuenta en la hora actual.`;
+  else if (!b) txt = `${cu.nombre}, ${hora(satelite.t)}: sin nubes de tormenta a menos de 150 km.`;
+  else txt = `${cu.nombre}, ${hora(satelite.t)}: sin tormenta encima. La más cercana está a ${fmt(b.dist)} km al ${RUMBO[Math.round(((Math.atan2(b.dx, b.dy) * 180 / Math.PI + 360) % 360) / 45) % 8]}.`;
+  $('cerca').textContent = txt;
+  $('cerca').classList.toggle('alerta', s.encima || (b && b.dist < 10));
+}
+
+// ---------------- Pronóstico y modelo ----------------
+async function calcular() {
+  const det = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LATS}&longitude=${LONS}&${Q}&models=gfs_global&hourly=lifted_index,convective_inhibition,freezing_level_height,wind_speed_700hPa,wind_direction_700hPa,relative_humidity_700hPa`);
+  const ens = [];
+  for (const [id, nom] of CENTROS) { // en serie, para no gatillar el límite de consultas
+    try { ens.push({ nom, d: await getJSON(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${LATS}&longitude=${LONS}&${Q}&models=${id}&hourly=precipitation`) }); }
+    catch (e) { console.warn(nom, e.message); }
+  }
+  if (!ens.length) throw new Error('ningún centro respondió');
+  NOW = Date.now() / 1000;
+  const t0 = Math.floor(NOW / 3600) * 3600;
+  const horas = Array.from({ length: 24 * 3 + 12 }, (_, k) => t0 + k * 3600).filter(t => t <= ens[0].d[0].hourly.time.at(-1));
+  const H = horas.length, fechas = [...new Set(horas.map(fecha))].slice(0, 4);
+  const dia = horas.map(t => fechas.indexOf(fecha(t)));
+  const out = {};
+  CU.forEach((cu, b) => {
+    const g = det[b].hourly, ix = new Map(g.time.map((t, i) => [t, i])), al = k => horas.map(t => { const i = ix.get(t); return i == null ? null : g[k][i]; });
+    const met = { time: horas, li: al('lifted_index'), cin: al('convective_inhibition'), v700: al('wind_speed_700hPa'), d700: al('wind_direction_700hPa'), hr700: al('relative_humidity_700hPa'), iso: al('freezing_level_height') };
+    if (satelite?.porCuenca[cu.id]?.encima && NOW - satelite.t < 5400) met.forzar = new Set([0]);
+    const hAcc = new Float64Array(H), porDia = new Float64Array(fechas.length), lluvias = Array.from({ length: H }, () => []);
+    let ultimo = null, nCentros = 0;
+    for (const { d } of ens) {
+      const e = d[b].hourly, ie = new Map(e.time.map((t, i) => [t, i]));
+      const miembros = Object.keys(e).filter(k => k.startsWith('precipitation') && e[k].some(x => x != null));
+      if (!miembros.length) continue;
+      nCentros++;
+      const hC = new Float64Array(H), dC = new Float64Array(fechas.length);
+      miembros.forEach((k, m) => {
+        const p = horas.map(t => { const i = ie.get(t); return i == null ? 0 : e[k][i] || 0; });
+        const r = simular({ ...met, p }, cu, dia, fechas.length, 12, 97 + m);
+        for (let i = 0; i < H; i++) { hC[i] += r.hora[i] / miembros.length; lluvias[i].push(r.lluvia[i]); }
+        for (let j = 0; j < fechas.length; j++) dC[j] += r.porDia[j] / miembros.length;
+        ultimo = r;
+      });
+      for (let i = 0; i < H; i++) hAcc[i] += hC[i];
+      for (let j = 0; j < fechas.length; j++) porDia[j] += dC[j];
+    }
+    for (let i = 0; i < H; i++) hAcc[i] /= nCentros;
+    for (let j = 0; j < fechas.length; j++) porDia[j] /= nCentros;
+    out[cu.id] = { hora: hAcc, porDia, q: ultimo.q, rec: ultimo.rec, mat: ultimo.mat, lluviaMed: lluvias.map(v => quant(v, .5)), lluviaAlta: lluvias.map(v => quant(v, .9)) };
+  });
+  return { horas, fechas, dia, out, centros: ens.map(e => e.nom) };
+}
+
+// ---------------- Pintar ----------------
+function pintar() {
+  const { horas, fechas, out } = R;
+  const filas = CU.map(c => ({ c, o: out[c.id] })).sort((a, b) => Math.max(...b.o.porDia.slice(0, 2)) - Math.max(...a.o.porDia.slice(0, 2)));
+  for (const { c, o } of filas) {
+    const n = nivel(Math.max(o.porDia[0], o.porDia[1] ?? 0));
+    poligonos[c.id].setStyle({ color: COLOR[n], fillColor: COLOR[n], weight: c.id === sel ? 4 : 2 });
+    poligonos[c.id].setTooltipContent(`${c.nombre}: hoy ${pct(o.porDia[0])}, mañana ${pct(o.porDia[1] ?? 0)}`);
+  }
+  // resumen: el sector más riesgoso de hoy y mañana
+  const top = filas[0], j = top.o.porDia[0] >= (top.o.porDia[1] ?? 0) ? 0 : 1, P = top.o.porDia[j], n = nivel(P);
+  $('resumen').style.setProperty('--sev', `var(--${n})`);
+  $('rmax').firstChild.textContent = pct(P); $('rniv').textContent = NIVTXT[n];
+  const iPk = pico(top.o.hora, R.dia, j);
+  $('rtit').textContent = `${top.c.nombre} (${top.c.comuna}): ${pct(P)} ${j ? 'mañana' : 'hoy'}`;
+  const cuantas = l => filas.filter(f => nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)) === l).length;
+  $('rtxt').innerHTML = `Es ${fmt(P / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. Hora más crítica: <b>${hora(horas[iPk])}</b>. ` +
+    `De ${CU.length} quebradas: ${cuantas('bad')} en riesgo alto, ${cuantas('warn')} moderado, ${cuantas('ok')} bajo. ` +
+    (n === 'ok' ? 'Atento a Senapred.' : `Si vives en el perímetro de la ${top.c.nombre.replace(/^Quebradas? /, 'quebrada ')}, sal antes de las ${hora(horas[iPk])} y vuelve cuando pase. Sigue las instrucciones de Senapred.`);
+
+  $('ranking').innerHTML = `<thead><tr><th>Quebrada</th>${fechas.map((f, k) => `<th class="num">${nomDia(horas[R.dia.indexOf(k)], k)}</th>`).join('')}<th class="num">Peor hora</th></tr></thead><tbody>` +
+    filas.map(({ c, o }) => {
+      const k = o.porDia[0] >= (o.porDia[1] ?? 0) ? 0 : 1;
+      return `<tr tabindex="0" data-id="${c.id}" class="${c.id === sel ? 'sel' : ''}"><td><b>${c.nombre}</b><br><span class="sub">${c.comuna}${c.quemada ? ' · quemada' : ''}</span></td>` +
+        [...o.porDia].map(p => `<td class="num"><span class="pill" style="--c:var(--${nivel(p)})">${pct(p)}</span></td>`).join('') +
+        `<td class="num">${hora(horas[pico(o.hora, R.dia, k)], { weekday: 'short' })}</td></tr>`;
+    }).join('') + '</tbody>';
+  document.querySelectorAll('#ranking tbody tr').forEach(tr => { tr.onclick = () => elegir(tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') elegir(tr.dataset.id); }; });
+  detalle();
+  $('upd').textContent = `Actualizado a las ${hora(NOW)} · ${R.centros.length} centros (${R.centros.join(', ')}) · se recalcula cada 10 min`;
+}
+function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
+function elegir(id) { sel = id; if (R) pintar(); textoCercania(); const p = poligonos[id]; map.fitBounds(p.getBounds().pad(0.8), { maxZoom: 12 }); }
+
+function detalle() {
+  const cu = CU.find(c => c.id === sel), o = R.out[sel], { horas, fechas } = R;
+  $('dtit').textContent = `${cu.nombre} · ${cu.comuna}`;
+  $('dnota').textContent = `${fmt(cu.km2, 1)} km², de ${fmt(cu.hyp[0])} a ${fmt(cu.hyp[20])} m, ${fmt(cu.empinada * 100)} % con pendiente ≥ 23°. ${cu.nota}`;
+  $('ddias').innerHTML = [...o.porDia].map((p, k) => `<div class="dia" style="--c:var(--${nivel(p)})"><span>${nomDia(horas[R.dia.indexOf(k)], k)}</span><b>${pct(p)}</b><span>${fmt(p / cu.base)}× un día cualquiera</span></div>`).join('');
+  grafico(horas, o);
+  const i = o.hora.indexOf(Math.max(...o.hora));
+  $('dfact').innerHTML = [
+    [hora(horas[i], { weekday: 'long' }), 'momento más crítico de los próximos días'],
+    [`${fmt(o.lluviaMed[i], 1)} mm/h`, `lluvia en la cuenca a esa hora (mediana; 10 % de los escenarios sobre ${fmt(o.lluviaAlta[i], 1)})`],
+    [pct(o.q[i]), 'chance de que pase una celda de tormenta encima (inestabilidad del aire)'],
+    [cu.quemada ? pct(cu.quemada * o.rec[i]) : 'sin quema', cu.quemada ? 'quema todavía activa (la vegetación la va cerrando)' : 'la cuenca no se quemó en el incendio de dic-2025'],
+    [pct(o.mat[i]), cu.aluviones.length ? 'barro suelto disponible (el último aluvión se llevó parte)' : 'barro suelto disponible'],
+  ].map(([b, s]) => `<div class="fact"><b>${b}</b><span>${s}</span></div>`).join('');
+}
+function grafico(horas, o) {
+  const W = 1000, Hh = 220, P = { l: 40, r: 10, t: 12, b: 24 }, n = horas.length, x = i => P.l + i / (n - 1) * (W - P.l - P.r);
+  const ymax = Math.max(0.02, Math.ceil(Math.max(...o.hora) * 50) / 50), y = v => Hh - P.b - v / ymax * (Hh - P.t - P.b), yq = v => Hh - P.b - v * (Hh - P.t - P.b);
+  let g = '';
+  [0, ymax / 2, ymax].forEach(v => g += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P.l - 6}" y="${y(v) + 4}" text-anchor="end">${fmt(v * 100, ymax < 0.1 ? 1 : 0)}%</text>`);
+  horas.forEach((t, i) => {
+    const hh = +new Date(t * 1000).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false });
+    if (hh === 0) g += `<line x1="${x(i)}" x2="${x(i)}" y1="${P.t}" y2="${Hh - P.b}" stroke="var(--line)"/><text x="${x(i) + 4}" y="${Hh - 6}">${new Date(t * 1000).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'short', day: 'numeric' })}</text>`;
+    else if (hh === 12) g += `<line x1="${x(i)}" x2="${x(i)}" y1="${P.t}" y2="${Hh - P.b}" stroke="var(--line)" stroke-dasharray="2 3"/>`;
+  });
+  const bw = (W - P.l - P.r) / n * 0.75;
+  o.hora.forEach((v, i) => { if (v > 0) g += `<rect x="${x(i) - bw / 2}" y="${y(v)}" width="${bw}" height="${y(0) - y(v)}" fill="var(--warn)"><title>${hora(horas[i], { weekday: 'short' })}: ${pct(v)}</title></rect>`; });
+  g += `<path d="${[...o.q].map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${yq(v).toFixed(1)}`).join('')}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  g += `<text x="${P.l + 4}" y="${P.t + 10}" style="fill:var(--fg)">ahora</text>`;
+  $('dchart').innerHTML = `<div class="tbl"><svg viewBox="0 0 ${W} ${Hh}" width="100%" style="min-width:560px" role="img" aria-label="Probabilidad de aluvión por hora">${g}</svg></div>`;
+}
+
+async function ciclo() {
+  // el pronóstico no espera al satélite; si el satélite muestra una tormenta sobre una cuenca, se recalcula con ella
+  const sat = medirSatelite().catch(() => null).then(s => { satelite = s; textoCercania(); return s; });
+  try { R = await calcular(); pintar(); }
+  catch (e) { $('upd').innerHTML = `<span class="err">No se pudo calcular (${e.message}). Se reintenta en 1 minuto.</span>`; setTimeout(ciclo, 60000); return; }
+  const s = await sat;
+  if (s && Object.values(s.porCuenca).some(c => c.encima)) { R = await calcular().catch(() => R); pintar(); }
+}
+cargarNubes();
+ciclo();
+setInterval(() => { ciclo(); if (!timer) cargarNubes(); }, 10 * 60 * 1000);
+})();
+</script>
+</body>
+</html>

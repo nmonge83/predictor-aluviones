@@ -1,0 +1,55 @@
+mejor ajuste: {
+  ll: -4.797457873262843,
+  kRef: 1.5,
+  li0: -4,
+  qMax: 1,
+  mCelda: 8,
+  rf15: 0.15,
+  escala: 0.6,
+  betaV: 1,
+  rho: 0.95
+}
+log-verosimilitud -4.80 · Brier 0.00415 (climatología 0.00673)
+los 12 días más riesgosos:
+  2026-10-08 27.0% ALUVIÓN
+  2026-01-31 25.3% ALUVIÓN
+  2026-05-06 18.0% 
+  2026-10-02 12.2% 
+  2026-05-07 12.0% 
+  2026-10-13 11.2% 
+  2026-10-14 9.5% 
+  2026-01-25 9.5% 
+  2026-07-17 9.2% 
+  2026-10-19 8.0% 
+  2026-09-09 4.8% 
+  2026-10-07 4.4% 
+  2026-05-06: 18.0%  (puesto 3 de 295)
+  2026-10-02: 12.2%  (puesto 4 de 295)
+  2026-10-19: 8.0%  (puesto 10 de 295)
+  2026-01-31: 25.3%  (puesto 2 de 295)
+  2026-07-17: 9.2%  (puesto 9 de 295)
+  2026-07-20: 3.4%  (puesto 16 de 295)
+  2026-08-15: 2.1%  (puesto 31 de 295)
+  2026-08-27: 4.3%  (puesto 13 de 295)
+  2026-10-06: 2.5%  (puesto 25 de 295)
+  2026-10-07: 4.4%  (puesto 12 de 295)
+  2026-10-08: 27.0%  (puesto 1 de 295)
+  2026-10-12: 0.9%  (puesto 56 de 295)
+  2026-10-13: 11.2%  (puesto 6 de 295)
+aluviones esperados en los 295 días: 2.57 (hubo 2)
+
+sacando un factor a la vez (completo: -4.80):
+  sin tormentas (inestabilidad)  log-ver. -10.09 · puestos 44,19
+  sin realce por el cerro        log-ver. -4.73 · puestos 2,1
+  sin (con) viento cuesta arriba log-ver. -5.22 · puestos 3,1
+  sin recuperación de la quema   log-ver. -5.26 · puestos 2,1
+  sin material ya arrastrado     log-ver. -5.38 · puestos 2,1
+  sin inhibición convectiva      log-ver. -4.99 · puestos 2,1
+  sin velocidad de la tormenta   log-ver. -5.00 · puestos 2,1
+  sin correlación entre horas    log-ver. -5.28 · puestos 3,1
+
+dejando un aluvión fuera:
+  2026-01-31: 9.0%, puesto 3 de 295  (ajuste: {"ll":-2.8307200402178316,"kRef":1.5,"li0":-5,"qMax":1,"mCelda":8,"rf15":0.15,"escala":0.3,"betaV":1,"rho":0})
+  2026-10-08: 7.7%, puesto 1 de 295  (ajuste: {"ll":-3.187663992433181,"kRef":1.5,"li0":-5,"qMax":0.6,"mCelda":8,"rf15":0.15,"escala":0.4,"betaV":1,"rho":0.95})
+
+PAR final: {"kRef":1.5,"li0":-4,"qMax":1,"mCelda":8,"rFrente":[0.15,0.4],"escala":0.6,"betaV":1,"rho":0.95}

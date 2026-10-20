@@ -1,0 +1,190 @@
+[
+ {
+  "id": "honda",
+  "nombre": "Quebrada Honda",
+  "comuna": "Las Condes · San Carlos de Apoquindo",
+  "salida": [
+   -33.3975,
+   -70.5183
+  ],
+  "quemada": 0.95,
+  "aluviones": [
+   "2026-01-31T18:00",
+   "2026-10-08T17:00"
+  ],
+  "nota": "Incendio dic-2025 sobre casi toda la cuenca. Aluviones el 31-ene y el 8-oct-2026."
+ },
+ {
+  "id": "ondas",
+  "nombre": "Quebrada Las Ondas",
+  "comuna": "Las Condes · Álvaro del Portillo",
+  "salida": [
+   -33.382,
+   -70.5091
+  ],
+  "quemada": 0.5,
+  "aluviones": [
+   "2026-10-08T17:00"
+  ],
+  "nota": "Se activó el 8-oct. Quema parcial estimada."
+ },
+ {
+  "id": "almendros",
+  "nombre": "Quebradas Grande y Los Almendros",
+  "comuna": "Las Condes · Camino El Alba",
+  "salida": [
+   -33.4155,
+   -70.5142
+  ],
+  "quemada": 0.5,
+  "aluviones": [
+   "2026-01-31T18:00"
+  ],
+  "nota": "Flujos de barro el 31-ene (Sernageomin). Quema parcial estimada."
+ },
+ {
+  "id": "ramon",
+  "nombre": "Quebrada de Ramón",
+  "comuna": "La Reina · Aguas de Ramón",
+  "salida": [
+   -33.4327,
+   -70.5152
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente."
+ },
+ {
+  "id": "nido",
+  "nombre": "Quebrada Nido de Águilas",
+  "comuna": "Peñalolén",
+  "salida": [
+   -33.4731,
+   -70.5194
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente."
+ },
+ {
+  "id": "macul",
+  "nombre": "Quebrada de Macul",
+  "comuna": "Peñalolén · La Florida",
+  "salida": [
+   -33.4955,
+   -70.5235
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Aluvión de 1993. Única con obras de control (piscinas decantadoras)."
+ },
+ {
+  "id": "locanas",
+  "nombre": "Quebrada Lo Cañas",
+  "comuna": "La Florida",
+  "salida": [
+   -33.5264,
+   -70.5317
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente."
+ },
+ {
+  "id": "arrayan",
+  "nombre": "Estero El Arrayán",
+  "comuna": "Lo Barnechea · Huallalolén",
+  "salida": [
+   -33.357,
+   -70.478
+  ],
+  "maxKm2": 400,
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Incluye Huallalolén y Ñilhue, con activaciones recurrentes."
+ },
+ {
+  "id": "chicureo",
+  "nombre": "Quebradas de Chicureo",
+  "comuna": "Colina · Chicureo",
+  "salida": [
+   -33.2512,
+   -70.5997
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap."
+ },
+ {
+  "id": "dehesa",
+  "nombre": "Quebradas de La Dehesa",
+  "comuna": "Lo Barnechea · La Dehesa",
+  "salida": [
+   -33.3485,
+   -70.5224
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap."
+ },
+ {
+  "id": "penon",
+  "nombre": "Quebradas de El Peñón",
+  "comuna": "Puente Alto · Santa María del Peñón",
+  "salida": [
+   -33.5753,
+   -70.5286
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap."
+ },
+ {
+  "id": "canelo",
+  "nombre": "Quebrada de El Canelo",
+  "comuna": "San José de Maipo · El Canelo",
+  "salida": [
+   -33.5753,
+   -70.4462
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap."
+ },
+ {
+  "id": "manzano",
+  "nombre": "Estero El Manzano",
+  "comuna": "San José de Maipo · El Manzano",
+  "salida": [
+   -33.583,
+   -70.4112
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap."
+ },
+ {
+  "id": "sanjorge",
+  "nombre": "Quebradas del cerro San Jorge",
+  "comuna": "Pirque",
+  "salida": [
+   -33.6251,
+   -70.5018
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap."
+ },
+ {
+  "id": "principal",
+  "nombre": "Quebradas de El Principal",
+  "comuna": "Pirque · El Principal",
+  "salida": [
+   -33.6988,
+   -70.5152
+  ],
+  "quemada": 0,
+  "aluviones": [],
+  "nota": "Sin quema reciente. Ubicada con el relieve; nombre del sector según OpenStreetMap."
+ }
+]
