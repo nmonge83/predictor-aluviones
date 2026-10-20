@@ -31,6 +31,8 @@ p { margin: 0 }
 .big { font: 800 3.6rem/1 var(--display); color: var(--sev, var(--fg)); font-variant-numeric: tabular-nums; min-width: 3.4ch }
 .big small { font-size: .9rem; display: block; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-top: 4px }
 .resumen .txt { display: grid; gap: 6px; min-width: 0 }
+.reporte { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 2px }
+.reporte ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 4px }
 .grid2 { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px }
 #map { height: 520px; border-radius: 8px; background: var(--soft) }
 .ctrl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-block: 10px 6px; font-size: .85rem }
@@ -80,6 +82,7 @@ a { color: var(--accent) }
     <div class="txt">
       <h2 id="rtit" style="margin:0">Calculando el riesgo de cada quebrada</h2>
       <p class="sub" id="rtxt"></p>
+      <div class="reporte" id="rrep" hidden></div>
     </div>
   </section>
 
@@ -438,6 +441,62 @@ function juntar(s, ry) {
   for (const id in s.porCuenca) { const r = ry.porCuenca[id]; s.porCuenca[id].rayo = r; s.porCuenca[id].encima = r.encima; }
   return s;
 }
+// Tabla de colores del infrarrojo de GIBS → temperatura de la cima de la nube (°C), para medir y no adivinar por el color
+const TEMP = fetch('https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml').then(r => r.text()).then(x => {
+  const pal = [];
+  for (const e of new DOMParser().parseFromString(x, 'text/xml').querySelectorAll('ColorMapEntry')) {
+    const v = e.getAttribute('value'); if (!v) continue;
+    const [a, b] = v.slice(1, -1).split(',').map(s => parseFloat(s.replace('INF', 'Infinity')));
+    pal.push([...e.getAttribute('rgb').split(',').map(Number), isFinite(a) && isFinite(b) ? (a + b) / 2 : isFinite(a) ? a : b]);
+  }
+  // la imagen achicada mezcla tonos (solo ~1/3 de los píxeles trae un color exacto de la tabla): se usa el más parecido
+  const cache = new Map();
+  return (r, g, b) => {
+    const k = (r << 16) | (g << 8) | b; let t = cache.get(k);
+    if (t === undefined) { let d = Infinity; for (const [pr, pg, pb, v] of pal) { const e = (pr - r) ** 2 + (pg - g) ** 2 + (pb - b) ** 2; if (e < d) { d = e; t = v; } } cache.set(k, t); }
+    return t;
+  };
+}).catch(() => null);
+// Hacia dónde va la nube de lluvia y cuánto de cada cuenca cubre (cimas bajo −40 °C).
+// Movimiento: cuánto se corrió el centro de la masa fría en 40 min, a menos de 120 km. El 20-oct la búsqueda en bloque
+// (el dibujo de la cima, que corre con el viento de altura) daba 89 km/h y el centro de la masa ~55 km/h: para saber
+// cuándo llega o se va la lluvia importa la masa. La búsqueda en bloque queda de respaldo cuando la masa es chica.
+async function leerMovimiento(t1) {
+  const tabla = await TEMP; if (!tabla) return null;
+  const N = 150, r = 1.5, paso = 2 * r / N, t0 = t1 - 1200, horasDt = 1200 / 3600, cosLa = Math.cos(BAS[0] * Math.PI / 180);
+  const temps = async t => { const d = await pixeles(wmsUrl(CAPAS.ir[0], N, r, t), N), T = new Float32Array(N * N).fill(NaN); for (let p = 0; p < N * N; p++) if (d[4 * p + 3]) T[p] = tabla(d[4 * p], d[4 * p + 1], d[4 * p + 2]); return T; };
+  const [A, B, C] = await Promise.all([temps(t0), temps(t1), temps(t1 - 2400).catch(() => null)]);
+  const centro = T => { let n = 0, sx = 0, sy = 0; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const v = T[y * N + x]; if (v < -40 && Math.hypot((x - N / 2) * 1.86, (y - N / 2) * 2.21) < 120) { n++; sx += x; sy += y; } } return n > 300 ? [sx / n, sy / n] : null; };
+  const cenC = C && centro(C), cenB = centro(B);
+  let frios = 0, validos = 0; for (const v of B) if (v === v) { validos++; if (v < -35) frios++; }
+  const M = 25; let mejor = null;
+  if (frios > 0.03 * validos) for (let sy = -M; sy <= M; sy++) for (let sx = -M; sx <= M; sx++) {
+    let s = 0, n = 0;
+    for (let y = M; y < N - M; y += 2) for (let x = M; x < N - M; x += 2) { const a = A[y * N + x], b = B[(y + sy) * N + x + sx]; if (a === a && b === b) { s += (a - b) ** 2; n++; } }
+    if (n > 500 && (!mejor || s / n < mejor.e)) mejor = { e: s / n, sx, sy };
+  }
+  const kx = paso * 111.32 * cosLa, ky = paso * 110.57;
+  // km/h hacia el este (mx) y el norte (my): centro de la masa fría si hay, si no la búsqueda en bloque
+  const [mx, my, limite] = cenC && cenB ? [(cenB[0] - cenC[0]) * kx / (2400 / 3600), -(cenB[1] - cenC[1]) * ky / (2400 / 3600), false]
+    : mejor ? [mejor.sx * kx / horasDt, -mejor.sy * ky / horasDt, Math.max(Math.abs(mejor.sx), Math.abs(mejor.sy)) === M] : [null, null, false];
+  // la imagen llega con 40-60 min de atraso: se corre con la velocidad medida hasta este momento (estimación)
+  const dth = (Date.now() / 1000 - t1) / 3600, ex = mx == null ? 0 : Math.round(mx * dth / kx), ey = my == null ? 0 : Math.round(-my * dth / ky);
+  const frio = {};
+  for (const cu of CU) {
+    const [la, lo] = cu.centro; let nA = 0, cA = 0, nB = 0, cB = 0, nE = 0, cE = 0, cerca = null;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const dx = (BAS[1] - r + (x + 0.5) * paso - lo) * 111.32 * cosLa, dy = (BAS[0] + r - (y + 0.5) * paso - la) * 110.57, d = Math.hypot(dx, dy), a = A[y * N + x], b = B[y * N + x];
+      if (d < 25) {
+        if (a === a) { nA++; if (a < -40) cA++; } if (b === b) { nB++; if (b < -40) cB++; }
+        const xs = x - ex, ys = y - ey, e = xs >= 0 && xs < N && ys >= 0 && ys < N ? B[ys * N + xs] : NaN;
+        if (e === e) { nE++; if (e < -40) cE++; }
+      }
+      if (b < -40 && (!cerca || d < cerca.dist)) cerca = { dist: d, dx, dy };
+    }
+    frio[cu.id] = { ahora: nB ? cB / nB : null, antes: nA ? cA / nA : null, estimado: mx != null && nE > 0.5 * nB ? cE / nE : null, cerca };
+  }
+  return { t0, t1, frio, mx, my, limite };
+}
 const RUMBO = ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'];
 async function medirSatelite() {
   if (!frames.length) { const nom = CAPAS.ir[0], t0 = await ultimaHora(nom); frames = Array.from({ length: 10 }, (_, k) => t0 - (9 - k) * 1200); }
@@ -460,6 +519,41 @@ function textoCercania() {
   if (ry && !ry.encima) txt += ry.dist == null ? ' Sin rayos cerca en los últimos 15 min.' : ` Rayo más cercano en los últimos 15 min: ${donde(ry)}.`;
   $('cerca').textContent = txt;
   $('cerca').classList.toggle('alerta', s.encima || (ry?.dist != null && ry.dist < 15));
+}
+// «Ahora», arriba junto a la probabilidad: hacia dónde va la nube de lluvia, los rayos y hasta cuándo llueve, en simple
+let REP = null; // la quebrada del resumen (la más riesgosa)
+function pintarReporte() {
+  const c = CU.find(x => x.id === REP), o = R?.out[REP];
+  if (!c || !o) return;
+  const s = satelite?.porCuenca[c.id], mv = satelite?.mov, fr = mv?.frio[c.id], items = [];
+  const rumbo = (dx, dy) => RUMBO[Math.round(((Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360) / 45) % 8];
+  const pc = x => `${fmt(x * 100)} %`;
+  if (fr && fr.ahora != null) {
+    const vel = mv.mx == null ? null : Math.hypot(mv.mx, mv.my), dir = vel == null || vel < 8 ? null : rumbo(mv.mx, mv.my);
+    const va = vel == null ? '' : dir ? ` hacia el ${dir} a ${mv.limite ? 'más de 140' : fmt(vel)} km/h` : ' casi sin moverse';
+    const h1 = hora(mv.t1), est = fr.estimado; // cobertura a la hora de la imagen y estimada para ahora
+    if ((est ?? fr.ahora) >= 0.5) items.push(`<b>Nube de lluvia:</b> encima de la quebrada${va ? `, moviéndose${va}` : ''}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'));
+    else if (fr.ahora >= 0.5 || (fr.antes ?? 0) >= 0.5) items.push(`<b>Nube de lluvia:</b> se está yendo${va}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)} de la quebrada` + (est != null ? `; ahora debería quedar ~${pc(est)}.` : '.'));
+    else if (fr.cerca && vel != null && dir) {
+      const hacia = (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist; // km/h hacia la quebrada
+      const llega = mv.t1 + fr.cerca.dist / Math.max(hacia, 1e-6) * 3600;
+      items.push(`<b>Nube de lluvia:</b> a las ${h1} la más cercana estaba a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}` +
+        (hacia > 5 ? (llega > NOW ? ` y viene hacia acá: llegaría cerca de las ${hora(llega)}.` : ' y venía hacia acá: podría estar llegando.') : `, moviéndose${va}: no viene hacia acá.`));
+    } else items.push(`<b>Nube de lluvia:</b> ${fr.cerca ? `a las ${h1} la más cercana estaba a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}.` : `ninguna a menos de 150 km (satélite de las ${h1}).`}`);
+  }
+  const ry = s?.rayo;
+  if (ry) items.push(ry.encima ? `<b>Rayos:</b> caen sobre la quebrada (${hora(ry.t)}): es una celda de tormenta, como en los dos aluviones.`
+    : ry.dist == null ? '<b>Rayos:</b> ninguno a menos de 150 km en los últimos 15 min.' : `<b>Rayos:</b> el más cercano, a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}, en los últimos 15 min.`);
+  const L = Array.from(o.lluviaMed.slice(0, 12), x => x ?? 0), H = R.horas.slice(0, 12), fuerza = x => x < 2 ? 'débil' : x < 6 ? 'moderada' : 'fuerte';
+  if (L[0] >= 0.5 || L[1] >= 0.5) {
+    let k = 0; while (k < L.length && L[k] >= 0.5) k++;
+    items.push(`<b>Lluvia:</b> ${fuerza(Math.max(...L.slice(0, Math.max(k, 1))))} ` + (k < L.length ? `hasta cerca de las ${hora(H[k])}; después, casi nada.` : 'por al menos 12 horas más.') + ' (pronóstico)');
+  } else {
+    const k = L.findIndex(x => x >= 0.5);
+    items.push(`<b>Lluvia:</b> ${k < 0 ? 'no se espera en las próximas 12 horas.' : `vuelve cerca de las ${hora(H[k])}, ${fuerza(Math.max(...L.slice(k)))}.`} (pronóstico)`);
+  }
+  $('rrep').innerHTML = `<b>Ahora en la ${c.nombre.replace(/^Quebradas? /, 'quebrada ')}</b><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul>`;
+  $('rrep').hidden = false;
 }
 
 // ---------------- Pronóstico y modelo ----------------
@@ -538,6 +632,7 @@ function pintar() {
   }
   // resumen: el sector más riesgoso de hoy y mañana
   const top = filas[0], j = top.o.porDia[0] >= (top.o.porDia[1] ?? 0) ? 0 : 1, P = top.o.porDia[j], n = nivel(P);
+  REP = top.c.id;
   $('resumen').style.setProperty('--sev', `var(--${n})`);
   $('rmax').firstChild.textContent = pct(P); $('rniv').textContent = NIVTXT[n];
   const iPk = pico(top.o.hora, R.dia, j);
@@ -556,6 +651,7 @@ function pintar() {
     }).join('') + '</tbody>';
   document.querySelectorAll('#ranking tbody tr').forEach(tr => { tr.onclick = () => elegir(tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') elegir(tr.dataset.id); }; });
   detalle();
+  pintarReporte();
   $('upd').textContent = `Actualizado a las ${hora(NOW)} · ${R.centros.length} centros (${R.centros.join(', ')}) · se recalcula cada 10 min`;
 }
 function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
@@ -625,8 +721,10 @@ function grafico(horas, o) {
 
 async function ciclo() {
   // el pronóstico no espera al satélite; si el satélite muestra una tormenta sobre una cuenca, se recalcula con ella
-  const sat = Promise.all([medirSatelite().catch(() => null), leerRayos().catch(e => (console.warn('rayos', e.message), null))])
-    .then(([s, ry]) => { satelite = juntar(s, ry); textoCercania(); return satelite; });
+  const sat = Promise.all([
+    medirSatelite().then(async s => { if (s) s.mov = await leerMovimiento(s.t).catch(e => (console.warn('movimiento', e.message), null)); return s; }).catch(() => null),
+    leerRayos().catch(e => (console.warn('rayos', e.message), null))])
+    .then(([s, ry]) => { satelite = juntar(s, ry); textoCercania(); pintarReporte(); return satelite; });
   try { R = await calcular(); pintar(); }
   catch (e) { $('upd').innerHTML = `<span class="err">No se pudo calcular (${e.message}). Se reintenta en 1 minuto.</span>`; setTimeout(ciclo, 60000); return; }
   const s = await sat;
