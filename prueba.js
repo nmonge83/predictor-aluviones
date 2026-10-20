@@ -1,4 +1,4 @@
-// Prueba del predictor: node prueba.js
+// Prueba de la estimación de riesgo: node prueba.js
 // 1) el modelo dentro de index.html es idéntico a modelo/cadena.js; 2) con los 295 días desde el incendio,
 // los dos aluviones de la Quebrada Honda quedan entre los 5 días más riesgosos y el total esperado se parece a 2.
 const fs = require('fs'), path = require('path');

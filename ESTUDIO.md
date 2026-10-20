@@ -1,6 +1,6 @@
-# Aluviones después de un incendio: qué dice la literatura y cómo se compara el predictor
+# Aluviones después de un incendio: qué dice la literatura y cómo se compara esta estimación
 
-20 de octubre de 2026. Revisión hecha para contrastar el predictor con lo publicado.
+20 de octubre de 2026. Revisión hecha para contrastar la estimación de riesgo con lo publicado.
 
 ## 1. Lo que dice la literatura
 
@@ -22,7 +22,7 @@
 
 **Rayos.** Se usan para anticipar chaparrones y crecidas repentinas en tormentas convectivas (proyecto europeo [FLASH](https://cordis.europa.eu/project/id/36852)). Su ausencia no descarta un chaparrón: las bandas de los frentes fríos pueden ser muy intensas.
 
-## 2. Cómo se compara el predictor
+## 2. Cómo se compara la estimación
 
 **Usa el mismo modelo del USGS** (M1 de Staley 2017), con la fracción quemada y empinada de cada cuenca. Su umbral (50 % de probabilidad con la lluvia de 15 min) para la Quebrada Honda:
 

@@ -1,4 +1,6 @@
-# Predictor de aluviones · precordillera de Santiago
+# Riesgo de aluvión estimado
+
+Proyecto aficionado e independiente · precordillera de Santiago.
 
 Probabilidad de aluvión por día y por hora en 15 quebradas, de Colina a Pirque, con nubes del satélite en vivo.
 

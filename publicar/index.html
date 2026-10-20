@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Predictor de aluviones Santiago</title>
+<title>Riesgo de aluvión estimado</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
@@ -73,7 +73,8 @@ a { color: var(--accent) }
 <main>
   <p class="aviso" role="note"><b>Proyecto aficionado e independiente, no es un aviso oficial.</b> Se basa en datos públicos de fuentes confiables (NOAA, NASA, el Servicio Geológico de EE.UU. y los grandes centros meteorológicos), pero no reemplaza a nadie: <b>prefiere siempre los datos y las indicaciones de las autoridades</b> (Senapred, la Dirección Meteorológica de Chile y tu municipio). Si piden evacuar, evacúa aunque aquí el riesgo se vea bajo.</p>
   <header>
-    <h1>Predictor de aluviones · precordillera de Santiago</h1>
+    <h1>Riesgo de aluvión estimado</h1>
+    <p class="sub" style="font-weight:600">proyecto aficionado e independiente · precordillera de Santiago</p>
     <p class="sub" id="upd">Descargando pronósticos de 6 centros meteorológicos para 15 quebradas…</p>
     <p class="sub"><a href="#metodo">Cómo se calcula</a> · <a href="#fuentes">Fuentes</a></p>
   </header>
@@ -168,7 +169,7 @@ a { color: var(--accent) }
 
   <section class="card" id="fuentes">
     <h2>Fuentes</h2>
-    <p class="sub" style="margin-bottom:8px">Todo lo que usa esta página es público y se puede revisar. El código y los datos de la calibración están en <a href="https://github.com/nmonge83/predictor-aluviones" target="_blank" rel="noopener">GitHub</a>, junto con un <a href="https://github.com/nmonge83/predictor-aluviones/blob/main/ESTUDIO.md" target="_blank" rel="noopener">estudio de la literatura sobre aluviones después de incendios</a> y de en qué se aparta este predictor.</p>
+    <p class="sub" style="margin-bottom:8px">Todo lo que usa esta página es público y se puede revisar. El código y los datos de la calibración están en <a href="https://github.com/nmonge83/predictor-aluviones" target="_blank" rel="noopener">GitHub</a>, junto con un <a href="https://github.com/nmonge83/predictor-aluviones/blob/main/ESTUDIO.md" target="_blank" rel="noopener">estudio de la literatura sobre aluviones después de incendios</a> y de en qué se aparta esta estimación.</p>
     <ul class="sub">
       <li><b>Avisos oficiales (mandan sobre esta página):</b> <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">lluvia diaria en Tobalaba</a>.</li>
       <li><b>Pronóstico del tiempo:</b> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, que entrega los pronósticos de los centros de Europa (ECMWF y ECMWF-IA), Alemania (ICON), EE.UU. (GFS), Canadá (GEM) y Reino Unido (UKMO), con unos 200 escenarios en total.</li>
