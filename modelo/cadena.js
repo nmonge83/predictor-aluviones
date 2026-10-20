@@ -69,7 +69,7 @@ function material(t, aluviones) {
 // dia[i] = índice de día de la hora i. Devuelve la prob. media por hora y, por día, la del peor momento.
 function simular(esc, cu, dia, nDias, nDraws, seed) {
   const n = esc.p.length, r = rng(seed);
-  const hora = new Float64Array(n), porDia = new Float64Array(nDias), maxDia = new Float64Array(nDias);
+  const hora = new Float64Array(n), acum = new Float64Array(n), porDia = new Float64Array(nDias), maxDia = new Float64Array(nDias);
   const lluvia = new Float64Array(n), q = new Float64Array(n), rec = new Float64Array(n), mat = new Float64Array(n), avance = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     lluvia[i] = (esc.p[i] || 0) * kCerro(esc.v700[i], esc.d700[i], esc.hr700[i]) * fLiquida(esc.iso[i], cu.hyp);
@@ -90,7 +90,7 @@ function simular(esc, cu, dia, nDias, nDraws, seed) {
     const a = Math.sqrt(PAR.rho), b = Math.sqrt(1 - PAR.rho);
     for (let i = 0; i < n; i++) {
       const hit = (PAR.rho ? Phi(a * zDia[dia[i]] + b * gauss(r)) : r()) < q[i], R60 = lluvia[i] * kN * (hit ? mC * avance[i] : 1);
-      if (R60 <= 0) continue;
+      if (R60 <= 0) { acum[i] += maxDia[dia[i]]; continue; }
       const [r15, r30] = hit ? PAR.rCelda : PAR.rFrente, R = [R60 * r15, R60 * r30, R60];
       let pu = 0;
       // ponytail: se resta la probabilidad con lluvia cero (2–4 %), para que una hora seca dé 0
@@ -98,12 +98,13 @@ function simular(esc, cu, dia, nDias, nDraws, seed) {
       const h = PAR.escala * fQuema * mat[i] * pu / 3;
       hora[i] += h;
       if (h > maxDia[dia[i]]) maxDia[dia[i]] = h;
+      acum[i] += maxDia[dia[i]]; // probabilidad de que el aluvión ya se haya gatillado a esta hora del día
     }
     for (let j = 0; j < nDias; j++) porDia[j] += maxDia[j];
   }
-  for (let i = 0; i < n; i++) hora[i] /= nDraws;
+  for (let i = 0; i < n; i++) { hora[i] /= nDraws; acum[i] /= nDraws; }
   for (let j = 0; j < nDias; j++) porDia[j] /= nDraws;
-  return { hora, porDia, lluvia, q, rec, mat, avance };
+  return { hora, acum, porDia, lluvia, q, rec, mat, avance };
 }
 // </cadena>
 if (typeof module !== 'undefined') module.exports = { PAR, FUEGO, fLiquida, cuestaArriba, kCerro, pCelda, recuperacion, material, simular };
