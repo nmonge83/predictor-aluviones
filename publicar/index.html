@@ -103,7 +103,7 @@ a { color: var(--accent) }
         <span class="sub" id="frame"></span>
       </div>
       <p id="cerca" class="cerca">Midiendo la distancia a la tormenta más cercana…</p>
-      <div class="leyenda"><span style="--c:var(--bad)"><i></i>alto (≥ 15 %)</span><span style="--c:var(--warn)"><i></i>moderado (5–15 %)</span><span style="--c:var(--ok)"><i></i>bajo (&lt; 5 %)</span><span>Nubes: gris = bajas; azul = altas; verde = muy frías; amarillo y rojo = tormenta fuerte, la única que el modelo cuenta como celda encima. Llegan con 30–50 min de retraso.</span></div>
+      <div class="leyenda"><span style="--c:var(--bad)"><i></i>alto (≥ 15 %)</span><span style="--c:var(--warn)"><i></i>moderado (5–15 %)</span><span style="--c:var(--ok)"><i></i>bajo (&lt; 5 %)</span><span>Nubes: gris = bajas; azul = altas; verde = muy frías; amarillo y rojo = tormenta fuerte. El modelo cuenta una celda encima con tormenta fuerte o con rayos (detector del GOES, ~5 min de retraso). Las nubes llegan con 30–50 min de retraso.</span></div>
     </section>
 
     <section class="card">
@@ -127,7 +127,7 @@ a { color: var(--accent) }
     <p style="margin-bottom:10px">Un aluvión en una cuenca quemada no lo gatilla la lluvia acumulada: lo gatilla el agua que corre sobre el suelo quemado durante un chubasco de pocos minutos. El 6-oct cayeron 111 mm en Tobalaba y no pasó nada; el 8-oct cayeron 35 mm con tormenta y hubo aluvión. El modelo encadena cinco pasos, hora a hora y para cada uno de los ~200 escenarios de pronóstico:</p>
     <ul class="sub">
       <li><b>1. Lluvia en la cuenca:</b> lluvia del pronóstico × parte de la cuenca bajo la cota de nieve (isoterma − 300 m, con la curva de altitudes de cada cuenca). Se probó realzarla por el cerro, de 1 a 2,3 veces, y el dato no lo pide.</li>
-      <li><b>2. ¿Pasa una tormenta encima?</b> Chance por hora que sube con la inestabilidad del aire (índice de levantamiento bajo −4) y baja con la inhibición convectiva. Si el satélite muestra una tormenta fuerte (amarillo o rojo) sobre la cuenca ahora, la chance de esta hora es 100 %. Las nubes verdes no cuentan: suelen ser una capa ancha de nubes frías, no una celda.</li>
+      <li><b>2. ¿Pasa una tormenta encima?</b> Chance por hora que sube con la inestabilidad del aire (índice de levantamiento bajo −4) y baja con la inhibición convectiva. Si caen rayos sobre la cuenca (detector de rayos del GOES, últimos 15 min) o el satélite muestra una tormenta fuerte (amarillo o rojo) encima, la chance de esta hora es 100 %. Las nubes verdes no cuentan: suelen ser una capa ancha de nubes frías, no una celda. El 8-oct cayeron 60 rayos cada 10 min a menos de 10 km de la Quebrada Honda justo antes del aluvión; el 20-oct, con lluvia fuerte pareja y nubes igual de frías, ninguno a menos de 25 km.</li>
       <li><b>3. Minutos más intensos:</b> bajo una celda lenta llueve ~8 veces lo que da el modelo y el 57 % de la hora cae en 15 min; con lluvia frontal pareja, solo el 15 %. Una celda rápida deja menos agua: el tiempo que pasa sobre la cuenca es su tamaño dividido por su velocidad (viento a 3 km de altura; el 8-oct, ~30 km/h).</li>
       <li><b>4. Respuesta de la cuenca quemada:</b> regresión del Servicio Geológico de EE.UU. para cuencas quemadas (Staley et al. 2017, M1), con la lluvia de 15, 30 y 60 min, la fracción quemada y empinada de cada cuenca, y la quema que se va cerrando con la vegetación (vida media de 2 años).</li>
       <li><b>5. Material disponible:</b> cada aluvión se lleva la mitad del barro suelto, que se repone en ~3 meses. Por eso, días después del 8-oct, la misma tormenta pesa menos.</li>
@@ -404,9 +404,37 @@ async function leerSatelite(t) {
     }
     // solo una tormenta fuerte (amarillo o rojo) encima fuerza la celda: el verde suele ser una capa ancha de nubes frías,
     // no una celda (el 20-oct a las 12:20 cubría el 33 % del recuadro, sin aluvión)
-    porCuenca[cu.id] = { best, fuerte, encima: !!fuerte && fuerte.dist <= radio, nubes: !!best && best.dist <= radio };
+    const irEncima = !!fuerte && fuerte.dist <= radio;
+    porCuenca[cu.id] = { best, fuerte, irEncima, encima: irEncima, nubes: !!best && best.dist <= radio };
   }
   return { t, porCuenca };
+}
+// Rayos del GOES-Este (GLM) en imágenes de RealEarth (SSEC): cada una junta ~5 min; se leen 3, ~15 min en total.
+// Medido el 20-oct: el 87-90 % de los rayos del GOES cae en un píxel pintado. El 8-oct cayeron 60 rayos cada 10 min a menos
+// de 10 km de la Quebrada Honda justo antes del aluvión; el 20-oct, con lluvia pareja y nubes igual de frías, ninguno a menos de 25 km.
+const RE = 'https://realearth.ssec.wisc.edu/api';
+const tRE = s => Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(9, 11), +s.slice(11, 13)) / 1000;
+async function leerRayos() {
+  const ts = (await getJSON(`${RE}/times?products=glmgroupdensity`)).glmgroupdensity.slice(-11);
+  const N = 150, r = 1.5, paso = 2 * r / N, cosLa = Math.cos(BAS[0] * Math.PI / 180), pts = [];
+  const imgs = await Promise.all([ts.at(-1), ts.at(-6), ts[0]].map(t => pixeles(`${RE}/image?products=glmgroupdensity&time=${t}&bounds=${BAS[0] - r},${BAS[1] - r},${BAS[0] + r},${BAS[1] + r}&width=${N}&height=${N}`, N).catch(() => null)));
+  if (!imgs.some(Boolean)) throw new Error('sin imágenes de rayos');
+  for (const d of imgs) if (d) for (let k = 3; k < d.length; k += 4) if (d[k]) { const p = (k - 3) / 4; pts.push([BAS[0] + r - (Math.floor(p / N) + 0.5) * paso, BAS[1] - r + (p % N + 0.5) * paso]); }
+  const porCuenca = {};
+  for (const cu of CU) {
+    const [la, lo] = cu.centro, radio = Math.sqrt(cu.km2 / Math.PI) + 2 + 5; // +5 km: la mancha de un rayo en el GLM mide ~8 km
+    let best = null;
+    for (const [a, b] of pts) { const dx = (b - lo) * 111.32 * cosLa, dy = (a - la) * 110.57, dist = Math.hypot(dx, dy); if (!best || dist < best.dist) best = { dist, dx, dy }; }
+    porCuenca[cu.id] = { t: tRE(ts.at(-1)), dist: best?.dist ?? null, dx: best?.dx, dy: best?.dy, encima: !!best && best.dist <= radio };
+  }
+  return { t: tRE(ts.at(-1)), porCuenca };
+}
+// une infrarrojo y rayos: hay celda encima si el infrarrojo ve una tormenta fuerte O si caen rayos sobre la cuenca
+function juntar(s, ry) {
+  if (!ry) return s;
+  s ??= { t: ry.t, porCuenca: Object.fromEntries(CU.map(c => [c.id, { best: null, fuerte: null, irEncima: false, nubes: false }])) };
+  for (const id in s.porCuenca) { const r = ry.porCuenca[id]; s.porCuenca[id].rayo = r; s.porCuenca[id].encima = s.porCuenca[id].irEncima || r.encima; }
+  return s;
 }
 const RUMBO = ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'];
 async function medirSatelite() {
@@ -420,14 +448,16 @@ async function medirSatelite() {
 function textoCercania() {
   const s = satelite?.porCuenca[sel], cu = CU.find(c => c.id === sel);
   if (!s) { $('cerca').textContent = 'No se pudo leer la imagen del satélite.'; return; }
-  const b = s.best, f = s.fuerte, donde = x => `a ${fmt(x.dist)} km al ${RUMBO[Math.round(((Math.atan2(x.dx, x.dy) * 180 / Math.PI + 360) % 360) / 45) % 8]}`;
+  const b = s.best, f = s.fuerte, ry = s.rayo, donde = x => `a ${fmt(x.dist)} km al ${RUMBO[Math.round(((Math.atan2(x.dx, x.dy) * 180 / Math.PI + 360) % 360) / 45) % 8]}`;
   let txt;
-  if (s.encima) txt = `${cu.nombre}, ${hora(satelite.t)}: hay una tormenta fuerte sobre la cuenca. El modelo ya la cuenta en la hora actual.`;
+  if (ry?.encima) txt = `${cu.nombre}, ${hora(ry.t)}: caen rayos sobre la cuenca. El modelo cuenta la tormenta en la hora actual.`;
+  else if (s.irEncima) txt = `${cu.nombre}, ${hora(satelite.t)}: hay una tormenta fuerte sobre la cuenca. El modelo ya la cuenta en la hora actual.`;
   else if (s.nubes) txt = `${cu.nombre}, ${hora(satelite.t)}: hay nubes frías encima, pero no una tormenta fuerte${f ? ` (la más cercana está ${donde(f)})` : ''}. El modelo sigue con el pronóstico.`;
   else if (!b) txt = `${cu.nombre}, ${hora(satelite.t)}: sin nubes de tormenta a menos de 150 km.`;
   else txt = `${cu.nombre}, ${hora(satelite.t)}: sin tormenta encima. La nube más fría está ${donde(b)}.`;
+  if (ry && !ry.encima) txt += ry.dist == null ? ' Sin rayos cerca en los últimos 15 min.' : ` Rayo más cercano en los últimos 15 min: ${donde(ry)}.`;
   $('cerca').textContent = txt;
-  $('cerca').classList.toggle('alerta', s.encima || (f && f.dist < 10));
+  $('cerca').classList.toggle('alerta', s.encima || (f && f.dist < 10) || (ry?.dist != null && ry.dist < 15));
 }
 
 // ---------------- Pronóstico y modelo ----------------
@@ -592,7 +622,8 @@ function grafico(horas, o) {
 
 async function ciclo() {
   // el pronóstico no espera al satélite; si el satélite muestra una tormenta sobre una cuenca, se recalcula con ella
-  const sat = medirSatelite().catch(() => null).then(s => { satelite = s; textoCercania(); return s; });
+  const sat = Promise.all([medirSatelite().catch(() => null), leerRayos().catch(e => (console.warn('rayos', e.message), null))])
+    .then(([s, ry]) => { satelite = juntar(s, ry); textoCercania(); return satelite; });
   try { R = await calcular(); pintar(); }
   catch (e) { $('upd').innerHTML = `<span class="err">No se pudo calcular (${e.message}). Se reintenta en 1 minuto.</span>`; setTimeout(ciclo, 60000); return; }
   const s = await sat;
