@@ -19,13 +19,16 @@ function evaluar(n = 150, etiquetas = y) {
 const puesto = (pd, j) => [...pd].filter(x => x > pd[j]).length + 1;
 
 // Búsqueda en grilla de lo que el dato puede decidir: umbral de inestabilidad, chance de celda, fuerza de la celda y lluvia frontal.
-const GRILLA = { kRef: [1, 1.5, 2.3], li0: [-5, -4, -3], qMax: [0.6, 1], mCelda: [4, 6, 8], rf15: [0.15, 0.2], escala: [0.3, 0.4, 0.6, 0.8, 1, 1.2], betaV: (process.env.BETAV || '0,1').split(',').map(Number), rho: (process.env.RHO || '0,0.8,0.95').split(',').map(Number) };
-const fijar = b => Object.assign(M.PAR, { kRef: b.kRef, li0: b.li0, qMax: b.qMax, mCelda: b.mCelda, rFrente: [b.rf15, b.rf15 + 0.25], escala: b.escala, betaV: b.betaV, rho: b.rho });
+const GRILLA = { kRef: [1, 1.5], // 2,3 nunca salió elegido
+  li0: [-5, -4, -3], qMax: [0.6, 1], mCelda: [4, 6, 8], rf15: [0.15, 0.2], escala: [0.3, 0.4, 0.6, 0.8, 1, 1.2, 1.6, 2], betaV: (process.env.BETAV || '0,1').split(',').map(Number), rho: (process.env.RHO || '0,0.8,0.95').split(',').map(Number) };
+GRILLA.tauVeg = [180, 365, 730]; GRILLA.tauRec = [90, 365, 730]; // recuperación del cerro y reposición del barro: inciertas (ESTUDIO.md)
+const fijar = b => Object.assign(M.PAR, { tauVeg: b.tauVeg, tauRec: b.tauRec, kRef: b.kRef, li0: b.li0, qMax: b.qMax, mCelda: b.mCelda, rFrente: [b.rf15, b.rf15 + 0.25], escala: b.escala, betaV: b.betaV, rho: b.rho });
 function ajustar(etiquetas) {
   const todos = [];
   for (const kRef of GRILLA.kRef) for (const li0 of GRILLA.li0) for (const qMax of GRILLA.qMax) for (const mCelda of GRILLA.mCelda)
-    for (const rf15 of GRILLA.rf15) for (const escala of GRILLA.escala) for (const betaV of GRILLA.betaV) for (const rho of GRILLA.rho) {
-      const b = { kRef, li0, qMax, mCelda, rf15, escala, betaV, rho }; fijar(b);
+    for (const rf15 of GRILLA.rf15) for (const escala of GRILLA.escala) for (const betaV of GRILLA.betaV) for (const rho of GRILLA.rho)
+    for (const tauVeg of GRILLA.tauVeg) for (const tauRec of GRILLA.tauRec) {
+      const b = { kRef, li0, qMax, mCelda, rf15, escala, betaV, rho, tauVeg, tauRec }; fijar(b);
       todos.push({ ll: evaluar(30, etiquetas).ll, ...b });
     }
   // con 30 sorteos la log-verosimilitud varía ±0,2: los 20 mejores se vuelven a medir con 400, para no quedarse con el que tuvo suerte
@@ -35,7 +38,8 @@ function ajustar(etiquetas) {
   return best;
 }
 
-const best = ajustar(y);
+if (process.env.FIJO) { GRILLA.tauVeg = [M.PAR.tauVeg]; GRILLA.tauRec = [M.PAR.tauRec]; } // recuperación y barro anclados en la literatura
+const best = process.env.FIJO ? { ...M.PAR } : ajustar(y);
 console.log('mejor ajuste:', best);
 const { ll, porDia } = evaluar(400);
 const clim = y.reduce((a, b) => a + b) / y.length;
@@ -63,6 +67,7 @@ prueba('correlación entre horas', { rho: 0 });
 
 // Validación cruzada: se calibra sin un aluvión y se mira dónde queda ese día.
 // El aluvión sale de la verosimilitud Y de la lista de aluviones: si no, el ajuste igual sabe que se llevó el barro.
+if (!process.env.SIN_LOO) {
 console.log('\ndejando un aluvión fuera:');
 const todosAluv = HONDA.aluviones;
 for (const s of ['2026-01-31', '2026-10-08']) {
@@ -72,4 +77,5 @@ for (const s of ['2026-01-31', '2026-10-08']) {
   console.log(`  ${s}: ${(r.porDia[idx.get(s)] * 100).toFixed(1)}%, puesto ${puesto(r.porDia, idx.get(s))} de ${dias.length}  (ajuste: ${JSON.stringify(b2)})`);
   Object.assign(M.PAR, base); HONDA.aluviones = todosAluv;
 }
-console.log('\nPAR final:', JSON.stringify({ kRef: base.kRef, li0: base.li0, qMax: base.qMax, mCelda: base.mCelda, rFrente: base.rFrente, escala: base.escala, betaV: base.betaV, rho: base.rho }));
+}
+console.log('\nPAR final:', JSON.stringify({ kRef: base.kRef, li0: base.li0, qMax: base.qMax, mCelda: base.mCelda, rFrente: base.rFrente, escala: base.escala, betaV: base.betaV, rho: base.rho, tauVeg: base.tauVeg, tauRec: base.tauRec }));

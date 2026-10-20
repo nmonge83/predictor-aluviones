@@ -22,5 +22,7 @@ console.assert(esperados > 1 && esperados < 4, 'el total esperado debe parecerse
 console.assert(porDia[ix.get('2026-10-06')] < porDia[ix.get('2026-10-08')] / 3, 'el 6-oct (111 mm, estable) debe salir muy por debajo del 8-oct');
 // funciones puras
 console.assert(M.fLiquida(2500, HONDA.hyp) === 1 && M.fLiquida(1000, HONDA.hyp) === 0, 'fLiquida');
-console.assert(M.material(HONDA.aluviones[1] - 1, HONDA.aluviones) > 0.9 && M.material(HONDA.aluviones[1] + 86400, HONDA.aluviones) < 0.6, 'material');
+// cada aluvión se lleva la fracción delta del barro que hay (no depende de cuánto tarda en reponerse)
+{ const t = HONDA.aluviones[1], antes = M.material(t - 1, HONDA.aluviones), despues = M.material(t + 1, HONDA.aluviones);
+  console.assert(antes < 1 && Math.abs(despues / antes - (1 - M.PAR.delta)) < 0.01, 'material'); }
 console.log('ok');

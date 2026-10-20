@@ -19,11 +19,12 @@ const PAR = {
   // 4. cuenca quemada (USGS, Staley et al. 2017, modelo M1: B, Ct, Cf, Cs por duración)
   usgs: [[15, -3.63, 0.41, 0.67, 0.70], [30, -3.61, 0.26, 0.39, 0.50], [60, -3.21, 0.17, 0.20, 0.22]],
   sev: [0.5, 0.85], F: [0.25, 0.45], S: [0.20, 0.30], // T = quemada · empinada · sev (severidad moderada o alta)
-  tauVeg: 730,                 // días: la quema se "cierra" con la vegetación (e-folding de 2 años)
+  tauVeg: 365,                 // días: la quema se "cierra" con la vegetación (e-folding de 1 año; el umbral de lluvia sube ~1,7× en un año,
+                               // como en California; los 295 días no distinguen 180 a 730: ver ESTUDIO.md)
   // 5. material suelto disponible
-  delta: 0.5, tauRec: 90,      // cada aluvión se lleva la mitad del material; se repone en ~3 meses
-  escala: 0.8,                 // recalibración global (ajustada con los 295 días, grilla 0,3–1,2)
-  sinQuema: 0.033,             // cuencas sin quemar: el registro da ~1 aluvión cada 30 años por quebrada (Macul 1993);
+  delta: 0.5, tauRec: 365,     // cada aluvión se lleva la mitad del material; se repone en ~1 año (antes 3 meses; ver ESTUDIO.md)
+  escala: 1.2,                 // recalibración global (ajustada con los 295 días con tauVeg y tauRec de 365; grilla 0,3–2)
+  sinQuema: 0.022,             // cuencas sin quemar: el registro da ~1 aluvión cada 30 años por quebrada (Macul 1993);
                                // sin este factor el modelo esperaba 0,5–0,9 por quebrada en 295 días, 20 a 30 veces más
 };
 

@@ -1,55 +1,76 @@
 mejor ajuste: {
-  ll: -4.384252331887704,
+  nieve: 300,
   kRef: 1,
-  li0: -4,
+  uRef: 20,
+  kSig: 0.3,
+  usarViento: false,
   qMax: 1,
+  li0: -4,
+  liEsc: 1,
+  cinEsc: 50,
   mCelda: 8,
-  rf15: 0.15,
-  escala: 0.8,
+  mSig: 0.5,
+  rCelda: [ 0.57, 0.79 ],
+  rho: 0.95,
+  vRef: 30,
   betaV: 1,
-  rho: 0.95
+  fMax: 2,
+  rFrente: [ 0.15, 0.4 ],
+  usgs: [
+    [ 15, -3.63, 0.41, 0.67, 0.7 ],
+    [ 30, -3.61, 0.26, 0.39, 0.5 ],
+    [ 60, -3.21, 0.17, 0.2, 0.22 ]
+  ],
+  sev: [ 0.5, 0.85 ],
+  F: [ 0.25, 0.45 ],
+  S: [ 0.2, 0.3 ],
+  tauVeg: 365,
+  delta: 0.5,
+  tauRec: 365,
+  escala: 1.2,
+  sinQuema: 0.022
 }
-log-verosimilitud -4.38 · Brier 0.00393 (climatología 0.00673)
+log-verosimilitud -3.95 · Brier 0.00343 (climatología 0.00673)
 los 12 días más riesgosos:
-  2026-10-08 32.8% ALUVIÓN
-  2026-01-31 23.3% ALUVIÓN
-  2026-05-06 19.9% 
-  2026-05-07 12.9% 
-  2026-10-13 12.4% 
-  2026-10-02 9.6% 
-  2026-10-19 8.8% 
-  2026-01-25 8.3% 
-  2026-10-14 8.0% 
-  2026-07-17 6.1% 
-  2026-08-27 3.8% 
-  2026-10-07 3.5% 
-  2026-05-06: 19.9%  (puesto 3 de 295)
-  2026-10-02: 9.6%  (puesto 6 de 295)
-  2026-10-19: 8.8%  (puesto 7 de 295)
-  2026-01-31: 23.3%  (puesto 2 de 295)
-  2026-07-17: 6.1%  (puesto 10 de 295)
-  2026-07-20: 2.5%  (puesto 17 de 295)
-  2026-08-15: 1.8%  (puesto 26 de 295)
-  2026-08-27: 3.8%  (puesto 11 de 295)
-  2026-10-06: 2.0%  (puesto 22 de 295)
-  2026-10-07: 3.5%  (puesto 12 de 295)
-  2026-10-08: 32.8%  (puesto 1 de 295)
+  2026-01-31 33.9% ALUVIÓN
+  2026-10-08 33.1% ALUVIÓN
+  2026-05-06 20.8% 
+  2026-05-07 13.4% 
+  2026-10-13 12.3% 
+  2026-01-25 12.1% 
+  2026-10-19 8.6% 
+  2026-10-02 8.2% 
+  2026-10-14 6.5% 
+  2026-07-17 5.2% 
+  2026-08-27 3.5% 
+  2026-10-07 3.0% 
+  2026-05-06: 20.8%  (puesto 3 de 295)
+  2026-10-02: 8.2%  (puesto 8 de 295)
+  2026-10-19: 8.6%  (puesto 7 de 295)
+  2026-01-31: 33.9%  (puesto 1 de 295)
+  2026-07-17: 5.2%  (puesto 10 de 295)
+  2026-07-20: 2.2%  (puesto 19 de 295)
+  2026-08-15: 1.6%  (puesto 25 de 295)
+  2026-08-27: 3.5%  (puesto 11 de 295)
+  2026-10-06: 1.8%  (puesto 22 de 295)
+  2026-10-07: 3.0%  (puesto 12 de 295)
+  2026-10-08: 33.1%  (puesto 2 de 295)
   2026-10-12: 0.7%  (puesto 56 de 295)
-  2026-10-13: 12.4%  (puesto 5 de 295)
-aluviones esperados en los 295 días: 2.31 (hubo 2)
+  2026-10-13: 12.3%  (puesto 5 de 295)
+aluviones esperados en los 295 días: 2.36 (hubo 2)
 
-sacando un factor a la vez (completo: -4.38):
-  sin tormentas (inestabilidad)  log-ver. -9.74 · puestos 43,4
-  sin realce por el cerro        log-ver. -4.38 · puestos 2,1
-  sin (con) viento cuesta arriba log-ver. -4.38 · puestos 2,1
-  sin recuperación de la quema   log-ver. -4.65 · puestos 2,1
-  sin material ya arrastrado     log-ver. -4.92 · puestos 4,1
-  sin inhibición convectiva      log-ver. -4.49 · puestos 2,1
-  sin velocidad de la tormenta   log-ver. -4.51 · puestos 2,1
-  sin correlación entre horas    log-ver. -4.79 · puestos 3,1
+sacando un factor a la vez (completo: -3.95):
+  sin tormentas (inestabilidad)  log-ver. -9.47 · puestos 32,4
+  sin realce por el cerro        log-ver. -3.95 · puestos 1,2
+  sin (con) viento cuesta arriba log-ver. -3.95 · puestos 1,2
+  sin recuperación de la quema   log-ver. -4.44 · puestos 2,1
+  sin material ya arrastrado     log-ver. -4.98 · puestos 3,1
+  sin inhibición convectiva      log-ver. -4.07 · puestos 1,2
+  sin velocidad de la tormenta   log-ver. -4.07 · puestos 2,1
+  sin correlación entre horas    log-ver. -4.33 · puestos 3,1
 
 dejando un aluvión fuera:
-  2026-01-31: 8.0%, puesto 3 de 295  (ajuste: {"ll":-2.671787242242507,"kRef":1,"li0":-5,"qMax":1,"mCelda":8,"rf15":0.15,"escala":0.4,"betaV":1,"rho":0})
-  2026-10-08: 13.8%, puesto 1 de 295  (ajuste: {"ll":-3.2024515528465236,"kRef":1,"li0":-5,"qMax":1,"mCelda":8,"rf15":0.15,"escala":0.6,"betaV":1,"rho":0.95})
+  2026-01-31: 11.6%, puesto 3 de 295  (ajuste: {"ll":-2.670136432405523,"kRef":1,"li0":-5,"qMax":1,"mCelda":8,"rf15":0.15,"escala":0.6,"betaV":1,"rho":0,"tauVeg":365,"tauRec":365})
+  2026-10-08: 15.3%, puesto 2 de 295  (ajuste: {"ll":-2.8037181482446383,"kRef":1,"li0":-5,"qMax":1,"mCelda":8,"rf15":0.15,"escala":1,"betaV":1,"rho":0.95,"tauVeg":365,"tauRec":365})
 
-PAR final: {"kRef":1,"li0":-4,"qMax":1,"mCelda":8,"rFrente":[0.15,0.4],"escala":0.8,"betaV":1,"rho":0.95}
+PAR final: {"kRef":1,"li0":-4,"qMax":1,"mCelda":8,"rFrente":[0.15,0.4],"escala":1.2,"betaV":1,"rho":0.95,"tauVeg":365,"tauRec":365}

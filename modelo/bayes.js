@@ -34,22 +34,26 @@ const get = async u => { for (let k = 0; k < 4; k++) { const r = await fetch(u);
     if (process.env.TORMENTA) e.forzar = new Set([0]); // tormenta vista encima: la primera hora tiene celda segura
     hoy.push(e);
   }
-  const pHoy = aluv => hoy.reduce((s, e) => s + M.simular(e, { ...s0, aluviones: aluv }, e.time.map(() => 0), 1, 400, 7).porDia[0], 0) / hoy.length;
+  const pHoy = aluv => hoy.reduce((s, e) => s + M.simular(e, { ...s0, aluviones: aluv }, e.time.map(() => 0), 1, +(process.env.SORTEOS_HOY || 400), 7).porDia[0], 0) / hoy.length;
 
   const app = pHoy(ALUV); // con el PAR de la app, antes de recorrer la grilla
-  const G = { kRef: [1, 1.5, 2.3], li0: [-5, -4, -3], qMax: [0.6, 1], mCelda: [4, 6, 8], rf15: [0.15, 0.2], escala: [0.3, 0.4, 0.6, 0.8, 1, 1.2], betaV: [0, 1], rho: [0, 0.8, 0.95] };
+  const G = { kRef: [1, 1.5], li0: [-5, -4, -3], qMax: [0.6, 1], mCelda: [4, 6, 8], rf15: [0.15, 0.2], escala: [0.3, 0.4, 0.6, 0.8, 1, 1.2, 1.6, 2], betaV: [0, 1], rho: [0, 0.8, 0.95], tauVeg: [180, 365, 730], tauRec: [90, 365, 730] }; // recuperación y barro: inciertas (ESTUDIO.md)
   const corte = idx.get('2026-10-08'), filas = [];
   for (const kRef of G.kRef) for (const li0 of G.li0) for (const qMax of G.qMax) for (const mCelda of G.mCelda)
-    for (const rf15 of G.rf15) for (const escala of G.escala) for (const betaV of G.betaV) for (const rho of G.rho) {
-      Object.assign(M.PAR, { kRef, li0, qMax, mCelda, rFrente: [rf15, rf15 + 0.25], escala, betaV, rho });
+    for (const rf15 of G.rf15) for (const escala of G.escala) for (const betaV of G.betaV) for (const rho of G.rho) for (const tauVeg of G.tauVeg) for (const tauRec of G.tauRec) {
+      Object.assign(M.PAR, { kRef, li0, qMax, mCelda, rFrente: [rf15, rf15 + 0.25], escala, betaV, rho, tauVeg, tauRec });
       const { porDia } = M.simular(esc, HONDA, dia, dias.length, +(process.env.SORTEOS || 150), +(process.env.SEMILLA || 11));
       let llAntes = 0, llTodo = 0;
       porDia.forEach((p, j) => { const q = Math.min(1 - 1e-6, Math.max(1e-6, p)), l = y[j] ? Math.log(q) : Math.log(1 - q); llTodo += l; if (j < corte) llAntes += l; });
-      filas.push({ escala, llAntes, llTodo, par: { kRef, li0, qMax, mCelda, rf15, betaV, rho } });
+      filas.push({ escala, tauVeg, tauRec, llAntes, llTodo, par: { kRef, li0, qMax, mCelda, rf15, betaV, rho, tauVeg, tauRec } });
     }
-  // pesos a posteriori (prior uniforme sobre la grilla); hoy se simula en TODA la grilla
-  const pesos = k => { const mx = Math.max(...filas.map(f => f[k])); const w = filas.map(f => Math.exp(f[k] - mx)), s = w.reduce((a, b) => a + b); return w.map(x => x / s); };
-  const wA = pesos('llAntes'), wT = pesos('llTodo');
+  // Priori de la literatura (ESTUDIO.md): el umbral de lluvia se duplica en ~1 año (recuperación de 365 días la más
+  // probable) y el barro se repone en meses a años (365 días al centro). Con PRIORI=uniforme se compara sin ella.
+  const LIT = { tauVeg: { 180: 1, 365: 2, 730: 1 }, tauRec: { 90: 1, 365: 2, 730: 1 } };
+  const priori = f => process.env.PRIORI === 'uniforme' ? 1 : LIT.tauVeg[f.tauVeg] * LIT.tauRec[f.tauRec];
+  // pesos a posteriori = priori × verosimilitud de los 295 días; hoy se simula en TODA la grilla
+  const pesos = (k, pri = priori) => { const mx = Math.max(...filas.map(f => f[k])); const w = filas.map(f => Math.exp(f[k] - mx) * pri(f)), s = w.reduce((a, b) => a + b); return w.map(x => x / s); };
+  const wA = pesos('llAntes'), wT = pesos('llTodo'), wU = pesos('llTodo', () => 1);
   filas.forEach((f, i) => {
     Object.assign(M.PAR, { ...f.par, rFrente: [f.par.rf15, f.par.rf15 + 0.25], escala: f.escala });
     f.hoySinBarro = pHoy(ALUV.slice(0, 1)); f.hoy = pHoy(ALUV);
@@ -57,9 +61,12 @@ const get = async u => { for (let k = 0; k < 4; k++) { const r = await fetch(u);
   const media = (w, k) => filas.reduce((s, f, i) => s + f[k] * w[i], 0);
   const cuantil = (w, k, q) => { const o = filas.map((f, i) => [f[k], w[i]]).sort((a, b) => a[0] - b[0]); let s = 0; for (const [v, x] of o) { s += x; if (s >= q) return v; } };
   const pct = x => (x * 100).toFixed(1) + ' %';
+  console.log('recuperación media a posteriori (días):', media(wT, 'tauVeg').toFixed(0), '· reposición del barro (días):', media(wT, 'tauRec').toFixed(0));
   console.log('escala media a posteriori: hasta el 7-oct', media(wA, 'escala').toFixed(2), '· hasta el 19-oct', media(wT, 'escala').toFixed(2));
   console.log('hoy, mejor ajuste (como la app):', pct(app));
   console.log('hoy, lo sabido al 7-oct, sin el barro que se llevó el 8-oct:', pct(media(wA, 'hoySinBarro')));
   console.log('hoy, lo sabido al 7-oct, con el barro que se llevó:', pct(media(wA, 'hoy')));
   console.log('hoy, Bayes con todo hasta el 19-oct:', pct(media(wT, 'hoy')), `(90 %: ${pct(cuantil(wT, 'hoy', 0.05))} a ${pct(cuantil(wT, 'hoy', 0.95))})`);
+  console.log('hoy, Bayes sin la literatura (priori pareja):', pct(media(wU, 'hoy')), `(90 %: ${pct(cuantil(wU, 'hoy', 0.05))} a ${pct(cuantil(wU, 'hoy', 0.95))})`, '· recuperación', media(wU, 'tauVeg').toFixed(0), 'd · barro', media(wU, 'tauRec').toFixed(0), 'd · escala', media(wU, 'escala').toFixed(2));
+  if (process.env.FILAS) require('fs').writeFileSync(process.env.FILAS, JSON.stringify(filas)); // para cambiar la priori sin recalcular
 })();
