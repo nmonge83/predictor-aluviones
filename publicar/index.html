@@ -131,7 +131,7 @@ a { color: var(--accent) }
     <p style="margin-bottom:10px">Un aluvión en una cuenca quemada no lo gatilla la lluvia acumulada: lo gatilla el agua que corre sobre el suelo quemado durante un chubasco de pocos minutos. El 6-oct cayeron 111 mm en Tobalaba y no pasó nada; el 8-oct cayeron 35 mm con tormenta y hubo aluvión. El modelo encadena cinco pasos, hora a hora y para cada uno de los ~200 escenarios de pronóstico:</p>
     <ul class="sub">
       <li><b>1. Lluvia en la cuenca:</b> lluvia del pronóstico × parte de la cuenca bajo la cota de nieve (isoterma − 300 m, con la curva de altitudes de cada cuenca). Se probó realzarla por el cerro, de 1 a 2,3 veces, y el dato no lo pide.</li>
-      <li><b>2. ¿Pasa una tormenta encima?</b> Chance por hora que sube con la inestabilidad del aire (índice de levantamiento bajo −4) y baja con la inhibición convectiva. Si caen rayos sobre la cuenca (detector de rayos del GOES, últimos 15 min), la chance de esta hora es 100 %. El color del infrarrojo no basta: el 20-oct una capa de nubes a −52 °C, igual de fría que las tormentas de los aluviones, se pintó amarilla sobre la cuenca con lluvia pareja y sin un solo rayo. En los dos aluviones sí hubo: el 31-ene, 36 a 83 rayos cada 10 min a menos de 10 km de la Quebrada Honda; el 8-oct, 60.</li>
+      <li><b>2. ¿Pasa una tormenta encima?</b> Chance por hora que sube con la inestabilidad del aire (índice de levantamiento bajo −4) y baja con la inhibición convectiva. Si caen rayos sobre la cuenca (detector de rayos del GOES, últimos 15 min), la chance de esta hora es 100 %. El color del infrarrojo no basta: el 20-oct una capa de nubes a −52 °C, igual de fría que las tormentas de los aluviones, se pintó amarilla sobre la cuenca con lluvia pareja y sin un solo rayo. En los dos aluviones sí hubo: el 31-ene, 36 a 83 rayos cada 10 min a menos de 10 km de la Quebrada Honda; el 8-oct, 60. Los rayos confirman una tormenta, pero que no haya rayos no la descarta: en Montecito (California, 2018) el aluvión lo gatilló una banda angosta de lluvia muy intensa a lo largo de un frente frío, con 157 mm/h en 5 min. Por eso, sin rayos, el modelo no baja el riesgo: sigue con el pronóstico.</li>
       <li><b>3. Minutos más intensos:</b> bajo una celda lenta llueve ~8 veces lo que da el modelo y el 57 % de la hora cae en 15 min; con lluvia frontal pareja, solo el 15 %. Una celda rápida deja menos agua: el tiempo que pasa sobre la cuenca es su tamaño dividido por su velocidad (viento a 3 km de altura; el 8-oct, ~30 km/h).</li>
       <li><b>4. Respuesta de la cuenca quemada:</b> regresión del Servicio Geológico de EE.UU. para cuencas quemadas (Staley et al. 2017, M1), con la lluvia de 15, 30 y 60 min, la fracción quemada y empinada de cada cuenca, y la quema que se va cerrando con la vegetación (vida media de 2 años).</li>
       <li><b>5. Material disponible:</b> cada aluvión se lleva la mitad del barro suelto, que se repone en ~3 meses. Por eso, días después del 8-oct, la misma tormenta pesa menos.</li>
@@ -172,10 +172,11 @@ a { color: var(--accent) }
     <ul class="sub">
       <li><b>Avisos oficiales (mandan sobre esta página):</b> <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">lluvia diaria en Tobalaba</a>.</li>
       <li><b>Pronóstico del tiempo:</b> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, que entrega los pronósticos de los centros de Europa (ECMWF y ECMWF-IA), Alemania (ICON), EE.UU. (GFS), Canadá (GEM) y Reino Unido (UKMO), con unos 200 escenarios en total.</li>
-      <li><b>Nubes en vivo:</b> satélite GOES-19 de NOAA, canal infrarrojo, vía <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>. La temperatura de la cima de cada nube sale de su <a href="https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml" target="_blank" rel="noopener">tabla de colores</a>. Llega con unos 30 a 40 min de atraso (el satélite toma una imagen cada 10 min).</li>
+      <li><b>Nubes en vivo:</b> satélite GOES-19 de NOAA, canal infrarrojo, que toma una imagen cada 10 min. Los datos de arriba (tormenta encima, hacia dónde va la nube) se leen del archivo original en <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>, que llega unos 10 min después de cada imagen; la página baja solo la franja de Santiago. El mapa usa las imágenes de <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>, que llegan con 30 a 40 min de atraso (y si NOAA falla, la página usa GIBS con su <a href="https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml" target="_blank" rel="noopener">tabla de colores</a>).</li>
       <li><b>Rayos en vivo:</b> detector de rayos del GOES-19 (GLM), vía <a href="https://realearth.ssec.wisc.edu/" target="_blank" rel="noopener">RealEarth</a> de la Universidad de Wisconsin; los datos originales están en <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>. Llega con unos 5 min de atraso.</li>
       <li><b>Cómo responde un cerro quemado a la lluvia:</b> la fórmula del Servicio Geológico de EE.UU. para aluviones después de incendios, de Staley y otros (2017), <i>Geomorphology</i> 278: 149-162 (<a href="https://doi.org/10.1016/j.geomorph.2016.10.019" target="_blank" rel="noopener">artículo</a> · <a href="https://www.usgs.gov/programs/landslide-hazards/science/postfire-debris-flow-hazards" target="_blank" rel="noopener">cómo la usa el USGS</a>).</li>
       <li><b>Cuánto llueve en pocos minutos:</b> Bell (1969), la relación entre la lluvia de 15, 30 y 60 minutos.</li>
+      <li><b>Rayos y lluvia intensa:</b> los rayos se usan para anticipar chaparrones y crecidas repentinas (por ejemplo, el proyecto europeo <a href="https://cordis.europa.eu/project/id/36852" target="_blank" rel="noopener">FLASH</a>). Su ausencia no descarta un aluvión: el de <a href="https://nhess.copernicus.org/articles/18/3037/2018/" target="_blank" rel="noopener">Montecito en 2018</a> lo gatilló una banda de lluvia de un frente frío.</li>
       <li><b>Relieve, cauces y mapa:</b> <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">relieve Terrarium (AWS)</a>, <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>, Esri y Leaflet.</li>
     </ul>
   </section>
@@ -392,15 +393,23 @@ function tipoNube(r, g, b) { // escala de GIBS: gris → celeste → azul → ve
   if (g > b + 15) return 2;
   return 1;
 }
-async function leerSatelite(t) {
+// Clase de nube según la temperatura de la cima, igual que los colores de GIBS: amarillo/rojo bajo −46 °C, verde de −46
+// a −33 °C, azul de −33 a −19 °C y gris sobre eso (sacado de su tabla de colores).
+const claseT = v => !(v === v) ? -1 : v < -46 ? 3 : v < -33 ? 2 : v < -19 ? 1 : 0;
+// T: temperaturas de 150×150 píxeles (GOES directo de NOAA); sin T, se lee la imagen de GIBS por sus colores
+async function leerSatelite(t, T) {
   const N = 150, paso = 3 / N; // 2 km por píxel, la resolución del infrarrojo de GOES
-  const d = await pixeles(wmsUrl(CAPAS.ir[0], N, 1.5, t), N);
-  let op = 0; for (let k = 3; k < d.length; k += 4) if (d[k]) op++;
-  if (op < 0.8 * N * N) return null; // imagen todavía incompleta
+  let clase;
+  if (T) clase = p => claseT(T[p]);
+  else {
+    const d = await pixeles(wmsUrl(CAPAS.ir[0], N, 1.5, t), N);
+    let op = 0; for (let k = 3; k < d.length; k += 4) if (d[k]) op++;
+    if (op < 0.8 * N * N) return null; // imagen todavía incompleta
+    clase = p => d[4 * p + 3] ? tipoNube(d[4 * p], d[4 * p + 1], d[4 * p + 2]) : -1;
+  }
   const cosLa = Math.cos(BAS[0] * Math.PI / 180), tormentas = [];
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    const k = (y * N + x) * 4; if (!d[k + 3]) continue;
-    const c = tipoNube(d[k], d[k + 1], d[k + 2]);
+    const c = clase(y * N + x);
     if (c >= 2) tormentas.push([BAS[0] + 1.5 - (y + 0.5) * paso, BAS[1] - 1.5 + (x + 0.5) * paso, c]);
   }
   const porCuenca = {};
@@ -468,11 +477,16 @@ const TEMP = fetch('https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwav
 // Movimiento: cuánto se corrió el centro de la masa fría en 40 min, a menos de 120 km. El 20-oct la búsqueda en bloque
 // (el dibujo de la cima, que corre con el viento de altura) daba 89 km/h y el centro de la masa ~55 km/h: para saber
 // cuándo llega o se va la lluvia importa la masa. La búsqueda en bloque queda de respaldo cuando la masa es chica.
-async function leerMovimiento(t1) {
-  const tabla = await TEMP; if (!tabla) return null;
+// g: { A, B, C } temperaturas del GOES directo (20 min antes, última, 40 min antes); sin g, se leen de GIBS
+async function leerMovimiento(t1, g) {
   const N = 150, r = 1.5, paso = 2 * r / N, t0 = t1 - 1200, horasDt = 1200 / 3600, cosLa = Math.cos(BAS[0] * Math.PI / 180);
-  const temps = async t => { const d = await pixeles(wmsUrl(CAPAS.ir[0], N, r, t), N), T = new Float32Array(N * N).fill(NaN); for (let p = 0; p < N * N; p++) if (d[4 * p + 3]) T[p] = tabla(d[4 * p], d[4 * p + 1], d[4 * p + 2]); return T; };
-  const [A, B, C] = await Promise.all([temps(t0), temps(t1), temps(t1 - 2400).catch(() => null)]);
+  let A, B, C;
+  if (g) ({ A, B, C } = g);
+  else {
+    const tabla = await TEMP; if (!tabla) return null;
+    const temps = async t => { const d = await pixeles(wmsUrl(CAPAS.ir[0], N, r, t), N), T = new Float32Array(N * N).fill(NaN); for (let p = 0; p < N * N; p++) if (d[4 * p + 3]) T[p] = tabla(d[4 * p], d[4 * p + 1], d[4 * p + 2]); return T; };
+    [A, B, C] = await Promise.all([temps(t0), temps(t1), temps(t1 - 2400).catch(() => null)]);
+  }
   const centro = T => { let n = 0, sx = 0, sy = 0; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const v = T[y * N + x]; if (v < -40 && Math.hypot((x - N / 2) * 1.86, (y - N / 2) * 2.21) < 120) { n++; sx += x; sy += y; } } return n > 300 ? [sx / n, sy / n] : null; };
   const cenC = C && centro(C), cenB = centro(B);
   let frios = 0, validos = 0; for (const v of B) if (v === v) { validos++; if (v < -35) frios++; }
@@ -505,7 +519,86 @@ async function leerMovimiento(t1) {
   return { t0, t1, frio, mx, my, limite };
 }
 const RUMBO = ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'];
+// GOES-19 directo de NOAA (AWS): el archivo de cada imagen sale ~10 min después de tomarla, ~25 min antes que en GIBS.
+// Se lee solo la franja de Santiago (~0,75 MB de 24 MB) con pedidos por rango: el comienzo del archivo (encabezado del
+// dato CMI), su índice de chunks (B-tree v1 de HDF5) y los 6 chunks de 24 filas × 5424 columnas (gzip + shuffle).
+// Comprobado contra h5py el 20-oct: diferencia 0 °C.
+const NOAA = 'https://noaa-goes19.s3.amazonaws.com/', cacheGOES = new Map();
+const dvw = b => new DataView(b.buffer, b.byteOffset, b.byteLength), u32 = (b, p) => dvw(b).getUint32(p, true), u64 = (b, p) => Number(dvw(b).getBigUint64(p, true));
+async function rango(url, a, n) {
+  const r = await fetch(url, { headers: { Range: `bytes=${a}-${a + n - 1}` } });
+  if (r.status !== 206) throw new Error('el servidor no entregó solo el trozo pedido (' + r.status + ')'); // nunca bajar los 24 MB
+  return new Uint8Array(await r.arrayBuffer());
+}
+const inflar = async b => new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+function buscarCMI(b) { // el encabezado (OHDR v2) con espacio 5424×5424, tipo de 2 bytes y diseño en chunks → dirección del índice
+  for (let i = 0; i + 4 < b.length; i++) {
+    if (b[i] !== 79 || b[i + 1] !== 72 || b[i + 2] !== 68 || b[i + 3] !== 82) continue; // 'OHDR'
+    const fl = b[i + 5]; let p = i + 6; if (fl & 0x20) p += 16; if (fl & 0x10) p += 4;
+    const nt = 1 << (fl & 3); let tam = 0; for (let k = 0; k < nt; k++) tam += b[p + k] * 2 ** (8 * k); p += nt;
+    const fin = Math.min(p + tam, b.length), m = {};
+    while (p + 4 <= fin) { const tipo = b[p], largo = b[p + 1] | (b[p + 2] << 8); p += 4; if (fl & 0x04) p += 2; m[tipo] ??= b.subarray(p, p + largo); p += largo; }
+    const esp = m[1], tip = m[3], lay = m[8];
+    if (esp?.length >= 20 && esp[0] === 2 && esp[1] === 2 && u64(esp, 4) === 5424 && u64(esp, 12) === 5424 && tip && u32(tip, 4) === 2 && lay?.[0] === 3 && lay[1] === 2) return u64(lay, 3);
+  }
+  return null;
+}
+async function hojasGOES(url, a, out, fmin, fmax) { // nodos 'TREE' de chunks: clave (tamaño, máscara, fila, columna, 0) + hijo
+  const b = await rango(url, a, 24 + 40 * 64 + 32);
+  if (b[0] !== 84 || b[1] !== 82 || b[2] !== 69 || b[3] !== 69 || b[4] !== 1) throw new Error('índice inesperado');
+  const nivel = b[5], usados = b[6] | (b[7] << 8), k = e => 24 + e * 40, fila = e => u64(b, k(e) + 8), hijo = e => u64(b, k(e) + 32), tareas = [];
+  for (let e = 0; e < usados; e++) {
+    if (nivel === 0) { const f = fila(e); if (f >= fmin && f <= fmax) out.set(f, [hijo(e), u32(b, k(e))]); }
+    else if (fila(e + 1) > fmin && fila(e) <= fmax) tareas.push(hojasGOES(url, hijo(e), out, fmin, fmax));
+  }
+  await Promise.all(tareas);
+}
+let MAPA = null;
+function mapaGOES() { // para cada píxel de la grilla de 150×150 (como la de GIBS): su columna y fila en la imagen del GOES
+  if (MAPA) return MAPA;
+  const N = 150, r = 1.5, paso = 2 * r / N, req = 6378137, rpol = 6356752.31414, H = 35786023 + req, l0 = -75 * Math.PI / 180, celdas = [], filas = new Set();
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const lat = (BAS[0] + r - (y + 0.5) * paso) * Math.PI / 180, lon = (BAS[1] - r + (x + 0.5) * paso) * Math.PI / 180;
+    const phi = Math.atan((rpol ** 2 / req ** 2) * Math.tan(lat)), rc = rpol / Math.sqrt(1 - ((req ** 2 - rpol ** 2) / req ** 2) * Math.cos(phi) ** 2);
+    const sx = H - rc * Math.cos(phi) * Math.cos(lon - l0), sy = -rc * Math.cos(phi) * Math.sin(lon - l0), sz = rc * Math.sin(phi);
+    const col = Math.round((Math.asin(-sy / Math.hypot(sx, sy, sz)) + 0.151844) / 5.6e-5), fila = Math.round((Math.atan(sz / sx) - 0.151844) / -5.6e-5);
+    celdas.push([col, fila]); filas.add(fila - fila % 24);
+  }
+  return MAPA = { celdas, filas: [...filas].sort((a, b) => a - b) };
+}
+async function leerGOES(k) {
+  if (cacheGOES.has(k)) return cacheGOES.get(k);
+  const url = NOAA + k, arbol = buscarCMI(await rango(url, 0, 98304));
+  if (!arbol) throw new Error('no se encontró el dato CMI');
+  const { celdas, filas } = mapaGOES(), chunks = new Map(), datos = new Map();
+  await hojasGOES(url, arbol, chunks, filas[0], filas.at(-1));
+  await Promise.all(filas.map(async f0 => {
+    const c = chunks.get(f0); if (!c) throw new Error('falta la franja ' + f0);
+    const z = await inflar(await rango(url, c[0], c[1])), n = z.length / 2, v = new Int16Array(n);
+    for (let i = 0; i < n; i++) v[i] = z[i] | (z[n + i] << 8); // deshacer el «shuffle» de 2 bytes
+    datos.set(f0, v);
+  }));
+  const T = new Float32Array(celdas.length);
+  celdas.forEach(([col, fila], p) => { const v = datos.get(fila - fila % 24)[(fila % 24) * 5424 + col]; T[p] = v === -1 ? NaN : v * 0.06145332 + 89.62 - 273.15; });
+  cacheGOES.set(k, T); if (cacheGOES.size > 6) cacheGOES.delete(cacheGOES.keys().next().value);
+  return T;
+}
+async function framesGOES() { // la última imagen y las de 20 y 40 min antes
+  const ahora = Date.now(), cs = [];
+  for (const dt of [3600e3, 0]) {
+    const d = new Date(ahora - dt), dia = Math.floor((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 864e5) + 1;
+    const x = await (await fetch(`${NOAA}?list-type=2&prefix=ABI-L2-CMIPF/${d.getUTCFullYear()}/${String(dia).padStart(3, '0')}/${String(d.getUTCHours()).padStart(2, '0')}/OR_ABI-L2-CMIPF-M6C13`)).text();
+    for (const [, k] of x.matchAll(/<Key>([^<]+)<\/Key>/g)) { const s = k.split('_s')[1]; cs.push({ k, t: Date.UTC(+s.slice(0, 4), 0, 1) / 1000 + (+s.slice(4, 7) - 1) * 86400 + +s.slice(7, 9) * 3600 + +s.slice(9, 11) * 60 + +s.slice(11, 13) }); }
+  }
+  if (!cs.length) return null;
+  cs.sort((a, b) => a.t - b.t);
+  const ult = cs.at(-1), cerca = dt => cs.find(c => Math.abs(c.t - (ult.t - dt)) < 180);
+  const [B, A, C] = await Promise.all([ult, cerca(1200), cerca(2400)].map(c => c ? leerGOES(c.k) : null));
+  return A ? { t1: ult.t, A, B, C } : null;
+}
 async function medirSatelite() {
+  const g = await framesGOES().catch(e => (console.warn('GOES directo', e.message), null));
+  if (g) { const s = await leerSatelite(g.t1, g.B); s.mov = await leerMovimiento(g.t1, g); s.fuente = 'NOAA'; return s; }
   // El GOES toma una imagen cada 10 min y GIBS la publica ~30 min después. Cada vez se busca la más nueva (sin el margen
   // de 10 min de antes) y gana la primera que llegue completa; antes se leían los cuadros del mapa del ciclo
   // anterior y el dato quedaba 10-20 min más viejo de lo necesario (20-oct: a las 19:13 mostraba 18:20 con 18:40 publicada).
@@ -519,7 +612,7 @@ function textoCercania() {
   const b = s.best, f = s.fuerte, ry = s.rayo, donde = x => `a ${fmt(x.dist)} km al ${RUMBO[Math.round(((Math.atan2(x.dx, x.dy) * 180 / Math.PI + 360) % 360) / 45) % 8]}`;
   let txt;
   if (ry?.encima) txt = `${cu.nombre}, ${hora(ry.t)}: caen rayos sobre la cuenca. El modelo cuenta la tormenta en la hora actual.`;
-  else if (s.irEncima) txt = `${cu.nombre}, ${hora(satelite.t)}: hay nubes muy frías encima, pero sin rayos: no es una celda de tormenta. El modelo sigue con el pronóstico.`;
+  else if (s.irEncima) txt = `${cu.nombre}, ${hora(satelite.t)}: hay nubes muy frías encima, sin rayos: probablemente no es una celda de tormenta, pero puede llover fuerte. El modelo sigue con el pronóstico.`;
   else if (s.nubes) txt = `${cu.nombre}, ${hora(satelite.t)}: hay nubes frías encima, pero no una tormenta fuerte${f ? ` (la más cercana está ${donde(f)})` : ''}. El modelo sigue con el pronóstico.`;
   else if (!b) txt = `${cu.nombre}, ${hora(satelite.t)}: sin nubes de tormenta a menos de 150 km.`;
   else txt = `${cu.nombre}, ${hora(satelite.t)}: sin tormenta encima. La nube más fría está ${donde(b)}.`;
@@ -541,6 +634,7 @@ function pintarReporte() {
     const h1 = hora(mv.t1), est = fr.estimado; // cobertura a la hora de la imagen y estimada para ahora
     if ((est ?? fr.ahora) >= 0.5) items.push(`<b>Nube de lluvia:</b> encima de la quebrada${va ? `, moviéndose${va}` : ''}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'));
     else if (fr.ahora >= 0.5 || (fr.antes ?? 0) >= 0.5) items.push(`<b>Nube de lluvia:</b> se está yendo${va}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)} de la quebrada` + (est != null ? `; ahora debería quedar ~${pc(est)}.` : '.'));
+    else if (fr.ahora >= 0.15) items.push(`<b>Nube de lluvia:</b> sobre parte de la quebrada` + (fr.antes != null && fr.ahora - fr.antes > 0.1 ? ', y creciendo' : '') + `${va ? `, moviéndose${va}` : ''}. A las ${h1} (último satélite) cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'));
     else if (fr.cerca && vel != null && dir) {
       const hacia = (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist; // km/h hacia la quebrada
       const llega = mv.t1 + fr.cerca.dist / Math.max(hacia, 1e-6) * 3600;
@@ -730,7 +824,7 @@ function grafico(horas, o) {
 async function ciclo() {
   // el pronóstico no espera al satélite; si el satélite muestra una tormenta sobre una cuenca, se recalcula con ella
   const sat = Promise.all([
-    medirSatelite().then(async s => { if (s) s.mov = await leerMovimiento(s.t).catch(e => (console.warn('movimiento', e.message), null)); return s; }).catch(() => null),
+    medirSatelite().then(async s => { if (s && !s.mov) s.mov = await leerMovimiento(s.t).catch(e => (console.warn('movimiento', e.message), null)); return s; }).catch(() => null),
     leerRayos().catch(e => (console.warn('rayos', e.message), null))])
     .then(([s, ry]) => { satelite = juntar(s, ry); textoCercania(); pintarReporte(); return satelite; });
   try { R = await calcular(); pintar(); }
