@@ -103,6 +103,9 @@ details.card[open] > summary::before { content: '▾ ' }
 .qchip b { font: 700 .88rem/1.2 var(--display); white-space: nowrap }
 .qchip .pill { justify-self: start }
 .qchip[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); background: var(--soft) }
+.dias button.dia { font: inherit; text-align: left; color: var(--fg); background: var(--panel); cursor: pointer; display: grid; align-content: start; gap: 2px }
+.dias button.dia[aria-pressed="true"] { background: var(--soft); box-shadow: inset 0 0 0 2px var(--c) }
+.volver { font: 600 .8rem system-ui, sans-serif; background: none; border: 0; color: var(--accent); padding: 0; text-decoration: underline }
 </style>
 </head>
 <body>
@@ -139,11 +142,11 @@ details.card[open] > summary::before { content: '▾ ' }
   </section>
 
   <section class="card" id="hoy">
-    <h2 id="htit">Próximas 24 horas</h2>
+    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px"><h2 id="htit" style="margin:0">Próximas 24 horas</h2><button type="button" id="hvolver" class="volver" hidden>← volver a las próximas 24 horas</button></div>
     <p class="hh-texto" id="htxt"></p>
     <div id="hchart"></div>
     <p class="sub" style="margin-top:6px">Cada barra es la chance de que el aluvión ocurra en esa hora: las de color son las horas de más riesgo. Abajo, en celeste, la lluvia esperada en la cuenca. Toca una barra para ver el detalle de esa hora.</p>
-    <h3>Próximos días</h3>
+    <h3>Próximos días <span class="sub" style="font-weight:400">· toca uno para verlo hora a hora</span></h3>
     <div class="dias" id="ddias"></div>
   </section>
 
@@ -869,40 +872,48 @@ function elegir(id) {
 // Próximas 24 h para la quebrada elegida: barras = chance de que el aluvión ocurra en esa hora (lo que sube la acumulada del
 // día), en color las horas que llegan al 30 % de la peor; abajo, la lluvia esperada. Sin la línea acumulada (confundía).
 const TIP = Object.assign(document.createElement('div'), { className: 'tip', role: 'status' }); document.body.append(TIP);
+document.addEventListener('click', e => { if (e.target?.id === 'hvolver') { verDia = null; detalle(); } });
 let tRedim; addEventListener('resize', () => { clearTimeout(tRedim); tRedim = setTimeout(() => R && hoy(), 200); });
+let verDia = null; // null: las próximas 24 h; k: ese día entero, de 0 a 24 h (0 = hoy, 1 = mañana…)
 function hoy() {
-  const cu = CU.find(c => c.id === sel), o = R.out[sel], { horas, dia } = R, n = Math.min(24, horas.length), ix = [...Array(n).keys()];
+  const cu = CU.find(c => c.id === sel), o = R.out[sel], { horas, dia } = R;
+  if (verDia != null && !dia.includes(verDia)) verDia = null;
+  const ix = verDia == null ? [...Array(Math.min(24, horas.length)).keys()] : horas.map((_, i) => i).filter(i => dia[i] === verDia);
+  const n = ix.length, T = ix.map(i => horas[i]), desdeAhora = verDia == null || verDia === 0; // la primera barra es la hora en curso
+  const nomVer = verDia == null ? '' : nomDia(horas[dia.indexOf(verDia)], verDia);
   const inc = ix.map(i => Math.max(0, o.acum[i] - (i && dia[i] === dia[i - 1] ? o.acum[i - 1] : 0)));
-  const total = 1 - inc.reduce((s, v) => s * (1 - v), 1), lluvia = ix.map(i => o.lluviaMed[i] ?? 0), suma = inc.reduce((a, b) => a + b, 0);
-  const ini = i => hora(horas[i] - 3600), fin = i => hora(horas[i]), deDia = i => fecha(horas[i] - 3600) === fecha(NOW) ? '' : ' de mañana';
-  $('htit').textContent = `Próximas 24 horas · ${cu.nombre}`;
+  const total = 1 - inc.reduce((s, v) => s * (1 - v), 1), lluvia = ix.map(i => o.lluviaMed[i] ?? 0);
+  const ini = k => hora(T[k] - 3600), fin = k => hora(T[k]), deDia = k => verDia != null || fecha(T[k] - 3600) === fecha(NOW) ? '' : ' de mañana';
+  $('htit').textContent = verDia == null ? `Próximas 24 horas · ${cu.nombre}` : `${nomVer}, hora a hora · ${cu.nombre}`;
+  $('hvolver').hidden = verDia == null;
   // horas peligrosas: las que llegan al 30 % de la peor; se juntan en tramos seguidos (puede haber uno hoy y otro mañana)
   const kPk = inc.indexOf(Math.max(...inc)), pel = inc.map(v => v > 0 && v >= 0.3 * inc[kPk]), tramos = [];
   pel.forEach((v, k) => { if (!v) return; if (tramos.length && tramos.at(-1)[1] >= k - 2) tramos.at(-1)[1] = k; else tramos.push([k, k]); }); // un hueco de 1 h no corta el tramo
-  const txtTramo = ([p, q]) => p === 0 ? `desde ahora hasta las ${fin(q)}${deDia(q)}` : `entre las ${ini(p)} y las ${fin(q)}${deDia(q)}`;
+  const txtTramo = ([p, q]) => p === 0 && desdeAhora ? `desde ahora hasta las ${fin(q)}${deDia(q)}` : `entre las ${ini(p)} y las ${fin(q)}${deDia(q)}`;
   const suma2 = ([p, q]) => inc.slice(p, q + 1).reduce((x, y) => x + y, 0), top = [...tramos].sort((u, v) => suma2(v) - suma2(u)).slice(0, 2).sort((u, v) => u[0] - v[0]);
   pel.fill(false); top.forEach(([p, q]) => { for (let k = p; k <= q; k++) pel[k] = inc[k] > 0; }); // se pintan solo los tramos que nombra el texto
   const lista = top.map(txtTramo), unir = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' y ' + l.at(-1);
-  $('htxt').innerHTML = total < 1e-4 ? 'En las próximas 24 horas no hay riesgo apreciable en esta quebrada.'
-    : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor. ` +
-      `En total, ${pct(total)} en las próximas 24 horas (${unoEn(total)}).`;
+  const cuando = verDia == null ? 'en las próximas 24 horas' : verDia === 0 ? 'en lo que queda de hoy' : verDia === 1 ? 'en todo el día de mañana' : `en todo el ${nomVer.toLowerCase()}`;
+  $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.`
+    : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor. En total, ${pct(total)} ${cuando} (${unoEn(total)}).`;
   // se dibuja al ancho real (en el celular, una grilla de 1000 achicada dejaba la letra ilegible)
-  const W = Math.max(320, Math.round($('hchart').clientWidth) || 1000), cada = W < 640 ? 6 : 3, P = { l: W < 640 ? 46 : 56, r: 8, t: 22 }, hR = W < 640 ? 120 : 150, gap = 26, hL = 40, Hh = P.t + hR + gap + hL + 30, bw = (W - P.l - P.r) / n;
+  const W = Math.max(320, Math.round($('hchart').clientWidth) || 1000), cada = W < 640 ? 6 : 3, P = { l: W < 640 ? 46 : 56, r: 8, t: 22 }, hR = W < 640 ? 120 : 150, gap = 26, hL = 40, Hh = P.t + hR + gap + hL + 30, bw = (W - P.l - P.r) / Math.max(n, 1);
   const yR0 = P.t + hR, yL0 = yR0 + gap + hL, mR = Math.max(0.002, ...inc) * 1.1, mL = Math.max(4, ...lluvia);
   const x = k => P.l + k * bw, cR = k => pel[k] && total >= 1e-4 ? `var(--${nivel(total) === 'ok' ? 'warn' : nivel(total)})` : 'var(--line)';
   let g = `<line x1="${P.l}" x2="${W - P.r}" y1="${yR0}" y2="${yR0}" stroke="var(--line)"/><line x1="${P.l}" x2="${W - P.r}" y1="${yL0}" y2="${yL0}" stroke="var(--line)"/>`;
   g += `<text x="${P.l - 8}" y="${yR0 - hR / 2 + 4}" text-anchor="end" style="fill:var(--fg);font-weight:600">riesgo</text><text x="${P.l - 8}" y="${yL0 - hL / 2 + 4}" text-anchor="end" style="fill:var(--fg);font-weight:600">lluvia</text>`;
-  ix.forEach(k => {
-    const hgt = inc[k] / mR * hR, hl = Math.min(1, lluvia[k] / mL) * hL, w = Math.min(24, bw - 4), cx = x(k) + (bw - w) / 2;
+  inc.forEach((v, k) => {
+    const hgt = v / mR * hR, hl = Math.min(1, lluvia[k] / mL) * hL, w = Math.min(24, bw - 4), cx = x(k) + (bw - w) / 2;
     if (hgt > 0.5) g += `<path d="M${cx},${yR0}V${yR0 - hgt + 3}q0,-3 3,-3h${w - 6}q3,0 3,3V${yR0}Z" fill="${cR(k)}"/>`;
     if (hl > 0.5) g += `<rect x="${cx}" y="${yL0 - hl}" width="${w}" height="${hl}" rx="2" fill="var(--accent)" opacity=".55"/>`;
-    const hh = +new Date(horas[k] * 1000 - 3600e3).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false });
-    if (k === 0 || (hh % cada === 0 && k > 1)) g += `<text x="${x(k) + bw / 2}" y="${yL0 + 18}" text-anchor="middle">${k === 0 ? 'ahora' : hh === 0 ? new Date(horas[k] * 1000 - 3600e3).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'short' }).replace('.', '') + ' 0 h' : hh + ' h'}</text>`;
+    const hh = +new Date(T[k] * 1000 - 3600e3).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false });
+    const etq = k === 0 && desdeAhora ? 'ahora' : hh === 0 && verDia == null ? new Date(T[k] * 1000 - 3600e3).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'short' }).replace('.', '') + ' 0 h' : hh + ' h';
+    if ((k === 0 && desdeAhora) || (hh % cada === 0 && (k > 1 || !desdeAhora))) g += `<text x="${x(k) + bw / 2}" y="${yL0 + 18}" text-anchor="middle">${etq}</text>`;
     g += `<rect x="${x(k)}" y="${P.t - 10}" width="${bw}" height="${yL0 - P.t + 10}" fill="transparent" data-k="${k}"/>`;
   });
   if (inc[kPk] > 0) g += `<text x="${x(kPk) + bw / 2}" y="${yR0 - inc[kPk] / mR * hR - 6}" text-anchor="middle" style="fill:var(--fg);font-weight:700">${pct(inc[kPk])}</text>`;
   g += `<text x="${W - P.r}" y="${yL0 - hL + 12}" text-anchor="end">máx. ${fmt(Math.max(...lluvia), 1)} mm/h</text>`;
-  $('hchart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Riesgo de aluvión y lluvia, hora a hora, próximas 24 horas">${g}</svg>`;
+  $('hchart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Riesgo de aluvión y lluvia, hora a hora${verDia == null ? ', próximas 24 horas' : ', ' + nomVer}">${g}</svg>`;
   const svg = $('hchart').querySelector('svg'), ver = e => {
     const k = e.target?.dataset?.k; if (k == null) { TIP.style.display = 'none'; return; }
     TIP.innerHTML = `${ini(+k)} a ${fin(+k)}${deDia(+k)}<br>riesgo en esa hora: ${pct(inc[k])}<br>lluvia: ${fmt(lluvia[k], 1)} mm/h`;
@@ -915,7 +926,8 @@ function detalle() {
   const cu = CU.find(c => c.id === sel), o = R.out[sel], { horas, fechas } = R;
   $('dtit').textContent = `Detalle técnico · ${cu.nombre} (para curiosos)`;
   $('dnota').textContent = `${fmt(cu.km2, 1)} km², de ${fmt(cu.hyp[0])} a ${fmt(cu.hyp[20])} m, ${fmt(cu.empinada * 100)} % con pendiente ≥ 23°. ${cu.nota}`;
-  $('ddias').innerHTML = [...o.porDia].map((p, k) => `<div class="dia" style="--c:var(--${nivel(p)})"><span>${nomDia(horas[R.dia.indexOf(k)], k)}</span><b>${pct(p)}</b><span>${fmt(p / cu.base)}× un día cualquiera</span></div>`).join('');
+  $('ddias').innerHTML = [...o.porDia].map((p, k) => `<button type="button" class="dia" data-k="${k}" aria-pressed="${verDia === k}" style="--c:var(--${nivel(p)})"><span>${nomDia(horas[R.dia.indexOf(k)], k)}</span><b>${pct(p)}</b><span>${fmt(p / cu.base)}× un día cualquiera</span></button>`).join('');
+  document.querySelectorAll('#ddias .dia').forEach(b => b.onclick = () => { verDia = +b.dataset.k; detalle(); $('hoy').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   grafico(horas, o);
   const i = o.hora.indexOf(Math.max(...o.hora));
   $('dfact').innerHTML = [
