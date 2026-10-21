@@ -11,11 +11,13 @@
 :root {
   --bg: #eef2f1; --panel: #ffffff; --fg: #15201c; --muted: #56655f; --line: #d5dedb; --soft: #e4ebe9;
   --accent: #2b6c8c; --ok: #2c7a4b; --warn: #b26b0a; --bad: #b8322a;
+  --n0: #6a8a81; --n1: #2c7a4b; --n2: #a37200; --n3: #c9561a; --n4: #b8322a; /* escala: muy bajo → muy alto */
   --display: "Archivo", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #0e1412; --panel: #161f1c; --fg: #e4ebe8; --muted: #93a39c; --line: #2a3632; --soft: #1e2926;
-    --accent: #6cb2d4; --ok: #4fbf7d; --warn: #e2a33f; --bad: #ef6b5b; color-scheme: dark; }
+    --accent: #6cb2d4; --ok: #4fbf7d; --warn: #e2a33f; --bad: #ef6b5b; color-scheme: dark;
+    --n0: #8aa89f; --n1: #4fbf7d; --n2: #e6bd3a; --n3: #f08a4b; --n4: #ef6b5b; }
 }
 * { box-sizing: border-box }
 html, body { margin: 0 }
@@ -64,9 +66,9 @@ a { color: var(--accent) }
 .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c); vertical-align: -1px; margin-right: 4px }
 @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr } #map { height: 400px } }
 @media (max-width: 560px) { #ranking th:nth-child(4), #ranking td:nth-child(4), #ranking th:nth-child(5), #ranking td:nth-child(5) { display: none } }
-@media (max-width: 520px) { .resumen { grid-template-columns: 1fr; gap: 10px } .big { font-size: 3rem } .dias { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+@media (max-width: 520px) { .resumen { grid-template-columns: 1fr; gap: 10px } .metro .etq { font-size: .66rem } .escala th, .escala td { padding: 6px 4px } .escala td.num, .escala th.num { white-space: normal; text-align: left } .big { font-size: 3rem } .dias { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 /* Panel para gente común: nivel en palabras, «1 en N», escala, tarjetas de «Ahora» y hora a hora con la lluvia */
-.hero { display: grid; gap: 12px; border-left: 6px solid var(--sev, var(--line)) }
+.hero { display: grid; gap: 12px; border-left: 6px solid var(--sev, var(--line)) } .hero > * { min-width: 0 }
 .hero-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px }
 .nivel { font: 800 .95rem/1 var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--panel); background: var(--sev, var(--muted));
   padding: 8px 12px; border-radius: 99px; display: inline-flex; gap: 8px; align-items: center }
@@ -74,10 +76,13 @@ a { color: var(--accent) }
 .unoen { font: 700 1.05rem/1.3 var(--display); color: var(--muted) }
 .que { font-size: 1.02rem; line-height: 1.55; max-width: 75ch }
 .metro { position: relative; max-width: 560px; margin-top: 2px }
-.metro .barra { display: grid; grid-template-columns: 1fr 2fr 3fr; gap: 2px; height: 10px; border-radius: 99px; overflow: hidden }
-.metro .barra span:nth-child(1) { background: var(--ok) } .metro .barra span:nth-child(2) { background: var(--warn) } .metro .barra span:nth-child(3) { background: var(--bad) }
+.metro .barra { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 2px; height: 10px; border-radius: 99px; overflow: hidden }
+.metro .barra span:nth-child(1) { background: var(--n0) } .metro .barra span:nth-child(2) { background: var(--n1) } .metro .barra span:nth-child(3) { background: var(--n2) } .metro .barra span:nth-child(4) { background: var(--n3) } .metro .barra span:nth-child(5) { background: var(--n4) }
 .metro .pin { position: absolute; top: -5px; width: 4px; height: 20px; background: var(--fg); border-radius: 2px; transform: translateX(-50%); box-shadow: 0 0 0 2px var(--panel) }
-.metro .etq { display: grid; grid-template-columns: 1fr 2fr 3fr; font-size: .76rem; color: var(--muted); margin-top: 6px }
+.metro .etq { display: grid; gap: 2px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); font-size: .74rem; line-height: 1.25; color: var(--muted); margin-top: 6px }
+.big small { font: 700 1.1rem var(--display); color: var(--muted); margin-left: 4px }
+.escala { font-size: .86rem } .escala > summary { cursor: pointer; color: var(--accent); font-weight: 600 } .escala table { margin-top: 8px; max-width: 640px }
+.escala td:first-child { font: 700 .95rem var(--display); white-space: nowrap }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px }
 .tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start }
 .tile .cab { display: flex; align-items: center; gap: 8px; font: 700 1rem var(--display) }
@@ -105,12 +110,13 @@ details.card[open] > summary::before { content: '▾ ' }
 .qchip[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); background: var(--soft) }
 .dias button.dia { font: inherit; text-align: left; color: var(--fg); background: var(--panel); cursor: pointer; display: grid; align-content: start; gap: 2px }
 .dias button.dia[aria-pressed="true"] { background: var(--soft); box-shadow: inset 0 0 0 2px var(--c) }
+[hidden] { display: none !important } /* si no, una regla con display le gana al atributo */
 .volver { font: 600 .8rem system-ui, sans-serif; background: none; border: 0; color: var(--accent); padding: 0; text-decoration: underline }
 </style>
 </head>
 <body>
 <main>
-  <p class="aviso" role="note"><b>Proyecto aficionado e independiente, no es un aviso oficial.</b> Se basa en datos públicos de fuentes confiables (NOAA, NASA, el Servicio Geológico de EE.UU. y los grandes centros meteorológicos), pero no reemplaza a nadie: <b>prefiere siempre los datos y las indicaciones de las autoridades</b> (Senapred, la Dirección Meteorológica de Chile y tu municipio). Si piden evacuar, evacúa aunque aquí el riesgo se vea bajo.</p>
+  <p class="aviso" role="note"><b>No es un aviso oficial, y el modelo puede equivocarse.</b> Es un proyecto aficionado e independiente, hecho con datos públicos (NOAA, NASA, el Servicio Geológico de EE.UU. y centros meteorológicos) y calibrado con muy pocos aluviones: puede marcar riesgo bajo el día en que baja uno, o alto cuando no pasa nada. <b>Sigue siempre lo que indiquen las autoridades</b> (Senapred, Sernageomin, la Dirección Meteorológica de Chile y tu municipio): si piden evacuar, evacúa aunque aquí el riesgo se vea bajo. Se ofrece tal cual, sin garantía, y no debe usarse como única fuente para decidir.</p>
   <header>
     <h1>Riesgo de aluvión estimado</h1>
     <p class="sub" style="font-weight:600">proyecto aficionado e independiente · precordillera de Santiago</p>
@@ -119,7 +125,7 @@ details.card[open] > summary::before { content: '▾ ' }
   </header>
 
   <nav class="card selector" aria-label="Elige tu quebrada">
-    <p class="sub" style="margin-bottom:8px"><b>Elige tu quebrada</b> · ordenadas de más a menos riesgo</p>
+    <p class="sub" style="margin-bottom:8px"><b>Elige tu quebrada</b> · riesgo de hoy, de 0 a 10</p>
     <div class="chips" id="chips"><span class="sub">Calculando…</span></div>
   </nav>
 
@@ -131,8 +137,21 @@ details.card[open] > summary::before { content: '▾ ' }
     </div>
     <h2 id="rtit" style="margin:0">Calculando el riesgo de cada quebrada</h2>
     <p class="que" id="rque"></p>
-    <div class="metro" aria-hidden="true"><div class="barra"><span></span><span></span><span></span></div><div class="pin" id="rpin" style="left:0"></div>
-      <div class="etq"><span>bajo<br>&lt; 5 %</span><span>moderado<br>5 a 15 %</span><span>alto<br>15 % o más</span></div></div>
+    <div class="metro" aria-hidden="true"><div class="barra"><span></span><span></span><span></span><span></span><span></span></div><div class="pin" id="rpin" style="left:0"></div>
+      <div class="etq"><span>muy bajo<br>0–3</span><span>bajo<br>3–5</span><span>moderado<br>5–7</span><span>alto<br>7–8</span><span>muy alto<br>8–10</span></div></div>
+    <details class="escala"><summary>¿Qué significa el número? 0 es casi nulo y 10, que baja casi con certeza; desde el 1, cada punto más es el doble de probable</summary>
+      <p style="margin-top:8px">Va de 0 a 10. Desde el 1, <b>cada punto más es el doble de probable</b>: un 8 es cuatro veces más probable que un 6. Como en los terremotos, no es lineal: subir un punto es mucho. Es la chance de que baje un aluvión en el período indicado: el día, o la hora en el gráfico hora a hora. El 0 junta todo lo que es casi nulo. Mira siempre la palabra y el color junto al número.</p>
+      <div class="tbl"><table><tr><th>Escala</th><th class="num">Baja un aluvión</th><th>Ejemplo</th></tr>
+        <tr><td>9 <span class="sub">muy alto</span></td><td class="num">1 de cada 2 días</td><td></td></tr>
+        <tr><td>8,4 <span class="sub">muy alto</span></td><td class="num">1 de cada 3 días</td><td>los dos aluviones (31-ene y 8-oct), según el modelo</td></tr>
+        <tr><td>7,7 <span class="sub">alto</span></td><td class="num">1 de cada 5 días</td><td>6-may, la falsa alarma más fuerte</td></tr>
+        <tr><td>7,0 <span class="sub">alto</span></td><td class="num">1 de cada 8 días</td><td>13-oct, alerta roja sin aluvión</td></tr>
+        <tr><td>6 <span class="sub">moderado</span></td><td class="num">1 de cada 16 días</td><td></td></tr>
+        <tr><td>5 <span class="sub">moderado</span></td><td class="num">1 de cada 32 días</td><td></td></tr>
+        <tr><td>4,2 <span class="sub">bajo</span></td><td class="num">1 de cada 56 días</td><td>6-oct: 111 mm de lluvia, sin tormenta</td></tr>
+        <tr><td>3,0 <span class="sub">bajo</span></td><td class="num">1 de cada 128 días</td><td>un día cualquiera en la Quebrada Honda desde el incendio</td></tr>
+        <tr><td>0 <span class="sub">muy bajo</span></td><td class="num">casi nula</td><td>una quebrada sin quemar, un día cualquiera</td></tr></table></div>
+    </details>
     <p class="sub" id="rtxt"></p>
   </section>
 
@@ -145,7 +164,7 @@ details.card[open] > summary::before { content: '▾ ' }
     <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px"><h2 id="htit" style="margin:0">Próximas 24 horas</h2><button type="button" id="hvolver" class="volver" hidden>← volver a las próximas 24 horas</button></div>
     <p class="hh-texto" id="htxt"></p>
     <div id="hchart"></div>
-    <p class="sub" style="margin-top:6px">Cada barra es la chance de que el aluvión ocurra en esa hora: las de color son las horas de más riesgo. Abajo, en celeste, la lluvia esperada en la cuenca. Toca una barra para ver el detalle de esa hora.</p>
+    <p class="sub" style="margin-top:6px">Cada barra es la chance de que el aluvión ocurra en esa hora, en la misma escala de 0 a 10: las de color son las horas de más riesgo. Abajo, en celeste, la lluvia esperada en la cuenca. Toca una barra para ver el detalle de esa hora.</p>
     <h3>Próximos días <span class="sub" style="font-weight:400">· toca uno para verlo hora a hora</span></h3>
     <div class="dias" id="ddias"></div>
   </section>
@@ -163,13 +182,13 @@ details.card[open] > summary::before { content: '▾ ' }
         <span class="sub" id="frame"></span>
       </div>
       <p id="cerca" class="cerca">Midiendo la distancia a la tormenta más cercana…</p>
-      <div class="leyenda"><span style="--c:var(--bad)"><i></i>alto (≥ 15 %)</span><span style="--c:var(--warn)"><i></i>moderado (5–15 %)</span><span style="--c:var(--ok)"><i></i>bajo (&lt; 5 %)</span><span>Nubes: gris = bajas; azul = altas; verde = muy frías; amarillo y rojo = tormenta fuerte. El modelo cuenta una celda encima solo cuando caen rayos (detector del GOES, ~5 min de retraso); el color de las nubes no basta. Las nubes llegan con 30–50 min de retraso.</span></div>
+      <div class="leyenda"><span style="--c:var(--n4)"><i></i>muy alto (8 a 10)</span><span style="--c:var(--n3)"><i></i>alto (7 a 8)</span><span style="--c:var(--n2)"><i></i>moderado (5 a 7)</span><span style="--c:var(--n1)"><i></i>bajo (3 a 5)</span><span style="--c:var(--n0)"><i></i>muy bajo (0 a 3)</span><span>Nubes: gris = bajas; azul = altas; verde = muy frías; amarillo y rojo = tormenta fuerte. El modelo cuenta una celda encima solo cuando caen rayos (detector del GOES, ~5 min de retraso); el color de las nubes no basta. Las nubes llegan con 30–50 min de retraso.</span></div>
     </section>
 
     <section class="card">
       <h2>Todas las quebradas, día a día</h2>
       <div class="tbl"><table id="ranking"><tbody><tr><td class="sub">Calculando…</td></tr></tbody></table></div>
-      <p class="sub" style="margin-top:8px">Chance de que baje un aluvión ese día en cada quebrada. Para comparar, un día cualquiera desde el incendio: 0,8 % en la Quebrada Honda, ~0,4 % en las quemadas a medias y ~0,01 % en las sin quemar. Toca una quebrada para elegirla.</p>
+      <p class="sub" style="margin-top:8px">Riesgo de cada día en la escala de 0 a 10; el color es su nivel (toca un número para ver la chance). Para comparar, un día cualquiera desde el incendio: 3,0 en la Quebrada Honda, ~2 en las quemadas a medias y 0 en las sin quemar. Toca una quebrada para elegirla.</p>
     </section>
   </div>
 
@@ -190,6 +209,7 @@ details.card[open] > summary::before { content: '▾ ' }
       <li><b>3. Minutos más intensos:</b> bajo una celda lenta llueve ~8 veces lo que da el modelo y el 57 % de la hora cae en 15 min; con lluvia frontal, la calibración usa un 15 %, menos del 25 % que daría una lluvia perfectamente pareja: con los datos de esta quebrada, la lluvia frontal de los pronósticos resultó menos peligrosa de lo que dice la fórmula. Por eso el modelo puede quedarse corto con una banda de frente frío muy intensa. Una celda rápida deja menos agua: el tiempo que pasa sobre la cuenca es su tamaño dividido por su velocidad (viento a 3 km de altura; el 8-oct, ~30 km/h).</li>
       <li><b>4. Respuesta de la cuenca quemada:</b> regresión del Servicio Geológico de EE.UU. para cuencas quemadas (Staley et al. 2017, M1), con la lluvia de 15, 30 y 60 min, la fracción quemada y empinada de cada cuenca, y la quema que se va cerrando con la vegetación (en una escala de 1 año, como en California).</li>
       <li><b>5. Material disponible:</b> cada aluvión se lleva la mitad del barro suelto, que se repone en ~1 año. Por eso, días después del 8-oct, la misma tormenta pesa menos.</li>
+      <li><b>Escala de 0 a 10:</b> 10 + log₂ de la chance del día. Cada punto es el doble de probable (8 = 1 en 4, 7 = 1 en 8, 3 = 1 en 128). Niveles: muy bajo bajo 3, bajo de 3 a 5, moderado de 5 a 7, alto de 7 a 8 y muy alto desde 8. Se eligió porque un «20 %» suena a poco y es un riesgo alto (7,7).</li>
       <li><b>Por día:</b> la probabilidad del peor momento del día. Las horas de un mismo día no son oportunidades independientes: un día largo de lluvia inestable débil no vale lo mismo que muchas tormentas separadas. Cada centro meteorológico pesa lo mismo.</li>
       <li><b>Calibración:</b> los 295 días desde el incendio en la Quebrada Honda (2 aluviones), por máxima verosimilitud: el modelo espera 2,4 aluviones en ese período y hubo 2. En Las Ondas y Los Almendros (quemadas a medias) espera 1,2 y 1,0; hubo 1 en cada una. Para las quebradas sin quemar se usó el registro histórico, ~1 aluvión cada 30 años por quebrada (Macul en 1993): sin ese ajuste, el modelo las ponía 20 a 30 veces más riesgosas de lo que han sido.</li>
     </ul>
@@ -364,17 +384,24 @@ const TZ = 'America/Santiago';
 const hora = (t, o = {}) => new Date(t * 1000).toLocaleString('es-CL', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...o }).replace(',', '');
 const fecha = t => new Date(t * 1000).toLocaleDateString('sv-SE', { timeZone: TZ });
 const nomDia = (t, k) => k === 0 ? 'Hoy' : k === 1 ? 'Mañana' : new Date(t * 1000).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'long' }).replace(/^./, c => c.toUpperCase());
-const nivel = p => p >= 0.15 ? 'bad' : p >= 0.05 ? 'warn' : 'ok';
-const NIVTXT = { bad: 'riesgo alto', warn: 'riesgo moderado', ok: 'riesgo bajo' }, ICONO = { bad: '⚠', warn: '▲', ok: '●' };
+// Escala de 0 a 10: 10 + log2(chance del día), así que cada punto es el doble de probable (8 = 1 en 4, 7 = 1 en 8, 3 = 1 en 128)
+// redondeada a un decimal: el nivel, el color y la marca salen del MISMO número que se muestra (si no, «7,0» podía salir «moderado»)
+const escala = p => Math.round(Math.max(0, Math.min(10, 10 + Math.log2(Math.max(p, 1e-9)))) * 10) / 10, fmtE = p => fmt(escala(p), 1);
+const nivel = p => { const e = escala(p); return e >= 8 ? 'n4' : e >= 7 ? 'n3' : e >= 5 ? 'n2' : e >= 3 ? 'n1' : 'n0'; };
+const NIVTXT = { n4: 'riesgo muy alto', n3: 'riesgo alto', n2: 'riesgo moderado', n1: 'riesgo bajo', n0: 'riesgo muy bajo' }, ICONO = { n4: '⚠', n3: '◆', n2: '▲', n1: '●', n0: '○' };
+const bajoN = n => n === 'n0' || n === 'n1';
 // «1 en N»: la probabilidad dicha como lo dice la gente
-const unoEn = p => !(p > 0) ? '' : p < 0.005 ? 'menos de 1 en 200' : p >= 0.5 ? 'más de 1 en 2' : `≈ 1 en ${Math.round(1 / p)}`;
+// sale del número mostrado, para que calce con la escala (3,0 = 1 de cada 128); el 0 es «casi nula»
+const enN = p => Math.round(2 ** (10 - escala(p))), palabra = p => NIVTXT[nivel(p)].replace('riesgo ', '');
+const unoEn = p => escala(p) <= 0 ? 'casi nula' : enN(p) < 2 ? 'más de la mitad de los días' : `1 de cada ${enN(p)} días`;
 // qué significa y qué hacer, según el nivel de hoy (y si mañana sube)
 function queHacer(n, P, P1, j, cuando, cuandoMan, cu) {
-  const q = cu.nombre.replace(/^Quebradas? /, 'quebrada '), dias = P > 0.005 ? `de cada ${Math.round(1 / P)} días como hoy, bajaría un aluvión en uno` : 'sería muy raro que bajara un aluvión';
-  const man = j && nivel(P1) !== 'ok' ? ` <b>Mañana sube a ${pct(P1)}</b>: lo más peligroso, ${cuandoMan}.` : '';
-  if (n === 'bad') return `<b>Riesgo alto:</b> ${dias}. Si vives junto a la ${q}, ten lista una salida y sal antes de ${cuando}. Sigue las instrucciones de Senapred.`;
-  if (n === 'warn') return `<b>Puede pasar:</b> ${dias}. Evita las calles y pasajes por donde baja el agua de la ${q}, sobre todo cerca de ${cuando}.${man}`;
-  return `<b>Poco probable:</b> ${dias}.${man} Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
+  const q = cu.nombre.replace(/^Quebradas? /, 'quebrada '), dias = escala(P) >= 3 ? `de cada ${enN(P)} días como hoy, bajaría un aluvión en uno` : 'sería muy raro que bajara un aluvión';
+  const man = j && !bajoN(nivel(P1)) ? ` <b>Mañana sube a ${fmtE(P1)}</b> (${palabra(P1)}): lo más peligroso, ${cuandoMan}.` : '';
+  if (n === 'n4') return `<b>Riesgo muy alto:</b> ${dias}. Si vives junto a la ${q}, sal antes de ${cuando} y vuelve cuando pase. Sigue las instrucciones de Senapred.${man}`;
+  if (n === 'n3') return `<b>Riesgo alto:</b> ${dias}. Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo cerca de ${cuando}. Sigue las instrucciones de Senapred.${man}`;
+  if (n === 'n2') return `<b>Puede pasar:</b> ${dias}. Evita las calles y pasajes por donde baja el agua de la ${q}, sobre todo cerca de ${cuando}, y atento a lo que diga Senapred.${man}`;
+  return `<b>${n === 'n0' ? 'Muy poco probable' : 'Poco probable'}:</b> ${dias}.${man} Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
 }
 const quant = (a, q) => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
 async function getJSON(u) { // Open-Meteo responde 429 o se sobrecarga (5xx) en días de tormenta: se reintenta con espera creciente
@@ -383,7 +410,7 @@ async function getJSON(u) { // Open-Meteo responde 429 o se sobrecarga (5xx) en 
     if (r?.ok) return r.json();
     const j = r ? await r.json().catch(() => ({})) : {};
     // el cupo DIARIO no vuelve reintentando: se corta altiro y entra el pronóstico único
-    if ((!r || r.status === 429 || r.status >= 500) && k < 4 && !/daily/i.test(j.reason || '')) { await new Promise(ok => setTimeout(ok, 4000 * (k + 1))); continue; }
+    if ((!r || r.status === 429 || r.status >= 500) && k < 4 && !/daily/i.test(j.reason || '')) { $('upd').textContent = r ? 'Open-Meteo, la fuente del pronóstico, está muy consultado: reintentando…' : 'Sin conexión: reintentando…'; await new Promise(ok => setTimeout(ok, 4000 * (k + 1))); continue; }
     if (!r) throw new Error('sin conexión');
     throw new Error(j.reason || 'error ' + r.status);
   }
@@ -402,10 +429,10 @@ L.tileLayer(dark ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/
                  : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
   { maxZoom: 14, attribution: 'Esri · NASA GIBS / NOAA GOES · OpenStreetMap' }).addTo(map);
 map.createPane('cuencas').style.zIndex = 450;
-const COLOR = { bad: '#d23a2f', warn: '#e09a1a', ok: '#2f9e5b', na: '#7d8b86' };
+const COLOR = Object.fromEntries(['n0', 'n1', 'n2', 'n3', 'n4'].map(n => [n, getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim()])); // los de la leyenda
 const poligonos = {};
-for (const c of CU) {
-  poligonos[c.id] = L.polygon(c.borde, { pane: 'cuencas', color: COLOR.na, weight: 2, fillOpacity: 0.35 }).addTo(map)
+for (const c of CU) { // sin datos todavía: gris punteado y casi sin relleno, para que no parezca «muy bajo»
+  poligonos[c.id] = L.polygon(c.borde, { pane: 'cuencas', color: '#8a8f94', weight: 2, dashArray: '4 4', fillOpacity: 0.05 }).addTo(map)
     .bindTooltip(c.nombre, { sticky: true }).on('click', () => elegir(c.id));
 }
 map.fitBounds(L.featureGroup(Object.values(poligonos)).getBounds().pad(0.15));
@@ -826,26 +853,26 @@ function pintar() {
   const filas = CU.map(c => ({ c, o: out[c.id] })).sort((a, b) => Math.max(...b.o.porDia.slice(0, 2)) - Math.max(...a.o.porDia.slice(0, 2)));
   for (const { c, o } of filas) {
     const n = nivel(Math.max(o.porDia[0], o.porDia[1] ?? 0));
-    poligonos[c.id].setStyle({ color: COLOR[n], fillColor: COLOR[n], weight: c.id === sel ? 4 : 2 });
-    poligonos[c.id].setTooltipContent(`${c.nombre}: hoy ${pct(o.porDia[0])}, mañana ${pct(o.porDia[1] ?? 0)}`);
+    poligonos[c.id].setStyle({ color: COLOR[n], fillColor: COLOR[n], weight: c.id === sel ? 4 : 2, dashArray: null, fillOpacity: 0.35 });
+    poligonos[c.id].setTooltipContent(`${c.nombre}: hoy ${fmtE(o.porDia[0])} (${palabra(o.porDia[0])}), mañana ${fmtE(o.porDia[1] ?? 0)} (${palabra(o.porDia[1] ?? 0)}), en la escala de 0 a 10`);
   }
   // resumen: la quebrada más riesgosa entre hoy y mañana. El número grande es SIEMPRE hoy (lo que queda del día) y mañana
   // va escrito al lado: antes mostraba el día más alto y se leía como «ahora» (20-oct: 7 % de mañana arriba, 3 % de hoy abajo).
   // resumen = la quebrada ELEGIDA (antes, siempre la más riesgosa)
-  const top = filas.find(f => f.c.id === sel) ?? filas[0], mas = filas[0], P = top.o.porDia[0], P1 = top.o.porDia[1] ?? 0, j = P1 > P ? 1 : 0, n = nivel(P), nMax = nivel(Math.max(P, P1));
+  const top = filas.find(f => f.c.id === sel) ?? filas[0], mas = filas[0], P = top.o.porDia[0], P1 = top.o.porDia[1] ?? 0, j = escala(P1) > escala(P) ? 1 : 0, n = nivel(P), nMax = nivel(Math.max(P, P1));
   REP = top.c.id;
   $('resumen').style.setProperty('--sev', `var(--${n})`);
-  $('rmax').textContent = pct(P); $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} hoy`; $('runo').textContent = unoEn(P);
-  $('rpin').style.left = `${Math.min(P, 0.3) / 0.3 * 100}%`;
+  $('rmax').innerHTML = `${fmtE(P)}<small>de 10</small>`; $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} hoy`; $('runo').textContent = unoEn(P);
+  $('rpin').style.left = `${escala(P) * 10}%`;
   // la hora más peligrosa de hoy y la de mañana, cada una para su consejo (antes el de hoy usaba la de mañana)
   const cuandoHoy = `las ${hora(horas[picoHora(top.o, R.dia, 0)] - 3600)}`, cuandoMan = `mañana a las ${hora(horas[picoHora(top.o, R.dia, 1)] - 3600)}`;
   $('rtit').textContent = `${top.c.nombre} (${top.c.comuna})`;
   $('rque').innerHTML = queHacer(n, P, P1, j, cuandoHoy, cuandoMan, top.c);
-  const cuantas = l => filas.filter(f => nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)) === l).length;
-  $('rtxt').innerHTML = `Mañana: <b>${pct(P1)}</b>. ${j ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(P, P1) / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. ` +
-    `De ${CU.length} quebradas (hoy y mañana): ${cuantas('bad')} en riesgo alto, ${cuantas('warn')} moderado y ${cuantas('ok')} bajo.` +
-    (mas !== top ? ` La de más riesgo: ${mas.c.nombre} (${pct(Math.max(mas.o.porDia[0], mas.o.porDia[1] ?? 0))}).` : '');
-  $('chips').innerHTML = filas.map(({ c, o }) => `<button type="button" class="qchip" data-id="${c.id}" aria-pressed="${c.id === sel}"><b>${c.nombre.replace(/^(Quebradas?|Estero) (de(l)? )?/, '')}</b><span class="pill" style="--c:var(--${nivel(o.porDia[0])})">${pct(o.porDia[0])} hoy</span></button>`).join('');
+  const cuantas = (...l) => filas.filter(f => l.includes(nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)))).length;
+  $('rtxt').innerHTML = `Mañana: <b>${fmtE(P1)}</b>, ${palabra(P1)} (${unoEn(P1)}). ${j ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(P, P1) / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. ` +
+    `De ${CU.length} quebradas (hoy y mañana): ${cuantas('n4', 'n3')} en riesgo alto o muy alto, ${cuantas('n2')} moderado y ${cuantas('n1', 'n0')} bajo o muy bajo.` +
+    (mas !== top ? ` La de más riesgo: ${mas.c.nombre} (${fmtE(Math.max(mas.o.porDia[0], mas.o.porDia[1] ?? 0))}, ${palabra(Math.max(mas.o.porDia[0], mas.o.porDia[1] ?? 0))}).` : '');
+  $('chips').innerHTML = filas.map(({ c, o }) => `<button type="button" class="qchip" data-id="${c.id}" aria-pressed="${c.id === sel}"><b>${c.nombre.replace(/^(Quebradas?|Estero) (de(l)? )?/, '')}</b><span class="pill" style="--c:var(--${nivel(o.porDia[0])})">${fmtE(o.porDia[0])} ${palabra(o.porDia[0])}</span></button>`).join('');
   document.querySelectorAll('#chips .qchip').forEach(b => b.onclick = () => elegir(b.dataset.id));
   document.querySelector('#chips [aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 
@@ -853,7 +880,7 @@ function pintar() {
     filas.map(({ c, o }) => {
       const k = o.porDia[0] >= (o.porDia[1] ?? 0) ? 0 : 1;
       return `<tr tabindex="0" data-id="${c.id}" class="${c.id === sel ? 'sel' : ''}"><td><b>${c.nombre}</b><br><span class="sub">${c.comuna}${c.quemada ? ' · quemada' : ''}</span></td>` +
-        [...o.porDia].map(p => `<td class="num"><span class="pill" style="--c:var(--${nivel(p)})">${pct(p)}</span></td>`).join('') +
+        [...o.porDia].map(p => `<td class="num"><span class="pill" style="--c:var(--${nivel(p)})" title="${palabra(p)}: ${unoEn(p)} (${pct(p)})">${fmtE(p)}</span></td>`).join('') +
         `<td class="num">${hora(horas[picoHora(o, R.dia, k)] - 3600, { weekday: 'short' })}</td></tr>`;
     }).join('') + '</tbody>';
   document.querySelectorAll('#ranking tbody tr').forEach(tr => { tr.onclick = () => elegir(tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') elegir(tr.dataset.id); }; });
@@ -896,11 +923,11 @@ function hoy() {
   const lista = top.map(txtTramo), unir = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' y ' + l.at(-1);
   const cuando = verDia == null ? 'en las próximas 24 horas' : verDia === 0 ? 'en lo que queda de hoy' : verDia === 1 ? 'en todo el día de mañana' : `en todo el ${nomVer.toLowerCase()}`;
   $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.`
-    : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor. En total, ${pct(total)} ${cuando} (${unoEn(total)}).`;
+    : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor. En total, <b>${fmtE(total)}, ${palabra(total)}</b>, ${cuando}: ${unoEn(total)}.`;
   // se dibuja al ancho real (en el celular, una grilla de 1000 achicada dejaba la letra ilegible)
   const W = Math.max(320, Math.round($('hchart').clientWidth) || 1000), cada = W < 640 ? 6 : 3, P = { l: W < 640 ? 46 : 56, r: 8, t: 22 }, hR = W < 640 ? 120 : 150, gap = 26, hL = 40, Hh = P.t + hR + gap + hL + 30, bw = (W - P.l - P.r) / Math.max(n, 1);
   const yR0 = P.t + hR, yL0 = yR0 + gap + hL, mR = Math.max(0.002, ...inc) * 1.1, mL = Math.max(4, ...lluvia);
-  const x = k => P.l + k * bw, cR = k => pel[k] && total >= 1e-4 ? `var(--${nivel(total) === 'ok' ? 'warn' : nivel(total)})` : 'var(--line)';
+  const x = k => P.l + k * bw, cR = k => pel[k] && total >= 1e-4 ? `var(--${bajoN(nivel(total)) ? 'n2' : nivel(total)})` : 'var(--line)';
   let g = `<line x1="${P.l}" x2="${W - P.r}" y1="${yR0}" y2="${yR0}" stroke="var(--line)"/><line x1="${P.l}" x2="${W - P.r}" y1="${yL0}" y2="${yL0}" stroke="var(--line)"/>`;
   g += `<text x="${P.l - 8}" y="${yR0 - hR / 2 + 4}" text-anchor="end" style="fill:var(--fg);font-weight:600">riesgo</text><text x="${P.l - 8}" y="${yL0 - hL / 2 + 4}" text-anchor="end" style="fill:var(--fg);font-weight:600">lluvia</text>`;
   inc.forEach((v, k) => {
@@ -912,12 +939,12 @@ function hoy() {
     if ((k === 0 && desdeAhora) || (hh % cada === 0 && (k > 1 || !desdeAhora))) g += `<text x="${x(k) + bw / 2}" y="${yL0 + 18}" text-anchor="middle">${etq}</text>`;
     g += `<rect x="${x(k)}" y="${P.t - 10}" width="${bw}" height="${yL0 - P.t + 10}" fill="transparent" data-k="${k}"/>`;
   });
-  if (inc[kPk] > 0) g += `<text x="${x(kPk) + bw / 2}" y="${yR0 - inc[kPk] / mR * hR - 6}" text-anchor="middle" style="fill:var(--fg);font-weight:700">${pct(inc[kPk])}</text>`;
+  if (inc[kPk] > 0) g += `<text x="${x(kPk) + bw / 2}" y="${yR0 - inc[kPk] / mR * hR - 6}" text-anchor="middle" style="fill:var(--fg);font-weight:700">${fmtE(inc[kPk])}</text>`;
   g += `<text x="${W - P.r}" y="${yL0 - hL + 12}" text-anchor="end">máx. ${fmt(Math.max(...lluvia), 1)} mm/h</text>`;
   $('hchart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Riesgo de aluvión y lluvia, hora a hora${verDia == null ? ', próximas 24 horas' : ', ' + nomVer}">${g}</svg>`;
   const svg = $('hchart').querySelector('svg'), ver = e => {
     const k = e.target?.dataset?.k; if (k == null) { TIP.style.display = 'none'; return; }
-    TIP.innerHTML = `${ini(+k)} a ${fin(+k)}${deDia(+k)}<br>riesgo en esa hora: ${pct(inc[k])}<br>lluvia: ${fmt(lluvia[k], 1)} mm/h`;
+    TIP.innerHTML = `${ini(+k)} a ${fin(+k)}${deDia(+k)}<br>riesgo en esa hora: ${fmtE(inc[k])} de 10, ${palabra(inc[k])}<br>lluvia: ${fmt(lluvia[k], 1)} mm/h`;
     TIP.style.display = 'block'; TIP.style.left = Math.min(innerWidth - 270, e.clientX + 12) + 'px'; TIP.style.top = (e.clientY + 14) + 'px';
   };
   svg.addEventListener('pointermove', ver); svg.addEventListener('pointerdown', ver); svg.addEventListener('pointerleave', () => TIP.style.display = 'none');
@@ -927,7 +954,7 @@ function detalle() {
   const cu = CU.find(c => c.id === sel), o = R.out[sel], { horas, fechas } = R;
   $('dtit').textContent = `Detalle técnico · ${cu.nombre} (para curiosos)`;
   $('dnota').textContent = `${fmt(cu.km2, 1)} km², de ${fmt(cu.hyp[0])} a ${fmt(cu.hyp[20])} m, ${fmt(cu.empinada * 100)} % con pendiente ≥ 23°. ${cu.nota}`;
-  $('ddias').innerHTML = [...o.porDia].map((p, k) => `<button type="button" class="dia" data-k="${k}" aria-pressed="${verDia === k}" style="--c:var(--${nivel(p)})"><span>${nomDia(horas[R.dia.indexOf(k)], k)}</span><b>${pct(p)}</b><span>${fmt(p / cu.base)}× un día cualquiera</span></button>`).join('');
+  $('ddias').innerHTML = [...o.porDia].map((p, k) => `<button type="button" class="dia" data-k="${k}" aria-pressed="${verDia === k}" style="--c:var(--${nivel(p)})"><span>${nomDia(horas[R.dia.indexOf(k)], k)}</span><b>${fmtE(p)}</b><span>${palabra(p)}</span><span>${unoEn(p)}</span></button>`).join('');
   document.querySelectorAll('#ddias .dia').forEach(b => b.onclick = () => { verDia = +b.dataset.k; detalle(); $('hoy').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   grafico(horas, o);
   const i = o.hora.indexOf(Math.max(...o.hora));
