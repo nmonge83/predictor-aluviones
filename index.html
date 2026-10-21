@@ -746,7 +746,9 @@ async function descargar() {
 }
 function correr(det, ens) {
   NOW = Date.now() / 1000;
-  const t0 = Math.floor(NOW / 3600) * 3600;
+  // la lluvia de cada hora del pronóstico es la que cae en la hora que TERMINA a esa hora: la primera que cuenta es la
+  // que termina en la próxima hora en punto (la hora en curso); antes se partía en una hora que ya había pasado
+  const t0 = Math.floor(NOW / 3600) * 3600 + 3600;
   const todas = Array.from({ length: 24 * 3 + 12 }, (_, k) => t0 + k * 3600).filter(t => t <= ens[0].d[0].hourly.time.at(-1));
   const fechas = [...new Set(todas.map(fecha))].slice(0, 4);
   const horas = todas.filter(t => fechas.includes(fecha(t))); // desde las 21 h la ventana toca un 5.º día, que no tiene casilla
