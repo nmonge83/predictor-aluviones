@@ -715,6 +715,16 @@ function pintarReporte() {
     const f = fuerza(Math.max(...L.slice(ini, fin))), texto = `${ini ? `Empieza cerca de las ${hora(H[ini])}, ${f}` : f[0].toUpperCase() + f.slice(1)} ${hasta}.`;
     tarjeta('🌧️', 'Lluvia', f === 'fuerte' ? 'warn' : 'ok', f, texto, lluviaNota);
   }
+  // cota de nieve: ya entra al cálculo (paso 1: solo cuenta la lluvia que cae bajo la cota); aquí se muestra en simple
+  const iso = o.iso?.[0], liq = o.liq?.[0], llueve = ini === 0 || ini === 1;
+  if (iso != null && isFinite(iso)) {
+    const cota = Math.round((iso - PAR.nieve) / 100) * 100, techo = c.hyp[20], q = c.nombre.replace(/^Quebradas? /, 'quebrada ');
+    const txt = liq >= 0.99 ? `Nieva sobre ~${fmt(cota)} m: toda la ${q} (hasta ${fmt(techo)} m) recibe lluvia, no nieve.`
+      : liq <= 0.01 ? `Nieva sobre ~${fmt(cota)} m: en toda la ${q} caería nieve, que no arrastra barro de inmediato.`
+      : `Nieva sobre ~${fmt(cota)} m: el ${fmt(liq * 100)} % de la ${q} recibe lluvia; más arriba cae nieve.`;
+    tarjeta('❄️', 'Cota de nieve', liq >= 0.99 && llueve ? 'warn' : 'ok', liq >= 0.99 ? 'todo lluvia' : liq <= 0.01 ? 'todo nieve' : 'parte nieve', txt,
+      `Isoterma 0 °C a ~${fmt(Math.round(iso / 100) * 100)} m (GFS). Cuanto más alta, más cerro recibe lluvia: en el aluvión de Macul de 1993 subió a 3.000-4.000 m.`);
+  }
   $('atit').textContent = `Ahora en la ${c.nombre.replace(/^Quebradas? /, 'quebrada ')}`;
   $('rrep').innerHTML = items.map(t => `<div class="tile"><div class="cab"><span class="ico" aria-hidden="true">${t.ico}</span>${t.tit}<span class="estado" style="--c:var(--${t.est})">${t.etq}</span></div><p>${t.txt}</p><small>${t.nota}</small></div>`).join('');
   $('ahora').hidden = false;
@@ -782,7 +792,8 @@ function correr(det, ens) {
     if (!nCentros) throw new Error('ningún centro trajo la lluvia de todas las horas');
     for (let i = 0; i < H; i++) { hAcc[i] /= nCentros; aAcc[i] /= nCentros; }
     for (let j = 0; j < fechas.length; j++) porDia[j] /= nCentros;
-    out[cu.id] = { hora: hAcc, acum: aAcc, porDia, q: ultimo.q, rec: ultimo.rec, mat: ultimo.mat, lluviaMed: lluvias.map(v => quant(v, .5)), lluviaAlta: lluvias.map(v => quant(v, .9)) };
+    out[cu.id] = { hora: hAcc, acum: aAcc, porDia, q: ultimo.q, rec: ultimo.rec, mat: ultimo.mat, lluviaMed: lluvias.map(v => quant(v, .5)), lluviaAlta: lluvias.map(v => quant(v, .9)),
+      iso: met.iso, liq: met.iso.map(v => fLiquida(v, cu.hyp)) }; // isoterma 0 °C (GFS) y parte de la cuenca bajo la cota de nieve
   });
   return { horas, fechas, dia, out, centros: ens.map(e => e.nom) };
 }
