@@ -369,9 +369,9 @@ const NIVTXT = { bad: 'riesgo alto', warn: 'riesgo moderado', ok: 'riesgo bajo' 
 // «1 en N»: la probabilidad dicha como lo dice la gente
 const unoEn = p => !(p > 0) ? '' : p < 0.005 ? 'menos de 1 en 200' : p >= 0.5 ? 'más de 1 en 2' : `≈ 1 en ${Math.round(1 / p)}`;
 // qué significa y qué hacer, según el nivel de hoy (y si mañana sube)
-function queHacer(n, P, P1, j, cuando, cu) {
+function queHacer(n, P, P1, j, cuando, cuandoMan, cu) {
   const q = cu.nombre.replace(/^Quebradas? /, 'quebrada '), dias = P > 0.005 ? `de cada ${Math.round(1 / P)} días como hoy, bajaría un aluvión en uno` : 'sería muy raro que bajara un aluvión';
-  const man = j && nivel(P1) !== 'ok' ? ` <b>Mañana sube a ${pct(P1)}</b>: lo más peligroso, ${cuando}.` : '';
+  const man = j && nivel(P1) !== 'ok' ? ` <b>Mañana sube a ${pct(P1)}</b>: lo más peligroso, ${cuandoMan}.` : '';
   if (n === 'bad') return `<b>Riesgo alto:</b> ${dias}. Si vives junto a la ${q}, ten lista una salida y sal antes de ${cuando}. Sigue las instrucciones de Senapred.`;
   if (n === 'warn') return `<b>Puede pasar:</b> ${dias}. Evita las calles y pasajes por donde baja el agua de la ${q}, sobre todo cerca de ${cuando}.${man}`;
   return `<b>Poco probable:</b> ${dias}.${man} Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
@@ -837,9 +837,10 @@ function pintar() {
   $('resumen').style.setProperty('--sev', `var(--${n})`);
   $('rmax').textContent = pct(P); $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} hoy`; $('runo').textContent = unoEn(P);
   $('rpin').style.left = `${Math.min(P, 0.3) / 0.3 * 100}%`;
-  const iPk = picoHora(top.o, R.dia, j), cuando = `${j ? 'mañana a las ' : 'las '}${hora(horas[iPk] - 3600)}`; // la hora en que EMPIEZA
+  // la hora más peligrosa de hoy y la de mañana, cada una para su consejo (antes el de hoy usaba la de mañana)
+  const cuandoHoy = `las ${hora(horas[picoHora(top.o, R.dia, 0)] - 3600)}`, cuandoMan = `mañana a las ${hora(horas[picoHora(top.o, R.dia, 1)] - 3600)}`;
   $('rtit').textContent = `${top.c.nombre} (${top.c.comuna})`;
-  $('rque').innerHTML = queHacer(n, P, P1, j, cuando, top.c);
+  $('rque').innerHTML = queHacer(n, P, P1, j, cuandoHoy, cuandoMan, top.c);
   const cuantas = l => filas.filter(f => nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)) === l).length;
   $('rtxt').innerHTML = `Mañana: <b>${pct(P1)}</b>. ${j ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(P, P1) / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. ` +
     `De ${CU.length} quebradas (hoy y mañana): ${cuantas('bad')} en riesgo alto, ${cuantas('warn')} moderado y ${cuantas('ok')} bajo.` +
