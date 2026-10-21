@@ -180,7 +180,7 @@ details.card[open] > summary::before { content: '▾ ' }
     <p class="que" id="rque"></p>
     <div class="metro" aria-hidden="true"><div class="barra"><span></span><span></span><span></span><span></span><span></span></div><div class="pin" id="rpin" style="left:0"></div>
       <div class="etq"><span>muy bajo<br>0–3</span><span>bajo<br>3–5</span><span>moderado<br>5–7</span><span>alto<br>7–8</span><span>muy alto<br>8–10</span></div></div>
-    <p class="escala" id="escala"><b>Cómo leer el número:</b> va de 0 (casi nulo) a 10 (baja casi con certeza) y, desde el 1, <b>cada punto más es el doble de probable</b>: un 8 es cuatro veces más probable que un 6, como en la escala de los terremotos. Mira siempre la palabra y el color.</p>
+    <p class="escala" id="escala"><b>Cómo leer el número:</b> va de 0 (casi nulo) a 10 (baja casi con certeza) y, desde el 1, <b>cada punto más es el doble de probable</b>: un 8 es cuatro veces más probable que un 6, como en la escala de los terremotos. Vale para el día, o para la hora en el gráfico hora a hora. Mira siempre la palabra y el color.</p>
     <details class="escala"><summary>Ver la escala con días reales</summary>
       <div class="tbl"><table><tr><th>Escala</th><th class="num">Baja un aluvión</th><th>Ejemplo</th></tr>
         <tr><td>9 <span class="sub">muy alto</span></td><td class="num">1 de cada 2 días</td><td></td></tr>
@@ -198,7 +198,7 @@ details.card[open] > summary::before { content: '▾ ' }
    <div class="hero-der" id="hoy">
     <div class="curva-tit"><h3 id="htit">Próximas 24 horas</h3><button type="button" id="hvolver" class="volver" hidden>← volver a las próximas 24 horas</button></div>
     <div id="hchart"></div>
-    <p class="sub">La curva va juntando el riesgo de cada hora y termina en el número del día: sube en las horas peligrosas y queda plana en las tranquilas. <b>Mueve el cursor o el dedo sobre la curva</b> para ver cada hora.</p>
+    <p class="sub">Riesgo de cada hora en la misma escala de 0 a 10 (el número grande junta todas las horas del día). <b>Mueve el cursor o el dedo sobre la curva</b> para ver cada hora.</p>
     <p class="hh-texto" id="htxt"></p>
    </div>
   </section>
@@ -965,36 +965,30 @@ function hoy() {
   const cuando = verDia == null ? 'en las próximas 24 horas' : verDia === 0 ? 'en lo que queda de hoy' : verDia === 1 ? 'en todo el día de mañana' : `en todo el ${nomVer.toLowerCase()}`;
   $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.`
     : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor.${verDia == null ? '' : ` En total, <b>${fmtE(total)}, ${palabra(total)}</b>, ${cuando}: ${unoEn(total)}.`}`;
-  // curva: lo que el día LLEVA juntado a cada hora (o.acum), así termina en el número del día (21-oct: con la curva por
-  // hora, la peor hora marcaba 4,7 y el día 6,0, y no se entendía). Cada día parte de nuevo a medianoche. La hora sola va en
-  // el detalle, igual que la lluvia: dibujada se leería como «más lluvia, más riesgo», y sin tormenta no es así (6-oct: 111 mm, 4,2)
+  // curva: la escala de cada hora sobre las franjas de los 5 niveles, dibujada al ancho real. La lluvia va solo en el
+  // detalle de cada hora: dibujada al lado se leería como «más lluvia, más riesgo», y sin tormenta no es así (6-oct: 111 mm, 4,2)
   const W = Math.max(300, Math.round($('hchart').clientWidth) || 600), Hh = W < 500 ? 190 : 220, P = { l: 24, r: 12, t: 18, b: 24 };
-  const ph = Hh - P.t - P.b, paso = (W - P.l - P.r) / Math.max(n - 1, 1), cada = W < 500 ? 6 : 3, lleva = ix.map(i => o.acum[i]), es = lleva.map(v => escala(v));
-  const x = k => P.l + k * paso, y = e => P.t + ph * (1 - e / 10), tramosDia = [];
-  ix.forEach((i, k) => { if (k === 0 || dia[i] !== dia[ix[k - 1]]) tramosDia.push([]); tramosDia.at(-1).push(k); });
+  const ph = Hh - P.t - P.b, paso = (W - P.l - P.r) / Math.max(n - 1, 1), cada = W < 500 ? 6 : 3, es = inc.map(v => escala(v));
+  const x = k => P.l + k * paso, y = e => P.t + ph * (1 - e / 10);
   let g = [[0, 3, 'n0'], [3, 5, 'n1'], [5, 7, 'n2'], [7, 8, 'n3'], [8, 10, 'n4']].map(([a, b, c]) => `<rect x="${P.l}" y="${y(b)}" width="${W - P.l - P.r}" height="${y(a) - y(b)}" fill="var(--${c})" opacity=".14"/>`).join('');
   g += [0, 3, 5, 7, 8, 10].map(e => `<text x="${P.l - 6}" y="${y(e) + 4}" text-anchor="end" style="fill:var(--muted)">${e}</text>`).join('');
-  tramosDia.forEach((sg, m) => {
-    const d = sg.map((k, q) => `${q ? 'L' : 'M'}${x(k).toFixed(1)},${y(es[k]).toFixed(1)}`).join(''), kf = sg.at(-1), p = lleva[kf];
-    g += `<path d="${d}V${y(0)}H${x(sg[0])}Z" fill="var(--fg)" opacity=".07"/><path d="${d}" fill="none" stroke="var(--fg)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    if (m) g += `<line x1="${x(sg[0]) - paso / 2}" x2="${x(sg[0]) - paso / 2}" y1="${P.t}" y2="${y(0)}" stroke="var(--muted)" stroke-dasharray="2 3"/><text x="${x(sg[0]) - paso / 2 + 4}" y="${P.t + 12}" style="fill:var(--muted)">${nomDia(T[sg[0]], dia[ix[sg[0]]])}</text>`;
-    // el número con que termina cada día completo (el de hoy es el número grande)
-    if (kf < n - 1 || verDia != null) g += `<circle cx="${x(kf)}" cy="${y(es[kf])}" r="4.5" fill="var(--${nivel(p)})" stroke="var(--panel)" stroke-width="2"/><text x="${x(kf) - 7}" y="${y(es[kf]) - 9}" text-anchor="end" style="fill:var(--fg);font-weight:700">${verDia == null ? nomDia(T[kf], dia[ix[kf]]) + ': ' : ''}${fmtE(p)}</text>`;
-  });
+  const linea = es.map((e, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)},${y(e).toFixed(1)}`).join('');
+  g += `<path d="${linea}V${y(0)}H${x(0)}Z" fill="var(--fg)" opacity=".07"/><path d="${linea}" fill="none" stroke="var(--fg)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
   T.forEach((t, k) => {
     const hh = +new Date(t * 1000 - 3600e3).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false });
-    const etq = k === 0 && desdeAhora ? 'ahora' : hh + ' h';
-    if ((k === 0 && desdeAhora) || (hh % cada === 0 && (x(k) - x(0) > 40 || !desdeAhora))) g += `<text x="${x(k)}" y="${Hh - 6}" text-anchor="${k === 0 ? 'start' : k === n - 1 ? 'end' : 'middle'}" style="fill:var(--muted)">${etq}</text>`; // «ahora» no se pisa con la hora siguiente
+    const etq = k === 0 && desdeAhora ? 'ahora' : hh === 0 && verDia == null ? new Date(t * 1000 - 3600e3).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'short' }).replace('.', '') + ' 0 h' : hh + ' h';
+    if ((k === 0 && desdeAhora) || (hh % cada === 0 && (x(k) - x(0) > 40 || !desdeAhora))) g += `<text x="${x(k)}" y="${Hh - 6}" text-anchor="${k === 0 ? 'start' : k === n - 1 ? 'end' : 'middle'}" style="fill:var(--muted)">${etq}</text>`;
   });
+  if (inc[kPk] > 0) g += `<circle cx="${x(kPk)}" cy="${y(es[kPk])}" r="4.5" fill="var(--${nivel(inc[kPk])})" stroke="var(--panel)" stroke-width="2"/><text x="${Math.min(W - P.r, Math.max(P.l, x(kPk)))}" y="${y(es[kPk]) - 9}" text-anchor="${kPk > n * 0.8 ? 'end' : kPk < n * 0.2 ? 'start' : 'middle'}" style="fill:var(--fg);font-weight:700">${fmtE(inc[kPk])} a las ${ini(kPk)}</text>`;
   g += `<line class="cur" y1="${P.t}" y2="${y(0)}" style="display:none"/><circle class="pto" r="6" stroke="var(--panel)" stroke-width="2" style="display:none"/>`;
-  $('hchart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Riesgo de aluvión que se va juntando hora a hora${verDia == null ? ', próximas 24 horas' : ', ' + nomVer}">${g}</svg>`;
+  $('hchart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Riesgo de aluvión hora a hora${verDia == null ? ', próximas 24 horas' : ', ' + nomVer}">${g}</svg>`;
   const svg = $('hchart').querySelector('svg'), cur = svg.querySelector('.cur'), pto = svg.querySelector('.pto');
   const ocultar = () => { TIP.style.display = cur.style.display = pto.style.display = 'none'; };
   const ver = e => { // la hora más cercana al cursor o al dedo
     const r = svg.getBoundingClientRect(), k = Math.max(0, Math.min(n - 1, Math.round(((e.clientX - r.left) * W / r.width - P.l) / paso)));
-    cur.setAttribute('x1', x(k)); cur.setAttribute('x2', x(k)); pto.setAttribute('cx', x(k)); pto.setAttribute('cy', y(es[k])); pto.style.fill = `var(--${nivel(lleva[k])})`;
+    cur.setAttribute('x1', x(k)); cur.setAttribute('x2', x(k)); pto.setAttribute('cx', x(k)); pto.setAttribute('cy', y(es[k])); pto.style.fill = `var(--${nivel(inc[k])})`;
     cur.style.display = pto.style.display = '';
-    TIP.innerHTML = `<b>${ini(k)} a ${fin(k)}${deDia(k)}</b><br>esa hora sola: ${fmtE(inc[k])} de 10, ${palabra(inc[k])}<br>el día lleva: ${fmtE(lleva[k])}, ${palabra(lleva[k])}<br>lluvia esperada: ${fmt(lluvia[k], 1)} mm/h`;
+    TIP.innerHTML = `<b>${ini(k)} a ${fin(k)}${deDia(k)}</b><br>riesgo: ${fmtE(inc[k])} de 10, ${palabra(inc[k])}<br>lluvia esperada: ${fmt(lluvia[k], 1)} mm/h`;
     TIP.style.display = 'block'; TIP.style.left = Math.max(8, Math.min(innerWidth - 230, e.clientX - 100)) + 'px'; TIP.style.top = (r.top - 8 > 80 ? r.top - 70 : r.bottom + 8) + 'px';
   };
   svg.addEventListener('pointermove', ver); svg.addEventListener('pointerdown', ver);
