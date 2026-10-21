@@ -62,10 +62,12 @@ a { color: var(--accent) }
 .cerca.alerta { color: var(--bad) }
 .err { color: var(--bad) }
 .aviso { margin: 0; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--warn); background: var(--panel); font-size: .88rem }
-#bienvenida { max-width: 520px; width: calc(100% - 32px); border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); padding: 20px }
-#bienvenida::backdrop { background: rgb(0 0 0 / .55) }
-#bienvenida h2 { font-size: 1.2rem; margin-bottom: 12px } #bienvenida p { margin: 0 0 10px; font-size: .95rem }
-#bienvenida button { font: 700 1rem var(--display); background: var(--accent); color: var(--panel); border: 0; border-radius: 8px; padding: 11px 22px; width: 100%; margin-top: 6px; cursor: pointer }
+.ventana { max-width: 520px; width: calc(100% - 32px); border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); padding: 20px }
+.ventana::backdrop { background: rgb(0 0 0 / .55) }
+.ventana h2 { font-size: 1.2rem; margin-bottom: 12px } .ventana p { margin: 0 0 10px; font-size: .95rem }
+.ventana .niveles { display: flex; flex-wrap: wrap; gap: 6px } .ventana .niveles span { font: 600 .8rem var(--display); padding: 3px 9px; border-radius: 99px; color: #fff; background: var(--c) }
+.ayuda { font: 700 .9rem var(--display); color: var(--accent); background: var(--panel); border: 1.5px solid var(--accent); border-radius: 99px; padding: 6px 14px; margin-top: 4px; cursor: pointer }
+.ventana button { font: 700 1rem var(--display); background: var(--accent); color: var(--panel); border: 0; border-radius: 8px; padding: 11px 22px; width: 100%; margin-top: 6px; cursor: pointer }
 .leyenda { display: flex; gap: 12px; flex-wrap: wrap; font-size: .78rem; color: var(--muted) }
 .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c); vertical-align: -1px; margin-right: 4px }
 @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr } #map { height: 400px } }
@@ -119,15 +121,26 @@ details.card[open] > summary::before { content: '▾ ' }
 </style>
 </head>
 <body>
-<dialog id="bienvenida" aria-labelledby="btit">
+<dialog id="bienvenida" class="ventana" aria-labelledby="btit">
   <h2 id="btit">Bienvenido/a a la escala de riesgo de aluvión</h2>
   <p id="btxt"></p>
   <p>Es un proyecto de código abierto: el código, los datos y el método están en <a href="https://github.com/nmonge83/predictor-aluviones" target="_blank" rel="noopener">GitHub</a>.</p>
   <form method="dialog"><button value="ok" autofocus>Aceptar</button></form>
 </dialog>
+<dialog id="pop-escala" class="ventana" aria-labelledby="etit" closedby="any">
+  <h2 id="etit">¿Cómo funciona la escala?</h2>
+  <p>Es como la de los terremotos: va de <b>0</b> (casi imposible) a <b>10</b> (casi seguro que baja un aluvión).</p>
+  <p><b>Cada punto más es el doble de probable.</b> Un 6 es el doble que un 5, y un 8 es cuatro veces un 6. Subir un punto es mucho.</p>
+  <p class="niveles"><span style="--c:var(--n0)">muy bajo 0–3</span><span style="--c:var(--n1)">bajo 3–5</span><span style="--c:var(--n2)">moderado 5–7</span><span style="--c:var(--n3)">alto 7–8</span><span style="--c:var(--n4)">muy alto 8–10</span></p>
+  <p><b>«1 de cada 18 días»</b> quiere decir: si hubiera 18 días iguales a hoy, en uno bajaría un aluvión.</p>
+  <p>Para comparar: un día cualquiera en la Quebrada Honda desde el incendio es un <b>3</b>; los dos días con aluvión fueron un <b>8,4</b>.</p>
+  <form method="dialog"><button>Entendido</button></form>
+</dialog>
 <main>
   <p class="aviso" role="note"><b>Proyecto aficionado e independiente, sin carácter oficial.</b> La información es solo referencial, puede contener errores y no se garantiza su exactitud. Se actualiza sola cada 5 minutos con los pronósticos y el satélite más nuevos, así que el riesgo de mañana y de los días siguientes puede cambiar. <b>Las alertas oficiales las emite Senapred: sigue siempre sus indicaciones y las de las autoridades.</b></p>
   <script>
+  // los botones con data-abre abren su ventana; va aquí arriba para que respondan aunque se toquen mientras carga la página
+  document.addEventListener('click', e => { const b = e.target.closest?.('[data-abre]'); if (b) document.getElementById(b.dataset.abre).showModal(); });
   (() => { // la primera vez hay que aceptar el aviso (el mismo texto de la franja); después queda solo la franja
     const d = document.getElementById('bienvenida'); let visto = false;
     try { visto = localStorage.getItem('aviso-aceptado') === '1'; } catch {}
@@ -142,7 +155,8 @@ details.card[open] > summary::before { content: '▾ ' }
     <h1>Riesgo de aluvión estimado</h1>
     <p class="sub" style="font-weight:600">proyecto aficionado e independiente · precordillera de Santiago</p>
     <p class="sub" id="upd">Descargando pronósticos de 6 centros meteorológicos para 15 quebradas…</p>
-    <p class="sub"><a href="#escala">Cómo leer el número</a> · <a href="#metodo">Cómo se calcula</a> · <a href="#validacion">¿Funciona?</a> · <a href="#fuentes">Fuentes</a></p>
+    <p><button type="button" class="ayuda" data-abre="pop-escala">¿Cómo funciona la escala?</button></p>
+    <p class="sub"><a href="#metodo">Cómo se calcula</a> · <a href="#validacion">¿Funciona?</a> · <a href="#fuentes">Fuentes</a></p>
   </header>
 
   <nav class="card selector" aria-label="Elige tu quebrada">
@@ -430,8 +444,8 @@ async function getJSON(u) { // Open-Meteo responde 429 o se sobrecarga (5xx) en 
     const r = await fetch(u).catch(() => null);
     if (r?.ok) return r.json();
     const j = r ? await r.json().catch(() => ({})) : {};
-    // el cupo DIARIO no vuelve reintentando: se corta altiro y entra el pronóstico único
-    if ((!r || r.status === 429 || r.status >= 500) && k < 4 && !/daily/i.test(j.reason || '')) { $('upd').textContent = r ? 'Open-Meteo, la fuente del pronóstico, está muy consultado: reintentando…' : 'Sin conexión: reintentando…'; await new Promise(ok => setTimeout(ok, 4000 * (k + 1))); continue; }
+    // el cupo por HORA o por DÍA no vuelve reintentando: se corta altiro y entra el pronóstico único (21-oct: 4 min esperando)
+    if ((!r || r.status === 429 || r.status >= 500) && k < 2 && !/hourly|daily/i.test(j.reason || '')) { $('upd').textContent = r ? 'Open-Meteo, la fuente del pronóstico, está muy consultado: reintentando…' : 'Sin conexión: reintentando…'; await new Promise(ok => setTimeout(ok, 2000 * (k + 1))); continue; }
     if (!r) throw new Error('sin conexión');
     throw new Error(j.reason || 'error ' + r.status);
   }
@@ -809,11 +823,8 @@ async function calcular() {
 const UNICOS = [['ecmwf_ifs025', 'ECMWF'], ['icon_global', 'ICON'], ['gfs_global', 'GFS'], ['gem_global', 'GEM'], ['ukmo_global_deterministic_10km', 'UKMO'], ['meteofrance_arpege_world', 'Météo-France']];
 async function descargar() {
   const det = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LATS}&longitude=${LONS}&${Q}&models=gfs_global&hourly=lifted_index,convective_inhibition,freezing_level_height,wind_speed_700hPa,wind_direction_700hPa,relative_humidity_700hPa`);
-  const ens = [];
-  for (const [id, nom] of CENTROS) { // en serie, para no gatillar el límite de consultas
-    try { ens.push({ nom, d: await getJSON(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${LATS}&longitude=${LONS}&${Q}&models=${id}&hourly=precipitation`) }); }
-    catch (e) { console.warn(nom, e.message); }
-  }
+  const ens = (await Promise.all(CENTROS.map(([id, nom]) => getJSON(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${LATS}&longitude=${LONS}&${Q}&models=${id}&hourly=precipitation`)
+    .then(d => ({ nom, d }), e => (console.warn(nom, e.message), null))))).filter(Boolean);
   if (!ens.length) { // sin ensambles (p. ej., se agotó el cupo diario del ensamble): el pronóstico único de cada centro
     const u = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LATS}&longitude=${LONS}&${Q}&models=${UNICOS.map(x => x[0]).join(',')}&hourly=precipitation`).catch(e => (console.warn('pronósticos únicos', e.message), null));
     if (u) for (const [id, nom] of UNICOS) if (u[0].hourly['precipitation_' + id]?.some(x => x != null))
@@ -907,7 +918,7 @@ function pintar() {
   document.querySelectorAll('#ranking tbody tr').forEach(tr => { tr.onclick = () => elegir(tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') elegir(tr.dataset.id); }; });
   detalle();
   pintarReporte();
-  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros (${R.centros.join(', ')})`;
+  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros meteorológicos`; $('upd').title = R.centros.join(', ');
 }
 function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
 // la hora con más chance de que el aluvión ocurra ESA hora (lo que sube la acumulada), la misma medida del gráfico de 24 h
@@ -1011,7 +1022,7 @@ async function ciclo() {
     medirSatelite().then(async s => { if (s && !s.mov) s.mov = await leerMovimiento(s.t).catch(e => (console.warn('movimiento', e.message), null)); return s; }).catch(() => null),
     leerRayos().catch(e => (console.warn('rayos', e.message), null))])
     .then(([s, ry]) => { satelite = juntar(s, ry); textoCercania(); pintarReporte(); return satelite; });
-  try { R = await calcular(); pintar(); }
+  try { R = await calcular(); pintar(); guardarCalculo(); }
   catch (e) { $('upd').innerHTML = `<span class="err">No se pudo calcular (${e.message}). Se reintenta en 1 minuto.</span>`; setTimeout(actualizar, 60000); return; }
   const s = await sat;
   if (s && Object.values(s.porCuenca).some(c => c.encima)) { R = await calcular().catch(() => R); pintar(); }
@@ -1019,6 +1030,18 @@ async function ciclo() {
 // cada 5 min (los rayos llegan con ~5 min de atraso; los pronósticos se bajan a lo más una vez por hora y las imágenes del GOES
 // quedan guardadas) y al volver a la pestaña: el celular congela los relojes de una página que no se está mirando
 let ultimo = 0, enCurso = false;
+// el último cálculo queda en el navegador y se pinta al entrar (si es de hoy y de hace menos de 3 h) mientras llega el nuevo
+function guardarCalculo() {
+  const out = Object.fromEntries(Object.entries(R.out).map(([id, o]) => [id, Object.fromEntries(Object.entries(o).map(([k, v]) => [k, ArrayBuffer.isView(v) ? Array.from(v) : v]))]));
+  try { localStorage.setItem('ultimo-calculo', JSON.stringify({ NOW, R: { ...R, out } })); } catch {}
+}
+try {
+  const g = JSON.parse(localStorage.getItem('ultimo-calculo') || 'null');
+  if (g && Date.now() / 1000 - g.NOW < 3 * 3600 && fecha(g.NOW) === fecha(Date.now() / 1000)) {
+    NOW = g.NOW; R = g.R; pintar();
+    $('upd').textContent = `Mostrando el cálculo de las ${hora(NOW)} · actualizando…`;
+  }
+} catch (e) { console.warn('cálculo guardado', e.message); R = null; }
 async function actualizar() { if (enCurso) return; enCurso = true; ultimo = Date.now(); try { await ciclo(); } finally { enCurso = false; } }
 cargarNubes();
 actualizar();
