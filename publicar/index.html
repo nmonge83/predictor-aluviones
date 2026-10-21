@@ -96,6 +96,13 @@ details.card > summary::-webkit-details-marker { display: none }
 details.card > summary::before { content: '▸ '; color: var(--muted) }
 details.card[open] > summary { margin-bottom: 12px }
 details.card[open] > summary::before { content: '▾ ' }
+.selector { padding-bottom: 10px }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch }
+.qchip { flex: 0 0 auto; display: grid; gap: 4px; text-align: left; font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 12px; cursor: pointer; scroll-snap-align: start; min-width: 118px }
+.qchip b { font: 700 .88rem/1.2 var(--display); white-space: nowrap }
+.qchip .pill { justify-self: start }
+.qchip[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); background: var(--soft) }
 </style>
 </head>
 <body>
@@ -108,6 +115,11 @@ details.card[open] > summary::before { content: '▾ ' }
     <p class="sub"><a href="#metodo">Cómo se calcula</a> · <a href="#validacion">¿Funciona?</a> · <a href="#fuentes">Fuentes</a></p>
   </header>
 
+  <nav class="card selector" aria-label="Elige tu quebrada">
+    <p class="sub" style="margin-bottom:8px"><b>Elige tu quebrada</b> · ordenadas de más a menos riesgo</p>
+    <div class="chips" id="chips"><span class="sub">Calculando…</span></div>
+  </nav>
+
   <section class="card hero" id="resumen">
     <div class="hero-top">
       <span class="nivel" id="rniv">calculando…</span>
@@ -117,7 +129,7 @@ details.card[open] > summary::before { content: '▾ ' }
     <h2 id="rtit" style="margin:0">Calculando el riesgo de cada quebrada</h2>
     <p class="que" id="rque"></p>
     <div class="metro" aria-hidden="true"><div class="barra"><span></span><span></span><span></span></div><div class="pin" id="rpin" style="left:0"></div>
-      <div class="etq"><span>bajo<br>menos de 5 %</span><span>moderado<br>5 a 15 %</span><span>alto<br>15 % o más</span></div></div>
+      <div class="etq"><span>bajo<br>&lt; 5 %</span><span>moderado<br>5 a 15 %</span><span>alto<br>15 % o más</span></div></div>
     <p class="sub" id="rtxt"></p>
   </section>
 
@@ -154,7 +166,7 @@ details.card[open] > summary::before { content: '▾ ' }
     <section class="card">
       <h2>Todas las quebradas, día a día</h2>
       <div class="tbl"><table id="ranking"><tbody><tr><td class="sub">Calculando…</td></tr></tbody></table></div>
-      <p class="sub" style="margin-top:8px">Chance de que baje un aluvión ese día en cada quebrada. Para comparar, un día cualquiera desde el incendio: 0,8 % en la Quebrada Honda, ~0,4 % en las quemadas a medias y ~0,01 % en las sin quemar. Toca una quebrada para verla arriba, hora a hora.</p>
+      <p class="sub" style="margin-top:8px">Chance de que baje un aluvión ese día en cada quebrada. Para comparar, un día cualquiera desde el incendio: 0,8 % en la Quebrada Honda, ~0,4 % en las quemadas a medias y ~0,01 % en las sin quemar. Toca una quebrada para elegirla.</p>
     </section>
   </div>
 
@@ -375,7 +387,10 @@ async function getJSON(u) { // Open-Meteo responde 429 o se sobrecarga (5xx) en 
 }
 const CU = CUENCAS.map(c => ({ ...c, aluviones: c.aluviones.map(x => Date.parse(x + ':00-03:00') / 1000) })); // instantes unix, como los usa el modelo
 const LATS = CU.map(c => c.centro[0]).join(','), LONS = CU.map(c => c.centro[1]).join(',');
-let sel = 'honda', R = null, NOW = null;
+let sel = (() => { // la del enlace (?q=), la recordada en este navegador o la Quebrada Honda
+  const q = new URLSearchParams(location.search).get('q'); let g = null; try { g = localStorage.getItem('quebrada'); } catch {}
+  return [q, g].find(id => id && CU.some(c => c.id === id)) ?? 'honda';
+})(), R = null, NOW = null;
 
 // ---------------- Mapa ----------------
 const dark = matchMedia('(prefers-color-scheme: dark)').matches;
@@ -685,10 +700,12 @@ function pintarReporte() {
   if (fr && fr.ahora != null) {
     const vel = mv.mx == null ? null : Math.hypot(mv.mx, mv.my), dir = vel == null || vel < 8 ? null : rumbo(mv.mx, mv.my);
     const va = vel == null ? '' : dir ? ` hacia el ${dir} a ${mv.limite ? 'más de 140' : fmt(vel)} km/h` : ' casi sin moverse';
-    const h1 = hora(mv.t1), est = fr.estimado; // cobertura a la hora de la imagen y estimada para ahora
-    const nubeNota = `Satélite GOES de las ${h1} (llega con ~10 min de atraso).`;
+    // solo lo que se vio: correr la nube con su velocidad para «estimar ahora» fallaba por mucho (20-oct: a las 22:00 se
+    // vio 100 % y la estimación de 20 min antes daba 32 %); sobre la quebrada las nubes nacen y se deshacen en minutos
+    const h1 = hora(mv.t1), est = null;
+    const nubeNota = `Satélite GOES de las ${h1} (llega con ~10 min de atraso). Sobre la quebrada las nubes cambian en minutos.`;
     if ((est ?? fr.ahora) >= 0.5) tarjeta('☁️', 'Nube de lluvia', 'warn', 'encima', `Encima de la quebrada${va ? `, moviéndose${va}` : ''}. A las ${h1} cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'), nubeNota);
-    else if (fr.ahora >= 0.5 || (fr.antes ?? 0) >= 0.5) tarjeta('☁️', 'Nube de lluvia', 'ok', 'se va', `Se está yendo${va}. A las ${h1} cubría el ${pc(fr.ahora)} de la zona de la quebrada` + (est != null ? `; ahora debería quedar ~${pc(est)}.` : '.'), nubeNota);
+    else if (fr.ahora >= 0.5 || (fr.antes ?? 0) >= 0.5) tarjeta('☁️', 'Nube de lluvia', 'ok', 'se va', `Se está yendo: a las ${h1} cubría el ${pc(fr.ahora)} de la zona de la quebrada (20 min antes, ${pc(fr.antes ?? fr.ahora)}).` + (dir ? ` El temporal se mueve hacia el ${dir} a ${mv.limite ? 'más de 140' : fmt(vel)} km/h.` : ''), nubeNota);
     else if (fr.ahora >= 0.15) tarjeta('☁️', 'Nube de lluvia', 'warn', 'cerca', `Sobre parte de la quebrada` + (fr.antes != null && fr.ahora - fr.antes > 0.1 ? ', y creciendo' : '') + `${va ? `, moviéndose${va}` : ''}. A las ${h1} cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'), nubeNota);
     else if (fr.cerca && vel != null && dir) {
       const hacia = (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist; // km/h hacia la quebrada
@@ -809,7 +826,8 @@ function pintar() {
   }
   // resumen: la quebrada más riesgosa entre hoy y mañana. El número grande es SIEMPRE hoy (lo que queda del día) y mañana
   // va escrito al lado: antes mostraba el día más alto y se leía como «ahora» (20-oct: 7 % de mañana arriba, 3 % de hoy abajo).
-  const top = filas[0], P = top.o.porDia[0], P1 = top.o.porDia[1] ?? 0, j = P1 > P ? 1 : 0, n = nivel(P), nMax = nivel(Math.max(P, P1));
+  // resumen = la quebrada ELEGIDA (antes, siempre la más riesgosa)
+  const top = filas.find(f => f.c.id === sel) ?? filas[0], mas = filas[0], P = top.o.porDia[0], P1 = top.o.porDia[1] ?? 0, j = P1 > P ? 1 : 0, n = nivel(P), nMax = nivel(Math.max(P, P1));
   REP = top.c.id;
   $('resumen').style.setProperty('--sev', `var(--${n})`);
   $('rmax').textContent = pct(P); $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} hoy`; $('runo').textContent = unoEn(P);
@@ -819,7 +837,11 @@ function pintar() {
   $('rque').innerHTML = queHacer(n, P, P1, j, cuando, top.c);
   const cuantas = l => filas.filter(f => nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)) === l).length;
   $('rtxt').innerHTML = `Mañana: <b>${pct(P1)}</b>. ${j ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(P, P1) / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. ` +
-    `De ${CU.length} quebradas (hoy y mañana): ${cuantas('bad')} en riesgo alto, ${cuantas('warn')} moderado y ${cuantas('ok')} bajo.`;
+    `De ${CU.length} quebradas (hoy y mañana): ${cuantas('bad')} en riesgo alto, ${cuantas('warn')} moderado y ${cuantas('ok')} bajo.` +
+    (mas !== top ? ` La de más riesgo: ${mas.c.nombre} (${pct(Math.max(mas.o.porDia[0], mas.o.porDia[1] ?? 0))}).` : '');
+  $('chips').innerHTML = filas.map(({ c, o }) => `<button type="button" class="qchip" data-id="${c.id}" aria-pressed="${c.id === sel}"><b>${c.nombre.replace(/^(Quebradas?|Estero) (de(l)? )?/, '')}</b><span class="pill" style="--c:var(--${nivel(o.porDia[0])})">${pct(o.porDia[0])} hoy</span></button>`).join('');
+  document.querySelectorAll('#chips .qchip').forEach(b => b.onclick = () => elegir(b.dataset.id));
+  document.querySelector('#chips [aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 
   $('ranking').innerHTML = `<thead><tr><th>Quebrada</th>${fechas.map((f, k) => `<th class="num">${nomDia(horas[R.dia.indexOf(k)], k)}</th>`).join('')}<th class="num">Peor hora</th></tr></thead><tbody>` +
     filas.map(({ c, o }) => {
@@ -834,7 +856,11 @@ function pintar() {
   $('upd').textContent = `Actualizado a las ${hora(NOW)} · ${R.centros.length} centros (${R.centros.join(', ')}) · se recalcula cada 10 min`;
 }
 function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
-function elegir(id) { sel = id; if (R) pintar(); textoCercania(); const p = poligonos[id]; map.fitBounds(p.getBounds().pad(0.8), { maxZoom: 12 }); }
+function elegir(id) {
+  sel = id; try { localStorage.setItem('quebrada', id); } catch {}
+  const u = new URL(location.href); u.searchParams.set('q', id); history.replaceState(null, '', u); // el enlace sirve para compartir esa quebrada
+  if (R) pintar(); textoCercania(); const p = poligonos[id]; map.fitBounds(p.getBounds().pad(0.8), { maxZoom: 12 });
+}
 
 // Próximas 24 h para la quebrada elegida: barras = chance de que el aluvión ocurra en esa hora (lo que sube la acumulada del
 // día), en color las horas que llegan al 30 % de la peor; abajo, la lluvia esperada. Sin la línea acumulada (confundía).
