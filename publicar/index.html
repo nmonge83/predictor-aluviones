@@ -74,7 +74,12 @@ a { color: var(--accent) }
 @media (max-width: 560px) { #ranking th:nth-child(4), #ranking td:nth-child(4), #ranking th:nth-child(5), #ranking td:nth-child(5) { display: none } }
 @media (max-width: 520px) { .resumen { grid-template-columns: 1fr; gap: 10px } .metro .etq { font-size: .66rem } .escala th, .escala td, #validacion th, #validacion td { padding: 6px 4px } .escala td.num, .escala th.num, #validacion td.num, #validacion th.num { white-space: normal; text-align: left } .big { font-size: 3rem } .dias { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 /* Panel para gente común: nivel en palabras, «1 en N», escala, tarjetas de «Ahora» y hora a hora con la lluvia */
-.hero { display: grid; gap: 12px; border-left: 6px solid var(--sev, var(--line)) } .hero > * { min-width: 0 }
+.hero { display: grid; gap: 18px 28px; align-items: start; border-left: 6px solid var(--sev, var(--line)) } .hero > * { min-width: 0 }
+.hero-izq, .hero-der { display: grid; gap: 10px; min-width: 0 } .curva-tit { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap } .curva-tit h3 { margin: 0 }
+@media (min-width: 900px) { .hero { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) } }
+/* en una columna, la curva va justo después del consejo y antes de la barra y la explicación */
+@media (max-width: 899px) { .hero { row-gap: 10px } .hero-izq { display: contents } .hero-der { order: 1 } .hero-izq > :nth-child(n+4) { order: 2 } }
+#hchart svg .cur { stroke: var(--fg); stroke-dasharray: 3 3 }
 .hero-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px }
 .nivel { font: 800 .95rem/1 var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--panel); background: var(--sev, var(--muted));
   padding: 8px 12px; border-radius: 99px; display: inline-flex; gap: 8px; align-items: center }
@@ -165,6 +170,7 @@ details.card[open] > summary::before { content: '▾ ' }
   </nav>
 
   <section class="card hero" id="resumen">
+   <div class="hero-izq">
     <div class="hero-top">
       <span class="nivel" id="rniv">calculando…</span>
       <span class="big" id="rmax">–</span>
@@ -188,6 +194,13 @@ details.card[open] > summary::before { content: '▾ ' }
         <tr><td>0 <span class="sub">muy bajo</span></td><td class="num">casi nula</td><td>una quebrada sin quemar, un día cualquiera</td></tr></table></div>
     </details>
     <p class="sub" id="rtxt"></p>
+   </div>
+   <div class="hero-der" id="hoy">
+    <div class="curva-tit"><h3 id="htit">Próximas 24 horas</h3><button type="button" id="hvolver" class="volver" hidden>← volver a las próximas 24 horas</button></div>
+    <div id="hchart"></div>
+    <p class="sub">Riesgo de cada hora en la misma escala de 0 a 10 (el número grande junta todas las horas del día). <b>Mueve el cursor o el dedo sobre la curva</b> para ver cada hora.</p>
+    <p class="hh-texto" id="htxt"></p>
+   </div>
   </section>
 
   <section class="card" id="ahora" hidden>
@@ -195,12 +208,8 @@ details.card[open] > summary::before { content: '▾ ' }
     <div class="tiles" id="rrep"></div>
   </section>
 
-  <section class="card" id="hoy">
-    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:10px"><h2 id="htit" style="margin:0">Próximas 24 horas</h2><button type="button" id="hvolver" class="volver" hidden>← volver a las próximas 24 horas</button></div>
-    <p class="hh-texto" id="htxt"></p>
-    <div id="hchart"></div>
-    <p class="sub" style="margin-top:6px">Cada barra es la chance de que el aluvión ocurra en esa hora, en la misma escala de 0 a 10: las de color son las horas de más riesgo. Abajo, en celeste, la lluvia esperada en la cuenca. Toca una barra para ver el detalle de esa hora.</p>
-    <h3>Próximos días <span class="sub" style="font-weight:400">· es un pronóstico: cambia con cada actualización · toca uno para verlo hora a hora</span></h3>
+  <section class="card" id="dias">
+    <h2>Próximos días <span class="sub" style="font-weight:400">· es un pronóstico: cambia con cada actualización · toca uno para verlo hora a hora</span></h2>
     <div class="dias" id="ddias"></div>
   </section>
 
@@ -942,7 +951,8 @@ function hoy() {
   const n = ix.length, T = ix.map(i => horas[i]), desdeAhora = verDia == null || verDia === 0; // la primera barra es la hora en curso
   const nomVer = verDia == null ? '' : nomDia(horas[dia.indexOf(verDia)], verDia);
   const inc = ix.map(i => Math.max(0, o.acum[i] - (i && dia[i] === dia[i - 1] ? o.acum[i - 1] : 0)));
-  const total = 1 - inc.reduce((s, v) => s * (1 - v), 1), lluvia = ix.map(i => o.lluviaMed[i] ?? 0);
+  // un día entero usa el mismo número de su tarjeta (antes 5,6 en el texto y 5,7 en la tarjeta); las 24 h, el de sus horas
+  const total = verDia == null ? 1 - inc.reduce((s, v) => s * (1 - v), 1) : o.porDia[verDia], lluvia = ix.map(i => o.lluviaMed[i] ?? 0);
   const ini = k => hora(T[k] - 3600), fin = k => hora(T[k]), deDia = k => verDia != null || fecha(T[k] - 3600) === fecha(NOW) ? '' : ' de mañana';
   $('htit').textContent = verDia == null ? `Próximas 24 horas · ${cu.nombre}` : `${nomVer}, hora a hora · ${cu.nombre}`;
   $('hvolver').hidden = verDia == null;
@@ -951,35 +961,39 @@ function hoy() {
   pel.forEach((v, k) => { if (!v) return; if (tramos.length && tramos.at(-1)[1] >= k - 2) tramos.at(-1)[1] = k; else tramos.push([k, k]); }); // un hueco de 1 h no corta el tramo
   const txtTramo = ([p, q]) => p === 0 && desdeAhora ? `desde ahora hasta las ${fin(q)}${deDia(q)}` : `entre las ${ini(p)} y las ${fin(q)}${deDia(q)}`;
   const suma2 = ([p, q]) => inc.slice(p, q + 1).reduce((x, y) => x + y, 0), top = [...tramos].sort((u, v) => suma2(v) - suma2(u)).slice(0, 2).sort((u, v) => u[0] - v[0]);
-  pel.fill(false); top.forEach(([p, q]) => { for (let k = p; k <= q; k++) pel[k] = inc[k] > 0; }); // se pintan solo los tramos que nombra el texto
   const lista = top.map(txtTramo), unir = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' y ' + l.at(-1);
   const cuando = verDia == null ? 'en las próximas 24 horas' : verDia === 0 ? 'en lo que queda de hoy' : verDia === 1 ? 'en todo el día de mañana' : `en todo el ${nomVer.toLowerCase()}`;
   $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.`
     : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor. En total, <b>${fmtE(total)}, ${palabra(total)}</b>, ${cuando}: ${unoEn(total)}.`;
-  // se dibuja al ancho real (en el celular, una grilla de 1000 achicada dejaba la letra ilegible)
-  const W = Math.max(320, Math.round($('hchart').clientWidth) || 1000), cada = W < 640 ? 6 : 3, P = { l: W < 640 ? 46 : 56, r: 8, t: 22 }, hR = W < 640 ? 120 : 150, gap = 26, hL = 40, Hh = P.t + hR + gap + hL + 30, bw = (W - P.l - P.r) / Math.max(n, 1);
-  const yR0 = P.t + hR, yL0 = yR0 + gap + hL, mR = Math.max(0.002, ...inc) * 1.1, mL = Math.max(4, ...lluvia);
-  const x = k => P.l + k * bw, cR = k => pel[k] && total >= 1e-4 ? `var(--${bajoN(nivel(total)) ? 'n2' : nivel(total)})` : 'var(--line)';
-  let g = `<line x1="${P.l}" x2="${W - P.r}" y1="${yR0}" y2="${yR0}" stroke="var(--line)"/><line x1="${P.l}" x2="${W - P.r}" y1="${yL0}" y2="${yL0}" stroke="var(--line)"/>`;
-  g += `<text x="${P.l - 8}" y="${yR0 - hR / 2 + 4}" text-anchor="end" style="fill:var(--fg);font-weight:600">riesgo</text><text x="${P.l - 8}" y="${yL0 - hL / 2 + 4}" text-anchor="end" style="fill:var(--fg);font-weight:600">lluvia</text>`;
-  inc.forEach((v, k) => {
-    const hgt = v / mR * hR, hl = Math.min(1, lluvia[k] / mL) * hL, w = Math.min(24, bw - 4), cx = x(k) + (bw - w) / 2;
-    if (hgt > 0.5) g += `<path d="M${cx},${yR0}V${yR0 - hgt + 3}q0,-3 3,-3h${w - 6}q3,0 3,3V${yR0}Z" fill="${cR(k)}"/>`;
-    if (hl > 0.5) g += `<rect x="${cx}" y="${yL0 - hl}" width="${w}" height="${hl}" rx="2" fill="var(--accent)" opacity=".55"/>`;
-    const hh = +new Date(T[k] * 1000 - 3600e3).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false });
-    const etq = k === 0 && desdeAhora ? 'ahora' : hh === 0 && verDia == null ? new Date(T[k] * 1000 - 3600e3).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'short' }).replace('.', '') + ' 0 h' : hh + ' h';
-    if ((k === 0 && desdeAhora) || (hh % cada === 0 && (k > 1 || !desdeAhora))) g += `<text x="${x(k) + bw / 2}" y="${yL0 + 18}" text-anchor="middle">${etq}</text>`;
-    g += `<rect x="${x(k)}" y="${P.t - 10}" width="${bw}" height="${yL0 - P.t + 10}" fill="transparent" data-k="${k}"/>`;
+  // curva: la escala de cada hora sobre las franjas de los 5 niveles, dibujada al ancho real. La lluvia va solo en el
+  // detalle de cada hora: dibujada al lado se leería como «más lluvia, más riesgo», y sin tormenta no es así (6-oct: 111 mm, 4,2)
+  const W = Math.max(300, Math.round($('hchart').clientWidth) || 600), Hh = W < 500 ? 190 : 220, P = { l: 24, r: 12, t: 18, b: 24 };
+  const ph = Hh - P.t - P.b, paso = (W - P.l - P.r) / Math.max(n - 1, 1), cada = W < 500 ? 6 : 3, es = inc.map(v => escala(v));
+  const x = k => P.l + k * paso, y = e => P.t + ph * (1 - e / 10);
+  let g = [[0, 3, 'n0'], [3, 5, 'n1'], [5, 7, 'n2'], [7, 8, 'n3'], [8, 10, 'n4']].map(([a, b, c]) => `<rect x="${P.l}" y="${y(b)}" width="${W - P.l - P.r}" height="${y(a) - y(b)}" fill="var(--${c})" opacity=".14"/>`).join('');
+  g += [0, 3, 5, 7, 8, 10].map(e => `<text x="${P.l - 6}" y="${y(e) + 4}" text-anchor="end" style="fill:var(--muted)">${e}</text>`).join('');
+  const linea = es.map((e, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)},${y(e).toFixed(1)}`).join('');
+  g += `<path d="${linea}V${y(0)}H${x(0)}Z" fill="var(--fg)" opacity=".07"/><path d="${linea}" fill="none" stroke="var(--fg)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  T.forEach((t, k) => {
+    const hh = +new Date(t * 1000 - 3600e3).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false });
+    const etq = k === 0 && desdeAhora ? 'ahora' : hh === 0 && verDia == null ? new Date(t * 1000 - 3600e3).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'short' }).replace('.', '') + ' 0 h' : hh + ' h';
+    if ((k === 0 && desdeAhora) || (hh % cada === 0 && (x(k) - x(0) > 40 || !desdeAhora))) g += `<text x="${x(k)}" y="${Hh - 6}" text-anchor="${k === 0 ? 'start' : k === n - 1 ? 'end' : 'middle'}" style="fill:var(--muted)">${etq}</text>`;
   });
-  if (inc[kPk] > 0) g += `<text x="${x(kPk) + bw / 2}" y="${yR0 - inc[kPk] / mR * hR - 6}" text-anchor="middle" style="fill:var(--fg);font-weight:700">${fmtE(inc[kPk])}</text>`;
-  g += `<text x="${W - P.r}" y="${yL0 - hL + 12}" text-anchor="end">máx. ${fmt(Math.max(...lluvia), 1)} mm/h</text>`;
-  $('hchart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Riesgo de aluvión y lluvia, hora a hora${verDia == null ? ', próximas 24 horas' : ', ' + nomVer}">${g}</svg>`;
-  const svg = $('hchart').querySelector('svg'), ver = e => {
-    const k = e.target?.dataset?.k; if (k == null) { TIP.style.display = 'none'; return; }
-    TIP.innerHTML = `${ini(+k)} a ${fin(+k)}${deDia(+k)}<br>riesgo en esa hora: ${fmtE(inc[k])} de 10, ${palabra(inc[k])}<br>lluvia: ${fmt(lluvia[k], 1)} mm/h`;
-    TIP.style.display = 'block'; TIP.style.left = Math.min(innerWidth - 270, e.clientX + 12) + 'px'; TIP.style.top = (e.clientY + 14) + 'px';
+  if (inc[kPk] > 0) g += `<circle cx="${x(kPk)}" cy="${y(es[kPk])}" r="4.5" fill="var(--${nivel(inc[kPk])})" stroke="var(--panel)" stroke-width="2"/><text x="${Math.min(W - P.r, Math.max(P.l, x(kPk)))}" y="${y(es[kPk]) - 9}" text-anchor="${kPk > n * 0.8 ? 'end' : kPk < n * 0.2 ? 'start' : 'middle'}" style="fill:var(--fg);font-weight:700">${fmtE(inc[kPk])} a las ${ini(kPk)}</text>`;
+  g += `<line class="cur" y1="${P.t}" y2="${y(0)}" style="display:none"/><circle class="pto" r="6" stroke="var(--panel)" stroke-width="2" style="display:none"/>`;
+  $('hchart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Riesgo de aluvión hora a hora${verDia == null ? ', próximas 24 horas' : ', ' + nomVer}">${g}</svg>`;
+  const svg = $('hchart').querySelector('svg'), cur = svg.querySelector('.cur'), pto = svg.querySelector('.pto');
+  const ocultar = () => { TIP.style.display = cur.style.display = pto.style.display = 'none'; };
+  const ver = e => { // la hora más cercana al cursor o al dedo
+    const r = svg.getBoundingClientRect(), k = Math.max(0, Math.min(n - 1, Math.round(((e.clientX - r.left) * W / r.width - P.l) / paso)));
+    cur.setAttribute('x1', x(k)); cur.setAttribute('x2', x(k)); pto.setAttribute('cx', x(k)); pto.setAttribute('cy', y(es[k])); pto.style.fill = `var(--${nivel(inc[k])})`;
+    cur.style.display = pto.style.display = '';
+    TIP.innerHTML = `<b>${ini(k)} a ${fin(k)}${deDia(k)}</b><br>riesgo: ${fmtE(inc[k])} de 10, ${palabra(inc[k])}<br>lluvia esperada: ${fmt(lluvia[k], 1)} mm/h`;
+    TIP.style.display = 'block'; TIP.style.left = Math.max(8, Math.min(innerWidth - 230, e.clientX - 100)) + 'px'; TIP.style.top = (r.top - 8 > 80 ? r.top - 70 : r.bottom + 8) + 'px';
   };
-  svg.addEventListener('pointermove', ver); svg.addEventListener('pointerdown', ver); svg.addEventListener('pointerleave', () => TIP.style.display = 'none');
+  svg.addEventListener('pointermove', ver); svg.addEventListener('pointerdown', ver);
+  svg.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') ocultar(); }); // con el dedo, el detalle queda a la vista
+  addEventListener('scroll', ocultar, { passive: true, once: true });
 }
 function detalle() {
   hoy();
@@ -987,7 +1001,7 @@ function detalle() {
   $('dtit').textContent = `Detalle técnico · ${cu.nombre} (para curiosos)`;
   $('dnota').textContent = `${fmt(cu.km2, 1)} km², de ${fmt(cu.hyp[0])} a ${fmt(cu.hyp[20])} m, ${fmt(cu.empinada * 100)} % con pendiente ≥ 23°. ${cu.nota}`;
   $('ddias').innerHTML = [...o.porDia].map((p, k) => `<button type="button" class="dia" data-k="${k}" aria-pressed="${verDia === k}" style="--c:var(--${nivel(p)})"><span>${nomDia(horas[R.dia.indexOf(k)], k)}</span><b>${fmtE(p)}</b><span>${palabra(p)}</span><span>${unoEn(p)}</span></button>`).join('');
-  document.querySelectorAll('#ddias .dia').forEach(b => b.onclick = () => { verDia = +b.dataset.k; detalle(); $('hoy').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  document.querySelectorAll('#ddias .dia').forEach(b => b.onclick = () => { verDia = +b.dataset.k; detalle(); $('resumen').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   grafico(horas, o);
   const i = o.hora.indexOf(Math.max(...o.hora));
   $('dfact').innerHTML = [
