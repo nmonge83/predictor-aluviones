@@ -4,7 +4,7 @@ Proyecto aficionado e independiente · precordillera de Santiago.
 
 Probabilidad de aluvión por día y por hora en 15 quebradas, de Colina a Pirque, con nubes del satélite en vivo.
 
-**Proyecto aficionado e independiente, sin carácter oficial.** La información es solo referencial, puede contener errores y no se garantiza su exactitud. Se actualiza sola con los pronósticos más nuevos, así que el riesgo de mañana y de los días siguientes puede cambiar. **Las alertas oficiales las emite Senapred: sigue siempre sus indicaciones y las de las autoridades.**
+**Proyecto aficionado e independiente, sin carácter oficial.** La información es solo referencial, puede contener errores y no se garantiza su exactitud. Se actualiza sola cada 5 minutos con los pronósticos y el satélite más nuevos, así que el riesgo de mañana y de los días siguientes puede cambiar. **Las alertas oficiales las emite Senapred: sigue siempre sus indicaciones y las de las autoridades.**
 
 ## Cómo funciona
 
