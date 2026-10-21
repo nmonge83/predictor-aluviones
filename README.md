@@ -4,7 +4,7 @@ Proyecto aficionado e independiente · precordillera de Santiago.
 
 Probabilidad de aluvión por día y por hora en 15 quebradas, de Colina a Pirque, con nubes del satélite en vivo.
 
-**No es un aviso oficial, y el modelo puede equivocarse.** Es un proyecto aficionado e independiente, hecho con datos públicos (NOAA, NASA, el Servicio Geológico de EE.UU. y centros meteorológicos) y calibrado con muy pocos aluviones: puede marcar riesgo bajo el día en que baja uno, o alto cuando no pasa nada. **Sigue siempre lo que indiquen las autoridades** (Senapred, Sernageomin, la Dirección Meteorológica de Chile y tu municipio): si piden evacuar, evacúa aunque aquí el riesgo se vea bajo. Se ofrece tal cual, sin garantía, y no debe usarse como única fuente para decidir.
+**Proyecto aficionado e independiente, sin carácter oficial.** La información es solo referencial, puede contener errores y no se garantiza su exactitud. **Las alertas oficiales las emite Senapred: sigue siempre sus indicaciones y las de las autoridades.**
 
 ## Cómo funciona
 
