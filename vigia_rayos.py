@@ -36,15 +36,18 @@ def revisar(claves, estado):
             k = int(np.argmin(d))
             rumbo = RUMBO[round(((math.degrees(math.atan2(dx[k], dy[k])) + 360) % 360) / 45) % 8]
             estado['n'] += int(cerca.sum()); estado['ultimo'] = time.time(); estado['hora'] = hora_chile(c)
+            # el más cercano de TODO el intervalo, no solo del último archivo (26-oct: uno a 8,4 km quedó oculto tras «24 km»)
+            if d[k] < estado['min'][0]: estado['min'] = (float(d[k]), rumbo, hora_chile(c))
             if time.time() - estado['avisado'] > AVISO_CADA or estado['prueba']:
-                print(f'RAYOS {estado["hora"]}: {estado["n"]} a menos de {RADIO} km de la Quebrada Honda; el más cercano a {d[k]:.0f} km al {rumbo} '
-                      f'(a menos de 50 km: {int((d < 50).sum())} en este archivo de 20 s)', flush=True)
-                estado['avisado'], estado['n'] = time.time(), 0
+                dm, rm, hm = estado['min']
+                print(f'RAYOS {estado["hora"]}: {estado["n"]} a menos de {RADIO} km de la Quebrada Honda desde el aviso anterior; '
+                      f'el más cercano a {dm:.0f} km al {rm} ({hm})', flush=True)
+                estado['avisado'], estado['n'], estado['min'] = time.time(), 0, (1e9, '', '')
         elif estado['ultimo'] and time.time() - estado['ultimo'] > 900 and not estado['prueba']:
             print(f'SIN RAYOS: 15 min sin rayos a menos de {RADIO} km (último a las {estado["hora"]})', flush=True)
             estado['ultimo'] = 0
 
-estado = {'n': 0, 'ultimo': 0, 'avisado': 0, 'hora': '', 'prueba': len(sys.argv) > 1}
+estado = {'n': 0, 'ultimo': 0, 'avisado': 0, 'hora': '', 'min': (1e9, '', ''), 'prueba': len(sys.argv) > 1}
 if estado['prueba']:
     dia = int(sys.argv[1])
     for h in map(int, sys.argv[2:]): revisar(listar(dia, h), estado)

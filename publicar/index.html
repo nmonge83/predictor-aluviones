@@ -79,8 +79,9 @@ a { color: var(--accent) }
 .hero-izq, .hero-der { display: grid; gap: 10px; min-width: 0 } .curva-tit { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap } .curva-tit h3 { margin: 0 }
 @media (min-width: 900px) { .hero { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) } }
 /* en una columna, la curva va justo después del consejo y antes de la barra y la explicación */
-@media (max-width: 899px) { .hero { row-gap: 10px } .hero-izq { display: contents } .hero-der { order: 1 } .hero-izq > :nth-child(n+4) { order: 2 } }
+@media (max-width: 899px) { .hero { row-gap: 10px } .hero-izq { display: contents } .hero-der { order: 1 } .hero-izq > :nth-child(n+5) { order: 2 } }
 #hchart svg .cur { stroke: var(--fg); stroke-dasharray: 3 3 }
+.hora-act { margin-top: -4px } .hora-act .volver { margin-left: 6px }
 .hero-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px }
 .nivel { font: 800 .95rem/1 var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--panel); background: var(--sev, var(--muted));
   padding: 8px 12px; border-radius: 99px; display: inline-flex; gap: 8px; align-items: center }
@@ -177,6 +178,7 @@ details.card[open] > summary::before { content: '▾ ' }
       <span class="big" id="rmax">–</span>
       <span class="unoen" id="runo"></span>
     </div>
+    <p class="sub hora-act"><span id="rhora">Calculando…</span> <button type="button" class="volver" id="refrescar">↻ Actualizar</button></p>
     <h2 id="rtit" style="margin:0">Calculando el riesgo de cada quebrada</h2>
     <p class="que" id="rque"></p>
     <div class="metro" aria-hidden="true"><div class="barra"><span></span><span></span><span></span><span></span><span></span></div><div class="pin" id="rpin" style="left:0"></div>
@@ -786,10 +788,17 @@ async function leerRayosNOAA() { // los rayos de los últimos 10 min, archivo po
   if (!vistas.length) throw new Error('sin archivos de rayos recientes');
   const pts = (await Promise.all(vistas.map(c => rayosDeArchivo(c.k)))).flat(), cosLa = Math.cos(BAS[0] * Math.PI / 180), porCuenca = {};
   for (const cu of CU) {
-    const [la, lo] = cu.centro, radio = Math.sqrt(cu.km2 / Math.PI) + 2 + 5; // mismo radio que con RealEarth (el GLM ubica cada rayo con ~5 km de error)
-    let best = null;
-    for (const [a, b] of pts) { const dx = (b - lo) * 111.32 * cosLa, dy = (a - la) * 110.57, dist = Math.hypot(dx, dy); if (dist <= 130 && (!best || dist < best.dist)) best = { dist, dx, dy }; }
-    porCuenca[cu.id] = { t: vistas.at(-1).t, dist: best?.dist ?? null, dx: best?.dx, dy: best?.dy, encima: !!best && best.dist <= radio };
+    // «tormenta encima»: un rayo sobre la quebrada misma (su radio + 2 km), o al menos 3 en la zona (+5 km más, el error del
+    // GLM) en 10 min. Un rayo suelto a 8,4 km del centro bastaba para subir la Honda a 8,3 (26-oct 20:34); en los dos
+    // aluviones cayeron decenas encima (31-ene: 36-83 cada 10 min a menos de 10 km; 8-oct: 60)
+    const [la, lo] = cu.centro, rc = Math.sqrt(cu.km2 / Math.PI) + 2, radio = rc + 5;
+    let best = null, enZona = 0, sobre = false;
+    for (const [a, b] of pts) {
+      const dx = (b - lo) * 111.32 * cosLa, dy = (a - la) * 110.57, dist = Math.hypot(dx, dy);
+      if (dist <= radio) enZona++; if (dist <= rc) sobre = true;
+      if (dist <= 130 && (!best || dist < best.dist)) best = { dist, dx, dy };
+    }
+    porCuenca[cu.id] = { t: vistas.at(-1).t, dist: best?.dist ?? null, dx: best?.dx, dy: best?.dy, enZona, encima: sobre || enZona >= 3 };
   }
   return { t: vistas.at(-1).t, porCuenca, fuente: 'NOAA' };
 }
@@ -1005,7 +1014,7 @@ function pintar() {
   document.querySelectorAll('#ranking tbody tr').forEach(tr => { tr.onclick = () => elegir(tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') elegir(tr.dataset.id); }; });
   detalle();
   pintarReporte();
-  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros meteorológicos`; document.body.classList.remove('viejo'); $('upd').title = R.centros.join(', ');
+  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros meteorológicos`; document.body.classList.remove('viejo'); $('rhora').textContent = `Actualizado a las ${hora(NOW)}`; $('upd').title = R.centros.join(', ');
 }
 function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
 // la hora con más chance de que el aluvión ocurra ESA hora (lo que sube la acumulada), la misma medida del gráfico de 24 h
@@ -1146,7 +1155,7 @@ try {
   if (g && Date.now() / 1000 - g.NOW < 600) { // solo si es de hace menos de 10 min: con 3 h se veían datos viejos al entrar (26-oct)
     // se ve atenuado y avisando que es de antes (26-oct: un 8,3 guardado de cuando caían rayos se leía como el de ahora)
     NOW = g.NOW; R = g.R; pintar(); document.body.classList.add('viejo');
-    $('upd').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`;
+    $('upd').textContent = $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`;
   }
 } catch (e) { console.warn('cálculo guardado', e.message); R = null; }
 // GitHub Pages deja el HTML 10 min en el navegador y una pestaña abierta sigue con el código viejo (26-oct: «no logro ver
@@ -1161,9 +1170,10 @@ async function revisarVersion() {
 async function actualizar() {
   if (enCurso) return; enCurso = true; ultimo = Date.now(); revisarVersion();
   // lo que está a la vista tiene más de 5 min (pestaña que vuelve, celular que despierta): se atenúa hasta que llegue lo nuevo
-  if (R && Date.now() / 1000 - NOW > 300) { document.body.classList.add('viejo'); $('upd').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`; }
+  if (R && Date.now() / 1000 - NOW > 300) { document.body.classList.add('viejo'); $('upd').textContent = $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`; }
   try { await ciclo(); } finally { enCurso = false; }
 }
+document.addEventListener('click', e => { if (e.target?.id === 'refrescar' && !enCurso) { $('rhora').textContent = 'Actualizando…'; actualizar(); if (!timer) cargarNubes(); } });
 cargarNubes();
 actualizar();
 setInterval(actualizar, 5 * 60 * 1000);
