@@ -69,7 +69,7 @@ a { color: var(--accent) }
 .ventana .niveles { display: flex; flex-wrap: wrap; gap: 6px } .ventana .niveles span { font: 600 .8rem var(--display); padding: 3px 9px; border-radius: 99px; color: #fff; background: var(--c) }
 .ayuda { font: 700 .9rem var(--display); color: var(--accent); background: var(--panel); border: 1.5px solid var(--accent); border-radius: 99px; padding: 6px 14px; margin-top: 4px; cursor: pointer }
 .ventana button { font: 700 1rem var(--display); background: var(--accent); color: var(--panel); border: 0; border-radius: 8px; padding: 11px 22px; width: 100%; margin-top: 6px; cursor: pointer }
-.leyenda { display: flex; gap: 12px; flex-wrap: wrap; font-size: .78rem; color: var(--muted) }
+.leyenda { display: grid; gap: 6px; font-size: .8rem; color: var(--muted) } .simbolos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px }
 .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c); vertical-align: -1px; margin-right: 4px }
 @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr } #map { height: 400px } }
 @media (max-width: 560px) { #ranking th:nth-child(4), #ranking td:nth-child(4), #ranking th:nth-child(5), #ranking td:nth-child(5) { display: none } }
@@ -229,7 +229,19 @@ details.card[open] > summary::before { content: '▾ ' }
         <span class="sub" id="frame"></span>
       </div>
       <p id="cerca" class="cerca">Midiendo la distancia a la tormenta más cercana…</p>
-      <div class="leyenda"><span style="--c:var(--n4)"><i></i>muy alto (8 a 10)</span><span style="--c:var(--n3)"><i></i>alto (7 a 8)</span><span style="--c:var(--n2)"><i></i>moderado (5 a 7)</span><span style="--c:var(--n1)"><i></i>bajo (3 a 5)</span><span style="--c:var(--n0)"><i></i>muy bajo (0 a 3)</span><span style="--c:transparent"><i style="outline:3px solid #ff1a1a;outline-offset:-3px"></i>borde rojo: la quebrada elegida</span><span>Nubes: gris = bajas; azul = altas; verde = muy frías; amarillo y rojo = tormenta fuerte. El modelo cuenta una celda encima solo cuando caen rayos (detector del GOES, ~5 min de retraso); el color de las nubes no basta. Las nubes llegan con 30–50 min de retraso.</span></div>
+      <div class="leyenda">
+        <p><b>Colores de las nubes</b> · el infrarrojo mide qué tan fría está la cima de la nube: más fría, más alta y con más lluvia</p>
+        <ul class="simbolos">
+          <li><i style="--c:rgb(96,96,96)"></i><b>Gris oscuro:</b> suelo o cielo despejado.</li>
+          <li><i style="--c:rgb(190,190,190)"></i><b>Gris claro:</b> nubes bajas o medias (sobre −20 °C): lluvia débil o nada.</li>
+          <li><i style="--c:linear-gradient(90deg, rgb(0,115,178), rgb(0,0,115))"></i><b>Azul:</b> nubes altas (−20 a −33 °C): pueden traer lluvia y, a veces, tormentas chicas con rayos, como las del 26-oct.</li>
+          <li><i style="--c:linear-gradient(90deg, rgb(0,128,58), rgb(102,255,0))"></i><b>Verde:</b> nubes muy frías (−33 a −46 °C): lluvia, y tormenta si caen rayos.</li>
+          <li><i style="--c:rgb(230,255,0)"></i><b>Amarillo:</b> cimas muy altas (−46 a −54 °C): tormenta fuerte.</li>
+          <li><i style="--c:linear-gradient(90deg, rgb(255,153,0), rgb(255,26,0))"></i><b>Naranjo y rojo:</b> bajo −54 °C: tormenta muy fuerte.</li>
+        </ul>
+        <p>La imagen llega con 30 a 50 min de atraso, y el color solo no dice si hay tormenta: la página la cuenta cuando caen rayos encima.</p>
+        <p><i style="--c:transparent;outline:3px solid #ff1a1a;outline-offset:-3px"></i><b>Borde rojo:</b> la quebrada elegida. Cada quebrada va pintada con el color de su riesgo de hoy.</p>
+      </div>
     </section>
 
     <section class="card">
@@ -828,26 +840,15 @@ async function medirSatelite() {
   const r = await Promise.all(ts.map(t => leerSatelite(t).catch(() => null)));
   return r.find(Boolean) ?? null;
 }
-function textoCercania() {
-  const s = satelite?.porCuenca[sel], cu = CU.find(c => c.id === sel);
-  if (!s) { $('cerca').textContent = 'No se pudo leer la imagen del satélite.'; return; }
-  const b = s.best, f = s.fuerte, ry = s.rayo, donde = x => `a ${fmt(x.dist)} km al ${RUMBO[Math.round(((Math.atan2(x.dx, x.dy) * 180 / Math.PI + 360) % 360) / 45) % 8]}`;
-  let txt;
-  if (ry?.encima) txt = `${cu.nombre}, ${hora(ry.t)}: caen rayos sobre la cuenca. El modelo cuenta la tormenta en la hora actual.`;
-  else if (s.irEncima) txt = `${cu.nombre}, ${hora(satelite.t)}: hay nubes muy frías encima, sin rayos: probablemente no es una celda de tormenta, pero puede llover fuerte. El modelo sigue con el pronóstico.`;
-  else if (s.nubes) txt = `${cu.nombre}, ${hora(satelite.t)}: hay nubes frías encima, pero no una tormenta fuerte${f ? ` (la más cercana está ${donde(f)})` : ''}. El modelo sigue con el pronóstico.`;
-  else if (!b) txt = `${cu.nombre}, ${hora(satelite.t)}: sin nubes de tormenta a menos de 130 km.`;
-  else txt = `${cu.nombre}, ${hora(satelite.t)}: sin tormenta encima. La nube más fría está ${donde(b)}.`;
-  if (ry && !ry.encima) txt += ry.dist == null ? ' Sin rayos cerca en los últimos 15 min.' : ` Rayo más cercano en los últimos 15 min: ${donde(ry)}.`;
-  $('cerca').textContent = txt;
-  $('cerca').classList.toggle('alerta', s.encima || (ry?.dist != null && ry.dist < 15));
+function textoCercania() { // el texto bajo el mapa lo escribe pintarReporte, con lo mismo de los cuadros «Tormenta» y «Rayos»
+  if (!satelite?.porCuenca?.[sel]) $('cerca').textContent = 'No se pudo leer la imagen del satélite.';
 }
 // «Ahora», arriba junto a la probabilidad: hacia dónde va la nube de lluvia, los rayos y hasta cuándo llueve, en simple
-let REP = null; // la quebrada del resumen (la más riesgosa)
+let REP = null, llegada = null; // la quebrada del resumen; cuándo llegaría la tormenta que se acerca (satélite)
 function pintarReporte() {
   const c = CU.find(x => x.id === REP), o = R?.out[REP];
   if (!c || !o) return;
-  const s = satelite?.porCuenca[c.id], mv = satelite?.mov, fr = mv?.frio[c.id], items = [];
+  const s = satelite?.porCuenca[c.id], mv = satelite?.mov, fr = mv?.frio[c.id], items = [], antes = llegada?.t; llegada = null;
   const tarjeta = (ico, tit, est, etq, txt, nota) => items.push({ ico, tit, est, etq, txt, nota });
   const rumbo = (dx, dy) => RUMBO[Math.round(((Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360) / 45) % 8];
   // en simple: dónde está la tormenta y si viene o se va, sin porcentajes ni km/h (26-oct: «no es fácil de entender»)
@@ -865,6 +866,7 @@ function pintarReporte() {
       const donde = `a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}`;
       const hacia = vel == null || !dir ? 0 : (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist; // km/h hacia la quebrada
       const llega = mv.t1 + fr.cerca.dist / Math.max(hacia, 1e-6) * 3600;
+      if (hacia > 5 && llega > NOW) llegada = { t: llega, rayos: (s?.rayo?.dist ?? 99) < 25 };
       if (hacia > 5) T('warn', 'se acerca', `Hay una tormenta ${donde} que viene hacia acá` + (llega > NOW ? `: llegaría cerca de las ${hora(llega)}.` : ': podría estar llegando.'));
       else if (hacia < -5) T('ok', 'se aleja', `La tormenta más cercana está ${donde} y se aleja.`);
       else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', `Está nublado sobre la quebrada: puede llover. La tormenta más cercana está ${donde}${dir ? ' y no viene hacia acá' : ''}.`);
@@ -903,6 +905,9 @@ function pintarReporte() {
       `Isoterma 0 °C a ~${fmt(Math.round(iso / 100) * 100)} m (GFS). Cuanto más alta, más cerro recibe lluvia: en el aluvión de Macul de 1993 subió a 3.000-4.000 m.`);
   }
   $('atit').textContent = `Ahora en la ${c.nombre.replace(/^Quebradas? /, 'quebrada ')}`;
+  if (R && llegada?.t !== antes) hoy(); // la curva marca la tormenta que viene
+  const tt = items.find(t => t.tit === 'Tormenta'), rr = items.find(t => t.tit === 'Rayos');
+  if (tt || rr) { $('cerca').textContent = [`${c.nombre}.`, tt && `Tormenta: ${tt.txt}`, rr && `Rayos: ${rr.txt}`].filter(Boolean).join(' '); $('cerca').classList.toggle('alerta', [tt, rr].some(t => t?.est === 'bad' || t?.est === 'warn')); }
   $('rrep').innerHTML = items.map(t => `<div class="tile"><div class="cab"><span class="ico" aria-hidden="true">${t.ico}</span>${t.tit}<span class="estado" style="--c:var(--${t.est})">${t.etq}</span></div><p>${t.txt}</p><small>${t.nota}</small></div>`).join('');
   $('ahora').hidden = false;
 }
@@ -1059,8 +1064,10 @@ function hoy() {
   const suma2 = ([p, q]) => inc.slice(p, q + 1).reduce((x, y) => x + y, 0), top = [...tramos].sort((u, v) => suma2(v) - suma2(u)).slice(0, 2).sort((u, v) => u[0] - v[0]);
   const lista = top.map((t, j) => txtTramo(t, j, top)), unir = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' y ' + l.at(-1);
   const cuando = verDia == null ? 'en las próximas 24 horas' : verDia === 0 ? 'en lo que queda de hoy' : verDia === 1 ? 'en todo el día de mañana' : `en todo el ${nomVer.toLowerCase()}`;
-  $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.`
-    : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor.${verDia == null ? '' : ` En total, <b>${fmtE(total)}, ${palabra(total)}</b>, ${cuando}: ${unoEn(total)}.`}`;
+  const kLl = llegada ? T.findIndex(t => llegada.t >= t - 3600 && llegada.t < t) : -1; // hora en que llegaría la tormenta que se acerca
+  const notaLl = kLl >= 0 ? ` <b>Además viene una tormenta que llegaría cerca de las ${hora(llegada.t)}</b>: la curva no la incluye porque los pronósticos no ven tormentas tan chicas; si llega con rayos encima, el riesgo sube como hoy a las 16:30 y a las 20:00.` : '';
+  $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.${notaLl}`
+    : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor.${notaLl}${verDia == null ? '' : ` En total, <b>${fmtE(total)}, ${palabra(total)}</b>, ${cuando}: ${unoEn(total)}.`}`;
   // curva: la escala de cada hora sobre las franjas de los 5 niveles, dibujada al ancho real. La lluvia va solo en el
   // detalle de cada hora: dibujada al lado se leería como «más lluvia, más riesgo», y sin tormenta no es así (6-oct: 111 mm, 4,2)
   const W = Math.max(300, Math.round($('hchart').clientWidth) || 600), Hh = W < 500 ? 190 : 220, P = { l: 24, r: 12, t: 18, b: 24 };
@@ -1073,9 +1080,11 @@ function hoy() {
   T.forEach((t, k) => {
     const hh = +new Date(t * 1000 - 3600e3).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false });
     const etq = k === 0 && desdeAhora ? 'ahora' : hh === 0 && verDia == null ? new Date(t * 1000 - 3600e3).toLocaleDateString('es-CL', { timeZone: TZ, weekday: 'short' }).replace('.', '') + ' 0 h' : hh + ' h';
-    if ((k === 0 && desdeAhora) || (hh % cada === 0 && (x(k) - x(0) > 40 || !desdeAhora))) g += `<text x="${x(k)}" y="${Hh - 6}" text-anchor="${k === 0 ? 'start' : k === n - 1 ? 'end' : 'middle'}" style="fill:var(--muted)">${etq}</text>`;
+    if ((k === 0 && desdeAhora) || (hh % cada === 0 && (x(k) - x(0) > 58 || !desdeAhora))) g += `<text x="${x(k)}" y="${Hh - 6}" text-anchor="${k === 0 ? 'start' : k === n - 1 ? 'end' : 'middle'}" style="fill:var(--muted)">${etq}</text>`;
   });
   if (inc[kPk] > 0) g += `<circle cx="${x(kPk)}" cy="${y(es[kPk])}" r="4.5" fill="var(--${nivel(inc[kPk])})" stroke="var(--panel)" stroke-width="2"/><text x="${Math.min(W - P.r, Math.max(P.l, x(kPk)))}" y="${y(es[kPk]) - 9}" text-anchor="${kPk > n * 0.8 ? 'end' : kPk < n * 0.2 ? 'start' : 'middle'}" style="fill:var(--fg);font-weight:700">${fmtE(inc[kPk])} a las ${ini(kPk)}</text>`;
+  // la curva sale de los pronósticos, que no ven tormentas tan chicas: la que se acerca (satélite) se marca aparte (26-oct)
+  if (kLl >= 0) g += `<line x1="${x(kLl)}" x2="${x(kLl)}" y1="${P.t}" y2="${y(0)}" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 4"/><text x="${Math.min(x(kLl) + 5, W - P.r - 150)}" y="${P.t + 26}" style="fill:var(--bad);font-weight:700">⛈ tormenta en camino (~${hora(llegada.t)})</text>`;
   g += `<line class="cur" y1="${P.t}" y2="${y(0)}" style="display:none"/><circle class="pto" r="6" stroke="var(--panel)" stroke-width="2" style="display:none"/>`;
   $('hchart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Riesgo de aluvión hora a hora${verDia == null ? ', próximas 24 horas' : ', ' + nomVer}">${g}</svg>`;
   const svg = $('hchart').querySelector('svg'), cur = svg.querySelector('.cur'), pto = svg.querySelector('.pto');
