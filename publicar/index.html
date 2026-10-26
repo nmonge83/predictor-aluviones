@@ -227,7 +227,7 @@ details.card[open] > summary::before { content: '▾ ' }
         <span class="sub" id="frame"></span>
       </div>
       <p id="cerca" class="cerca">Midiendo la distancia a la tormenta más cercana…</p>
-      <div class="leyenda"><span style="--c:var(--n4)"><i></i>muy alto (8 a 10)</span><span style="--c:var(--n3)"><i></i>alto (7 a 8)</span><span style="--c:var(--n2)"><i></i>moderado (5 a 7)</span><span style="--c:var(--n1)"><i></i>bajo (3 a 5)</span><span style="--c:var(--n0)"><i></i>muy bajo (0 a 3)</span><span>Nubes: gris = bajas; azul = altas; verde = muy frías; amarillo y rojo = tormenta fuerte. El modelo cuenta una celda encima solo cuando caen rayos (detector del GOES, ~5 min de retraso); el color de las nubes no basta. Las nubes llegan con 30–50 min de retraso.</span></div>
+      <div class="leyenda"><span style="--c:var(--n4)"><i></i>muy alto (8 a 10)</span><span style="--c:var(--n3)"><i></i>alto (7 a 8)</span><span style="--c:var(--n2)"><i></i>moderado (5 a 7)</span><span style="--c:var(--n1)"><i></i>bajo (3 a 5)</span><span style="--c:var(--n0)"><i></i>muy bajo (0 a 3)</span><span style="--c:transparent"><i style="outline:3px solid #ff1a1a;outline-offset:-3px"></i>borde rojo: la quebrada elegida</span><span>Nubes: gris = bajas; azul = altas; verde = muy frías; amarillo y rojo = tormenta fuerte. El modelo cuenta una celda encima solo cuando caen rayos (detector del GOES, ~5 min de retraso); el color de las nubes no basta. Las nubes llegan con 30–50 min de retraso.</span></div>
     </section>
 
     <section class="card">
@@ -971,9 +971,10 @@ function pintar() {
   const filas = CU.map(c => ({ c, o: out[c.id] })).sort((a, b) => Math.max(...b.o.porDia.slice(0, 2)) - Math.max(...a.o.porDia.slice(0, 2)));
   for (const { c, o } of filas) {
     const n = nivel(Math.max(o.porDia[0], o.porDia[1] ?? 0));
-    poligonos[c.id].setStyle({ color: COLOR[n], fillColor: COLOR[n], weight: c.id === sel ? 4 : 2, dashArray: null, fillOpacity: 0.35 });
+    poligonos[c.id].setStyle({ color: c.id === sel ? '#ff1a1a' : COLOR[n], fillColor: COLOR[n], weight: c.id === sel ? 5 : 2, dashArray: null, fillOpacity: 0.35 }); // la elegida, con borde rojo
     poligonos[c.id].setTooltipContent(`${c.nombre}: hoy ${fmtE(o.porDia[0])} (${palabra(o.porDia[0])}), mañana ${fmtE(o.porDia[1] ?? 0)} (${palabra(o.porDia[1] ?? 0)}), en la escala de 0 a 10`);
   }
+  poligonos[sel]?.bringToFront(); // que el borde rojo no quede tapado por las vecinas
   // resumen: la quebrada más riesgosa entre hoy y mañana. El número grande es SIEMPRE hoy (lo que queda del día) y mañana
   // va escrito al lado: antes mostraba el día más alto y se leía como «ahora» (20-oct: 7 % de mañana arriba, 3 % de hoy abajo).
   // resumen = la quebrada ELEGIDA (antes, siempre la más riesgosa)
