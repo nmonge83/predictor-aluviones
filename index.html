@@ -447,9 +447,9 @@ const unoEn = p => escala(p) <= 0 ? 'casi nula' : enN(p) < 2 ? 'más de la mitad
 // qué significa y qué hacer, según el nivel de hoy (y si mañana sube)
 function queHacer(n, P, P1, j, cuando, cuandoMan, cu) {
   const q = cu.nombre.replace(/^Quebradas? /, 'quebrada '), dias = escala(P) >= 3 ? `de cada ${enN(P)} días como hoy, bajaría un aluvión en uno` : 'sería muy raro que bajara un aluvión';
-  const cerca = cuando === 'ahora' ? 'ahora, mientras caigan rayos encima' : `cerca de ${cuando}`;
+  const cerca = cuando.startsWith('ahora') ? cuando : `cerca de ${cuando}`;
   const man = j && !bajoN(nivel(P1)) ? ` <b>Mañana sube a ${fmtE(P1)}</b> (${palabra(P1)}): lo más peligroso, ${cuandoMan}.` : '';
-  if (n === 'n4') return `<b>Riesgo muy alto:</b> ${dias}. Si vives junto a la ${q}, ${cuando === 'ahora' ? 'sal ahora' : `sal antes de ${cuando}`} y vuelve cuando pase. Sigue las instrucciones de Senapred.${man}`;
+  if (n === 'n4') return `<b>Riesgo muy alto:</b> ${dias}. Si vives junto a la ${q}, ${cuando.startsWith('ahora') ? 'sal ahora' : `sal antes de ${cuando}`} y vuelve cuando pase. Sigue las instrucciones de Senapred.${man}`;
   if (n === 'n3') return `<b>Riesgo alto:</b> ${dias}. Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo ${cerca}. Sigue las instrucciones de Senapred.${man}`;
   if (n === 'n2') return `<b>Puede pasar:</b> ${dias}. Evita las calles y pasajes por donde baja el agua de la ${q}, sobre todo ${cerca}, y atento a lo que diga Senapred.${man}`;
   return `<b>${n === 'n0' ? 'Muy poco probable' : 'Poco probable'}:</b> ${dias}.${man} Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
@@ -983,7 +983,7 @@ function pintar() {
   $('rmax').innerHTML = `${fmtE(P)}<small>de 10</small>`; $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} hoy`; $('runo').textContent = unoEn(P);
   $('rpin').style.left = `${escala(P) * 10}%`;
   // la hora más peligrosa de hoy y la de mañana, cada una para su consejo (antes el de hoy usaba la de mañana)
-  const kHoy = picoHora(top.o, R.dia, 0), cuandoHoy = kHoy === 0 && satelite?.porCuenca?.[top.c.id]?.encima ? 'ahora' : `las ${hora(horas[kHoy] - 3600)}`, cuandoMan = `mañana a las ${hora(horas[picoHora(top.o, R.dia, 1)] - 3600)}`;
+  const kHoy = picoHora(top.o, R.dia, 0), cuandoHoy = kHoy !== 0 ? `las ${hora(horas[kHoy] - 3600)}` : satelite?.porCuenca?.[top.c.id]?.encima ? 'ahora, mientras caigan rayos encima' : 'ahora', cuandoMan = `mañana a las ${hora(horas[picoHora(top.o, R.dia, 1)] - 3600)}`;
   $('rtit').textContent = `${top.c.nombre} (${top.c.comuna})`;
   $('rque').innerHTML = queHacer(n, P, P1, j, cuandoHoy, cuandoMan, top.c);
   const cuantas = (...l) => filas.filter(f => l.includes(nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)))).length;
@@ -1143,8 +1143,9 @@ function guardarCalculo() {
 try {
   const g = JSON.parse(localStorage.getItem('ultimo-calculo') || 'null');
   if (g && Date.now() / 1000 - g.NOW < 600) { // solo si es de hace menos de 10 min: con 3 h se veían datos viejos al entrar (26-oct)
-    NOW = g.NOW; R = g.R; pintar();
-    $('upd').textContent = `Mostrando el cálculo de las ${hora(NOW)} · actualizando…`;
+    // se ve atenuado y avisando que es de antes (26-oct: un 8,3 guardado de cuando caían rayos se leía como el de ahora)
+    NOW = g.NOW; R = g.R; pintar(); document.body.classList.add('viejo');
+    $('upd').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`;
   }
 } catch (e) { console.warn('cálculo guardado', e.message); R = null; }
 // GitHub Pages deja el HTML 10 min en el navegador y una pestaña abierta sigue con el código viejo (26-oct: «no logro ver
