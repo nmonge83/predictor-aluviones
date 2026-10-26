@@ -292,7 +292,7 @@ details.card[open] > summary::before { content: '▾ ' }
       <li><b>Avisos oficiales (mandan sobre esta página):</b> <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">lluvia diaria en Tobalaba</a>.</li>
       <li><b>Pronóstico del tiempo:</b> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, que entrega los pronósticos de los centros de Europa (ECMWF y ECMWF-IA), Alemania (ICON), EE.UU. (GFS), Canadá (GEM) y Reino Unido (UKMO), con unos 200 escenarios en total.</li>
       <li><b>Nubes en vivo:</b> satélite GOES-19 de NOAA, canal infrarrojo, que toma una imagen cada 10 min. Los datos de arriba (tormenta encima, hacia dónde va la nube) se leen del archivo original en <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>, que llega unos 10 min después de cada imagen; la página baja solo la franja de Santiago. El mapa usa las imágenes de <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>, que llegan con 30 a 40 min de atraso (y si NOAA falla, la página usa GIBS con su <a href="https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml" target="_blank" rel="noopener">tabla de colores</a>).</li>
-      <li><b>Rayos en vivo:</b> detector de rayos del GOES-19 (GLM), vía <a href="https://realearth.ssec.wisc.edu/" target="_blank" rel="noopener">RealEarth</a> de la Universidad de Wisconsin; los datos originales están en <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>. Llega con unos 5 min de atraso.</li>
+      <li><b>Rayos en vivo:</b> detector de rayos del GOES-19 (GLM), leído directo de <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>: un archivo cada 20 s con la ubicación de cada rayo; la página baja solo esa parte (unos 30 KB por archivo). Si NOAA falla, usa las imágenes de <a href="https://realearth.ssec.wisc.edu/" target="_blank" rel="noopener">RealEarth</a> de la Universidad de Wisconsin. Un rayo sobre la quebrada o a menos de unos 7 km de su borde cuenta como tormenta encima (el satélite ubica cada rayo con ~5 km de error). Llega con unos 2 a 5 min de atraso.</li>
       <li><b>Cómo responde un cerro quemado a la lluvia:</b> la fórmula del Servicio Geológico de EE.UU. para aluviones después de incendios, de Staley y otros (2017), <i>Geomorphology</i> 278: 149-162 (<a href="https://doi.org/10.1016/j.geomorph.2016.10.019" target="_blank" rel="noopener">artículo</a> · <a href="https://www.usgs.gov/programs/landslide-hazards/science/postfire-debris-flow-hazards" target="_blank" rel="noopener">cómo la usa el USGS</a>).</li>
       <li><b>Cuánto llueve en pocos minutos:</b> Bell (1969), la relación entre la lluvia de 15, 30 y 60 minutos.</li>
       <li><b>Rayos y lluvia intensa:</b> los rayos se usan para anticipar chaparrones y crecidas repentinas (por ejemplo, el proyecto europeo <a href="https://cordis.europa.eu/project/id/36852" target="_blank" rel="noopener">FLASH</a>). Su ausencia no descarta un aluvión: el de <a href="https://nhess.copernicus.org/articles/18/3037/2018/" target="_blank" rel="noopener">Montecito en 2018</a> lo gatilló una banda de lluvia de un frente frío.</li>
@@ -579,7 +579,7 @@ async function leerSatelite(t, T) {
 // de 10 km de la Quebrada Honda justo antes del aluvión; el 20-oct, con lluvia pareja y nubes igual de frías, ninguno a menos de 25 km.
 const RE = 'https://realearth.ssec.wisc.edu/api';
 const tRE = s => Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(9, 11), +s.slice(11, 13)) / 1000;
-async function leerRayos() {
+async function leerRayosRE() { // respaldo: RealEarth (imágenes); del 22 al 26-oct dejó las conexiones colgadas
   const ts = (await getJSON(`${RE}/times?products=glmgroupdensity`)).glmgroupdensity.slice(-11);
   const N = 150, r = 1.5, paso = 2 * r / N, cosLa = Math.cos(BAS[0] * Math.PI / 180), pts = [];
   const imgs = await Promise.all([ts.at(-1), ts.at(-6), ts[0]].map(t => pixeles(`${RE}/image?products=glmgroupdensity&time=${t}&bounds=${BAS[0] - r},${BAS[1] - r},${BAS[0] + r},${BAS[1] + r}&width=${N}&height=${N}`, N).catch(() => null)));
@@ -730,6 +730,70 @@ async function leerGOES(k) {
   cacheGOES.set(k, T); if (cacheGOES.size > 6) cacheGOES.delete(cacheGOES.keys().next().value);
   return T;
 }
+// Rayos directo del detector del GOES-19 (GLM) en NOAA: un archivo cada 20 s con cada rayo (latitud y longitud de su
+// centro). Se lee solo lo necesario: los encabezados (primeros 24 KB) y los trozos de flash_lat y flash_lon (~3 KB),
+// no los ~420 KB del archivo. Antes la página dependía de RealEarth, que del 22 al 26-oct no respondió y la dejó sin rayos.
+const cacheGLM = new Map();
+function buscarFlash(b) { // los nombres no están junto a cada variable: se reconocen por su forma. Las listas de float32
+  // en trozos de 2048 vienen siempre en este orden: group_lat, group_lon, flash_lat, flash_lon (comprobado en archivos reales)
+  const vistas = [];
+  for (let i = 0; i + 4 < b.length; i++) {
+    if (b[i] !== 79 || b[i + 1] !== 72 || b[i + 2] !== 68 || b[i + 3] !== 82) continue; // 'OHDR'
+    const fl = b[i + 5]; let p = i + 6; if (fl & 0x20) p += 16; if (fl & 0x10) p += 4;
+    const nt = 1 << (fl & 3); let tam = 0; for (let k = 0; k < nt; k++) tam += b[p + k] * 2 ** (8 * k); p += nt;
+    const fin = Math.min(p + tam, b.length), m = {};
+    while (p + 4 <= fin) { const tipo = b[p], largo = b[p + 1] | (b[p + 2] << 8); p += 4; if (fl & 0x04) p += 2; m[tipo] ??= b.subarray(p, p + largo); p += largo; }
+    const esp = m[1], tip = m[3], lay = m[8];
+    if (esp?.length >= 12 && esp[0] === 2 && esp[1] === 1 && tip?.length >= 8 && (tip[0] & 15) === 1 && u32(tip, 4) === 4 && lay?.length >= 15 && lay[0] === 3 && lay[1] === 2 && lay[2] === 2 && u32(lay, 11) === 2048)
+      vistas.push({ n: u64(esp, 4), arbol: u64(lay, 3) });
+  }
+  // a veces el encabezado de group_lon sigue en otro bloque y no aparece: flash_lat y flash_lon son siempre los DOS ÚLTIMOS
+  const [g, la, lo] = [vistas[0], vistas.at(-2), vistas.at(-1)];
+  if (vistas.length < 3 || la.n !== lo.n || la.n > g.n) return null; // forma inesperada: mejor no adivinar
+  return { lat: la, lon: lo };
+}
+async function valoresFlash(url, { n, arbol }) { // índice (TREE, 1 dimensión: clave de 24 bytes + hijo) → trozos gzip + «shuffle» de 4 bytes
+  if (!n) return new Float32Array(0);
+  const b = await rango(url, arbol, 24 + 32 * 8);
+  if (b[0] !== 84 || b[1] !== 82 || b[2] !== 69 || b[3] !== 69 || b[5] !== 0) throw new Error('índice de rayos inesperado');
+  const usados = b[6] | (b[7] << 8), v = new Float32Array(n);
+  await Promise.all([...Array(usados).keys()].map(async e => {
+    const z = await inflar(await rango(url, u64(b, 24 + e * 32 + 24), u32(b, 24 + e * 32))), m = z.length / 4, ini = u64(b, 24 + e * 32 + 8);
+    const crudo = new Uint8Array(z.length); for (let i = 0; i < m; i++) for (let j = 0; j < 4; j++) crudo[i * 4 + j] = z[j * m + i];
+    const f = new Float32Array(crudo.buffer); for (let i = 0; i < m && ini + i < n; i++) v[ini + i] = f[i];
+  }));
+  return v;
+}
+async function rayosDeArchivo(k) {
+  if (cacheGLM.has(k)) return cacheGLM.get(k);
+  const url = NOAA + k, cab = buscarFlash(await rango(url, 0, 24576));
+  if (!cab) throw new Error('no se encontraron los rayos en el archivo');
+  const [la, lo] = await Promise.all([valoresFlash(url, cab.lat), valoresFlash(url, cab.lon)]), pts = [];
+  for (let i = 0; i < la.length; i++) pts.push([la[i], lo[i]]);
+  cacheGLM.set(k, pts); if (cacheGLM.size > 80) cacheGLM.delete(cacheGLM.keys().next().value);
+  return pts;
+}
+async function leerRayosNOAA() { // los rayos de los últimos 10 min, archivo por archivo
+  const ahora = Date.now(), claves = [];
+  for (const dt of [600e3, 0]) {
+    const d = new Date(ahora - dt), dia = Math.floor((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 864e5) + 1;
+    const x = await (await fetch(`${NOAA}?list-type=2&prefix=GLM-L2-LCFA/${d.getUTCFullYear()}/${String(dia).padStart(3, '0')}/${String(d.getUTCHours()).padStart(2, '0')}/`, { signal: AbortSignal.timeout(20000) })).text();
+    for (const [, k] of x.matchAll(/<Key>([^<]+)<\/Key>/g)) { const s = k.split('_s')[1]; claves.push({ k, t: Date.UTC(+s.slice(0, 4), 0, 1) / 1000 + (+s.slice(4, 7) - 1) * 86400 + +s.slice(7, 9) * 3600 + +s.slice(9, 11) * 60 + +s.slice(11, 13) }); }
+  }
+  const vistas = [...new Map(claves.map(c => [c.k, c])).values()].filter(c => c.t > ahora / 1000 - 600).sort((a, b) => a.t - b.t);
+  if (!vistas.length) throw new Error('sin archivos de rayos recientes');
+  const pts = (await Promise.all(vistas.map(c => rayosDeArchivo(c.k)))).flat(), cosLa = Math.cos(BAS[0] * Math.PI / 180), porCuenca = {};
+  for (const cu of CU) {
+    const [la, lo] = cu.centro, radio = Math.sqrt(cu.km2 / Math.PI) + 2 + 5; // mismo radio que con RealEarth (el GLM ubica cada rayo con ~5 km de error)
+    let best = null;
+    for (const [a, b] of pts) { const dx = (b - lo) * 111.32 * cosLa, dy = (a - la) * 110.57, dist = Math.hypot(dx, dy); if (dist <= 130 && (!best || dist < best.dist)) best = { dist, dx, dy }; }
+    porCuenca[cu.id] = { t: vistas.at(-1).t, dist: best?.dist ?? null, dx: best?.dx, dy: best?.dy, encima: !!best && best.dist <= radio };
+  }
+  return { t: vistas.at(-1).t, porCuenca, fuente: 'NOAA' };
+}
+async function leerRayos() { // NOAA primero (el dato original); RealEarth si NOAA falla
+  try { return await leerRayosNOAA(); } catch (e) { console.warn('rayos NOAA', e.message); return leerRayosRE(); }
+}
 async function framesGOES() { // la última imagen y las de 20 y 40 min antes
   const ahora = Date.now(), cs = [];
   for (const dt of [3600e3, 0]) {
@@ -797,8 +861,8 @@ function pintarReporte() {
   const ry = s?.rayo;
   const rayoNota = 'Los dos aluviones pasados vinieron con rayos encima.';
   if (ry) ry.encima ? tarjeta('⚡', 'Rayos', 'bad', 'encima', `Caen sobre la quebrada (${hora(ry.t)}): es una tormenta, como en los dos aluviones.`, rayoNota)
-    : ry.dist == null ? tarjeta('⚡', 'Rayos', 'ok', 'ninguno', 'Ninguno a menos de 130 km en los últimos 15 min.', rayoNota) /* el recuadro mide ±1,5°: ~139 km al este y al oeste */
-    : tarjeta('⚡', 'Rayos', ry.dist < 25 ? 'warn' : 'ok', ry.dist < 25 ? 'cerca' : 'lejos', `El más cercano, a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}, en los últimos 15 min.`, rayoNota);
+    : ry.dist == null ? tarjeta('⚡', 'Rayos', 'ok', 'ninguno', 'Ninguno a menos de 130 km en los últimos 10 min.', rayoNota) /* el recuadro mide ±1,5°: ~139 km al este y al oeste */
+    : tarjeta('⚡', 'Rayos', ry.dist < 25 ? 'warn' : 'ok', ry.dist < 25 ? 'cerca' : 'lejos', `El más cercano, a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}, en los últimos 10 min.`, rayoNota);
   else if (s) tarjeta('⚡', 'Rayos', 'warn', 'sin dato', 'La fuente de rayos no responde: no se sabe si hay rayos cerca. Si escuchas truenos, trátalo como tormenta.', rayoNota); // RealEarth caído (22-oct): antes el cuadro desaparecía
   const L = Array.from(o.lluviaMed.slice(0, 12), x => x ?? 0), H = R.horas.slice(0, 12), fuerza = x => x < 2 ? 'débil' : x < 6 ? 'moderada' : 'fuerte';
   // episodio: cuándo empieza (ini), cuándo termina (fin) y si vuelve después (otra), dentro de 12 h
