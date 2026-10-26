@@ -62,6 +62,7 @@ a { color: var(--accent) }
 .cerca.alerta { color: var(--bad) }
 .err { color: var(--bad) }
 .aviso { margin: 0; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--warn); background: var(--panel); font-size: .88rem }
+.viejo #resumen, .viejo #ahora, .viejo #dias, .viejo #chips { opacity: .45; transition: opacity .2s } /* datos de hace más de 5 min mientras llegan los nuevos */
 .ventana { max-width: 520px; width: calc(100% - 32px); border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); padding: 20px }
 .ventana::backdrop { background: rgb(0 0 0 / .55) }
 .ventana h2 { font-size: 1.2rem; margin-bottom: 12px } .ventana p { margin: 0 0 10px; font-size: .95rem }
@@ -446,10 +447,11 @@ const unoEn = p => escala(p) <= 0 ? 'casi nula' : enN(p) < 2 ? 'más de la mitad
 // qué significa y qué hacer, según el nivel de hoy (y si mañana sube)
 function queHacer(n, P, P1, j, cuando, cuandoMan, cu) {
   const q = cu.nombre.replace(/^Quebradas? /, 'quebrada '), dias = escala(P) >= 3 ? `de cada ${enN(P)} días como hoy, bajaría un aluvión en uno` : 'sería muy raro que bajara un aluvión';
+  const cerca = cuando === 'ahora' ? 'ahora, mientras caigan rayos encima' : `cerca de ${cuando}`;
   const man = j && !bajoN(nivel(P1)) ? ` <b>Mañana sube a ${fmtE(P1)}</b> (${palabra(P1)}): lo más peligroso, ${cuandoMan}.` : '';
-  if (n === 'n4') return `<b>Riesgo muy alto:</b> ${dias}. Si vives junto a la ${q}, sal antes de ${cuando} y vuelve cuando pase. Sigue las instrucciones de Senapred.${man}`;
-  if (n === 'n3') return `<b>Riesgo alto:</b> ${dias}. Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo cerca de ${cuando}. Sigue las instrucciones de Senapred.${man}`;
-  if (n === 'n2') return `<b>Puede pasar:</b> ${dias}. Evita las calles y pasajes por donde baja el agua de la ${q}, sobre todo cerca de ${cuando}, y atento a lo que diga Senapred.${man}`;
+  if (n === 'n4') return `<b>Riesgo muy alto:</b> ${dias}. Si vives junto a la ${q}, ${cuando === 'ahora' ? 'sal ahora' : `sal antes de ${cuando}`} y vuelve cuando pase. Sigue las instrucciones de Senapred.${man}`;
+  if (n === 'n3') return `<b>Riesgo alto:</b> ${dias}. Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo ${cerca}. Sigue las instrucciones de Senapred.${man}`;
+  if (n === 'n2') return `<b>Puede pasar:</b> ${dias}. Evita las calles y pasajes por donde baja el agua de la ${q}, sobre todo ${cerca}, y atento a lo que diga Senapred.${man}`;
   return `<b>${n === 'n0' ? 'Muy poco probable' : 'Poco probable'}:</b> ${dias}.${man} Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
 }
 const quant = (a, q) => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
@@ -839,27 +841,27 @@ function pintarReporte() {
   const s = satelite?.porCuenca[c.id], mv = satelite?.mov, fr = mv?.frio[c.id], items = [];
   const tarjeta = (ico, tit, est, etq, txt, nota) => items.push({ ico, tit, est, etq, txt, nota });
   const rumbo = (dx, dy) => RUMBO[Math.round(((Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360) / 45) % 8];
-  const pc = x => `${fmt(x * 100)} %`;
-  const tormenta = !!s?.rayo?.encima;
-  if (tormenta) tarjeta('☁️', 'Nube de lluvia', 'bad', 'tormenta', 'Tormenta encima: caen rayos sobre la quebrada.' + (fr?.tmin != null ? ` A las ${hora(mv.t1)} las nubes llegaban a ${fmt(fr.tmin)} °C: es una tormenta de cima baja, que el satélite no marca como las grandes.` : ''), `Satélite GOES${mv ? ` de las ${hora(mv.t1)}` : ''} y rayos del mismo satélite. Sobre la quebrada las nubes cambian en minutos.`);
+  // en simple: dónde está la tormenta y si viene o se va, sin porcentajes ni km/h (26-oct: «no es fácil de entender»)
+  const tormenta = !!s?.rayo?.encima, nubeNota = `Satélite GOES${mv ? ` de las ${hora(mv.t1)}` : ''}: llega con ~10 min de atraso, y sobre la quebrada las nubes cambian en minutos.`;
+  const T = (est, etq, txt) => tarjeta('⛈️', 'Tormenta', est, etq, txt, nubeNota);
+  if (tormenta) T('bad', 'encima', 'Hay una tormenta sobre la quebrada: caen rayos encima.');
   else if (fr && fr.ahora != null) {
-    const vel = mv.mx == null ? null : Math.hypot(mv.mx, mv.my), dir = vel == null || vel < 8 ? null : rumbo(mv.mx, mv.my);
-    const va = vel == null ? '' : dir ? ` hacia el ${dir} a ${mv.limite ? 'más de 140' : fmt(vel)} km/h` : ' casi sin moverse';
     // solo lo que se vio: correr la nube con su velocidad para «estimar ahora» fallaba por mucho (20-oct: a las 22:00 se
     // vio 100 % y la estimación de 20 min antes daba 32 %); sobre la quebrada las nubes nacen y se deshacen en minutos
-    const h1 = hora(mv.t1), est = null;
-    const nubeNota = `Satélite GOES de las ${h1} (llega con ~10 min de atraso). Sobre la quebrada las nubes cambian en minutos.`;
-    if ((est ?? fr.ahora) >= 0.5) tarjeta('☁️', 'Nube de lluvia', 'warn', 'encima', `Encima de la quebrada${va ? `, moviéndose${va}` : ''}. A las ${h1} cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'), nubeNota);
-    else if (fr.ahora >= 0.5 || (fr.antes ?? 0) >= 0.5) tarjeta('☁️', 'Nube de lluvia', 'ok', 'se va', `Se está yendo: a las ${h1} cubría el ${pc(fr.ahora)} de la zona de la quebrada (20 min antes, ${pc(fr.antes ?? fr.ahora)}).` + (dir ? ` El temporal se mueve hacia el ${dir} a ${mv.limite ? 'más de 140' : fmt(vel)} km/h.` : ''), nubeNota);
-    else if (fr.ahora >= 0.15) tarjeta('☁️', 'Nube de lluvia', 'warn', 'cerca', `Sobre parte de la quebrada` + (fr.antes != null && fr.ahora - fr.antes > 0.1 ? ', y creciendo' : '') + `${va ? `, moviéndose${va}` : ''}. A las ${h1} cubría el ${pc(fr.ahora)}` + (est != null ? `; ahora debería cubrir ~${pc(est)}.` : '.'), nubeNota);
-    else if (fr.cerca && vel != null && dir) {
-      const hacia = (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist; // km/h hacia la quebrada
+    const vel = mv.mx == null ? null : Math.hypot(mv.mx, mv.my), dir = vel == null || vel < 8 ? null : rumbo(mv.mx, mv.my);
+    if (fr.ahora >= 0.5) T('warn', 'encima', `Hay nubes de tormenta sobre la quebrada${dir ? `, moviéndose hacia el ${dir}` : ''}.`);
+    else if ((fr.antes ?? 0) >= 0.5) T('ok', 'se aleja', `La tormenta que estaba sobre la quebrada se está yendo${dir ? ` hacia el ${dir}` : ''}.`);
+    else if (fr.ahora >= 0.15) T('warn', 'cerca', `Hay nubes de tormenta sobre parte de la quebrada${fr.antes != null && fr.ahora - fr.antes > 0.1 ? ', y están creciendo' : ''}.`);
+    else if (fr.cerca) {
+      const donde = `a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}`;
+      const hacia = vel == null || !dir ? 0 : (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist; // km/h hacia la quebrada
       const llega = mv.t1 + fr.cerca.dist / Math.max(hacia, 1e-6) * 3600;
-      const viene = hacia > 5;
-      tarjeta('☁️', 'Nube de lluvia', viene ? 'warn' : 'ok', viene ? 'se acerca' : 'lejos', `A las ${h1} la más cercana estaba a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}` +
-        (viene ? (llega > NOW ? ` y viene hacia acá: llegaría cerca de las ${hora(llega)}.` : ' y venía hacia acá: podría estar llegando.') : `, moviéndose${va}: no viene hacia acá.`), nubeNota);
-    } else if ((fr.nubes ?? 0) >= 0.25) tarjeta('☁️', 'Nube de lluvia', 'warn', 'nublado', `Nubes encima de la quebrada, de cima baja (hasta ${fmt(fr.tmin)} °C): puede llover, incluso fuerte de a ratos. Las tormentas grandes se ven bajo −40 °C.`, nubeNota);
-    else tarjeta('☁️', 'Nube de lluvia', 'ok', fr.cerca ? 'lejos' : 'despejado', fr.cerca ? `A las ${h1} la más cercana estaba a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}.` : 'Ninguna a menos de 130 km.', nubeNota);
+      if (hacia > 5) T('warn', 'se acerca', `Hay una tormenta ${donde} que viene hacia acá` + (llega > NOW ? `: llegaría cerca de las ${hora(llega)}.` : ': podría estar llegando.'));
+      else if (hacia < -5) T('ok', 'se aleja', `La tormenta más cercana está ${donde} y se aleja.`);
+      else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', `Está nublado sobre la quebrada: puede llover. La tormenta más cercana está ${donde}${dir ? ' y no viene hacia acá' : ''}.`);
+      else T('ok', 'lejos', `La tormenta más cercana está ${donde}${dir ? ' y no viene hacia acá' : ''}.`);
+    } else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', 'Está nublado sobre la quebrada: puede llover, pero no se ve una tormenta grande cerca.');
+    else T('ok', 'no hay', 'No hay tormentas a menos de 130 km.');
   }
   const ry = s?.rayo;
   const rayoNota = 'Los dos aluviones pasados vinieron con rayos encima.';
@@ -936,14 +938,14 @@ function correr(det, ens) {
     const sc = satelite?.porCuenca[cu.id]; // rayos de los últimos ~15 min (llegan con ~5 min de retraso), no una imagen de hace una hora
     if (sc?.encima && NOW - sc.rayo.t < 1800) met.forzar = new Set([0]);
     const hAcc = new Float64Array(H), aAcc = new Float64Array(H), porDia = new Float64Array(fechas.length), lluvias = Array.from({ length: H }, () => []);
-    let ultimo = null, nCentros = 0;
+    let ultimo = null, nCentros = 0; const porCentro = []; // lo acumulado de cada centro, para el rango de horas
     for (const { d } of ens) {
       const e = d[b].hourly, ie = new Map(e.time.map((t, i) => [t, i]));
       // una hora sin dato no es lluvia cero: el miembro que no cubre todas las horas queda fuera
       const miembros = Object.keys(e).filter(k => k.startsWith('precipitation') && horas.every(t => e[k][ie.get(t)] != null));
       if (!miembros.length) continue;
       nCentros++;
-      const hC = new Float64Array(H), aC = new Float64Array(H), dC = new Float64Array(fechas.length);
+      const hC = new Float64Array(H), aC = new Float64Array(H), dC = new Float64Array(fechas.length); porCentro.push(aC);
       miembros.forEach((k, m) => {
         const p = horas.map(t => e[k][ie.get(t)]);
         const r = simular({ ...met, p }, cu, dia, fechas.length, 12, 97 + m);
@@ -958,7 +960,7 @@ function correr(det, ens) {
     for (let i = 0; i < H; i++) { hAcc[i] /= nCentros; aAcc[i] /= nCentros; }
     for (let j = 0; j < fechas.length; j++) porDia[j] /= nCentros;
     out[cu.id] = { hora: hAcc, acum: aAcc, porDia, q: ultimo.q, rec: ultimo.rec, mat: ultimo.mat, lluviaMed: lluvias.map(v => quant(v, .5)), lluviaAlta: lluvias.map(v => quant(v, .9)),
-      iso: met.iso, liq: met.iso.map(v => fLiquida(v, cu.hyp)) }; // isoterma 0 °C (GFS) y parte de la cuenca bajo la cota de nieve
+      iso: met.iso, liq: met.iso.map(v => fLiquida(v, cu.hyp)), acumCentro: porCentro.map(a => Array.from(a)) }; // isoterma 0 °C (GFS) y parte de la cuenca bajo la cota de nieve
   });
   return { horas, fechas, dia, out, centros: ens.map(e => e.nom) };
 }
@@ -981,7 +983,7 @@ function pintar() {
   $('rmax').innerHTML = `${fmtE(P)}<small>de 10</small>`; $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} hoy`; $('runo').textContent = unoEn(P);
   $('rpin').style.left = `${escala(P) * 10}%`;
   // la hora más peligrosa de hoy y la de mañana, cada una para su consejo (antes el de hoy usaba la de mañana)
-  const cuandoHoy = `las ${hora(horas[picoHora(top.o, R.dia, 0)] - 3600)}`, cuandoMan = `mañana a las ${hora(horas[picoHora(top.o, R.dia, 1)] - 3600)}`;
+  const kHoy = picoHora(top.o, R.dia, 0), cuandoHoy = kHoy === 0 && satelite?.porCuenca?.[top.c.id]?.encima ? 'ahora' : `las ${hora(horas[kHoy] - 3600)}`, cuandoMan = `mañana a las ${hora(horas[picoHora(top.o, R.dia, 1)] - 3600)}`;
   $('rtit').textContent = `${top.c.nombre} (${top.c.comuna})`;
   $('rque').innerHTML = queHacer(n, P, P1, j, cuandoHoy, cuandoMan, top.c);
   const cuantas = (...l) => filas.filter(f => l.includes(nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)))).length;
@@ -1002,7 +1004,7 @@ function pintar() {
   document.querySelectorAll('#ranking tbody tr').forEach(tr => { tr.onclick = () => elegir(tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') elegir(tr.dataset.id); }; });
   detalle();
   pintarReporte();
-  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros meteorológicos`; $('upd').title = R.centros.join(', ');
+  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros meteorológicos`; document.body.classList.remove('viejo'); $('upd').title = R.centros.join(', ');
 }
 function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
 // la hora con más chance de que el aluvión ocurra ESA hora (lo que sube la acumulada), la misma medida del gráfico de 24 h
@@ -1034,9 +1036,18 @@ function hoy() {
   // horas peligrosas: las que llegan al 30 % de la peor; se juntan en tramos seguidos (puede haber uno hoy y otro mañana)
   const kPk = inc.indexOf(Math.max(...inc)), pel = inc.map(v => v > 0 && v >= 0.3 * inc[kPk]), tramos = [];
   pel.forEach((v, k) => { if (!v) return; if (tramos.length && tramos.at(-1)[1] >= k - 2) tramos.at(-1)[1] = k; else tramos.push([k, k]); }); // un hueco de 1 h no corta el tramo
-  const txtTramo = ([p, q]) => p === 0 && desdeAhora ? `desde ahora hasta las ${fin(q)}${deDia(q)}` : `entre las ${ini(p)} y las ${fin(q)}${deDia(q)}`;
+  // la hora de término cambia con cada actualización del pronóstico (26-oct: «hasta las 20» y luego «hasta las 21»): se da
+  // el rango que dan los centros meteorológicos, cada uno con el mismo umbral (30 % de la peor hora)
+  const incC = (o.acumCentro ?? []).map(a => ix.map(i => Math.max(0, a[i] - (i && dia[i] === dia[i - 1] ? a[i - 1] : 0))));
+  const rangoFin = ([p, q], tope) => {
+    const fins = incC.map(v => { let f = -1; for (let k = p; k <= tope; k++) if (v[k] >= 0.3 * inc[kPk]) f = k; return f; }).filter(f => f >= 0);
+    const a = Math.min(...fins), b = Math.max(...fins);
+    return fins.length > 1 && b > a && (a !== q || b !== q) ? ` (los pronósticos dicen que termina entre las ${fin(a)} y las ${fin(b)})` : '';
+  };
+  const rayosAhora = desdeAhora && !!satelite?.porCuenca?.[sel]?.encima;
+  const txtTramo = ([p, q], j, l) => (p === 0 && rayosAhora ? (q > 0 ? `ahora, mientras caigan rayos encima, y según los pronósticos hasta cerca de las ${fin(q)}${deDia(q)}` : 'ahora, mientras caigan rayos sobre la quebrada') : p === 0 && desdeAhora ? `desde ahora hasta cerca de las ${fin(q)}${deDia(q)}` : `entre las ${ini(p)} y cerca de las ${fin(q)}${deDia(q)}`) + rangoFin([p, q], Math.min(n - 1, q + 4, l[j + 1] ? l[j + 1][0] - 1 : n - 1));
   const suma2 = ([p, q]) => inc.slice(p, q + 1).reduce((x, y) => x + y, 0), top = [...tramos].sort((u, v) => suma2(v) - suma2(u)).slice(0, 2).sort((u, v) => u[0] - v[0]);
-  const lista = top.map(txtTramo), unir = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' y ' + l.at(-1);
+  const lista = top.map((t, j) => txtTramo(t, j, top)), unir = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' y ' + l.at(-1);
   const cuando = verDia == null ? 'en las próximas 24 horas' : verDia === 0 ? 'en lo que queda de hoy' : verDia === 1 ? 'en todo el día de mañana' : `en todo el ${nomVer.toLowerCase()}`;
   $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.`
     : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor.${verDia == null ? '' : ` En total, <b>${fmtE(total)}, ${palabra(total)}</b>, ${cuando}: ${unoEn(total)}.`}`;
@@ -1131,17 +1142,23 @@ function guardarCalculo() {
 }
 try {
   const g = JSON.parse(localStorage.getItem('ultimo-calculo') || 'null');
-  if (g && Date.now() / 1000 - g.NOW < 3 * 3600 && fecha(g.NOW) === fecha(Date.now() / 1000)) {
+  if (g && Date.now() / 1000 - g.NOW < 600) { // solo si es de hace menos de 10 min: con 3 h se veían datos viejos al entrar (26-oct)
     NOW = g.NOW; R = g.R; pintar();
     $('upd').textContent = `Mostrando el cálculo de las ${hora(NOW)} · actualizando…`;
   }
 } catch (e) { console.warn('cálculo guardado', e.message); R = null; }
-async function actualizar() { if (enCurso) return; enCurso = true; ultimo = Date.now(); try { await ciclo(); } finally { enCurso = false; } }
+async function actualizar() {
+  if (enCurso) return; enCurso = true; ultimo = Date.now();
+  // lo que está a la vista tiene más de 5 min (pestaña que vuelve, celular que despierta): se atenúa hasta que llegue lo nuevo
+  if (R && Date.now() / 1000 - NOW > 300) { document.body.classList.add('viejo'); $('upd').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`; }
+  try { await ciclo(); } finally { enCurso = false; }
+}
 cargarNubes();
 actualizar();
 setInterval(actualizar, 5 * 60 * 1000);
 setInterval(() => { if (!timer) cargarNubes(); }, 10 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - ultimo > 5 * 60 * 1000) { actualizar(); if (!timer) cargarNubes(); } });
+addEventListener('pageshow', e => { if (e.persisted && Date.now() - ultimo > 5 * 60 * 1000) { actualizar(); if (!timer) cargarNubes(); } }); // página restaurada desde la memoria del navegador
 })();
 </script>
 </body>
