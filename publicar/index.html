@@ -1147,8 +1147,17 @@ try {
     $('upd').textContent = `Mostrando el cálculo de las ${hora(NOW)} · actualizando…`;
   }
 } catch (e) { console.warn('cálculo guardado', e.message); R = null; }
+// GitHub Pages deja el HTML 10 min en el navegador y una pestaña abierta sigue con el código viejo (26-oct: «no logro ver
+// la web nueva»): si la publicada es más nueva que la que está corriendo, la página se recarga sola con una dirección nueva
+async function revisarVersion() {
+  try {
+    const r = await fetch(location.pathname, { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    const nueva = Date.parse(r.headers.get('last-modified')), actual = Date.parse(document.lastModified);
+    if (nueva - actual > 60e3) { const q = new URLSearchParams(location.search); q.set('v', String(nueva / 1000)); location.replace(`${location.pathname}?${q}`); }
+  } catch {}
+}
 async function actualizar() {
-  if (enCurso) return; enCurso = true; ultimo = Date.now();
+  if (enCurso) return; enCurso = true; ultimo = Date.now(); revisarVersion();
   // lo que está a la vista tiene más de 5 min (pestaña que vuelve, celular que despierta): se atenúa hasta que llegue lo nuevo
   if (R && Date.now() / 1000 - NOW > 300) { document.body.classList.add('viejo'); $('upd').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`; }
   try { await ciclo(); } finally { enCurso = false; }
