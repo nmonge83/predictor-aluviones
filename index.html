@@ -1106,15 +1106,20 @@ function grafico(horas, o) {
 
 document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', () => { const d = document.querySelector(a.getAttribute('href')); if (d?.tagName === 'DETAILS') d.open = true; }));
 async function ciclo() {
-  // el pronóstico no espera al satélite; si el satélite muestra una tormenta sobre una cuenca, se recalcula con ella
+  // se esperan el satélite y los rayos (hasta 10 s) antes de mostrar el número: si no, con tormenta encima se veía primero
+  // la cifra sin la tormenta y al segundo la de verdad (26-oct: «una cifra más baja por un segundo y luego 7,9»)
+  let llegoSat = false;
   const sat = Promise.all([
     medirSatelite().then(async s => { if (s && !s.mov) s.mov = await leerMovimiento(s.t).catch(e => (console.warn('movimiento', e.message), null)); return s; }).catch(() => null),
     leerRayos().catch(e => (console.warn('rayos', e.message), null))])
-    .then(([s, ry]) => { satelite = juntar(s, ry); textoCercania(); pintarReporte(); return satelite; });
+    .then(([s, ry]) => { satelite = juntar(s, ry); llegoSat = true; textoCercania(); pintarReporte(); return satelite; });
+  await Promise.race([sat, new Promise(ok => setTimeout(ok, 10000))]);
   try { R = await calcular(); pintar(); guardarCalculo(); }
   catch (e) { $('upd').innerHTML = `<span class="err">No se pudo calcular (${e.message}). Se reintenta en 1 minuto.</span>`; setTimeout(actualizar, 60000); return; }
+  if (llegoSat) return;
+  // el satélite tardó más de 10 s: si trae una tormenta encima, se recalcula con ella (y se guarda esa cifra, no la anterior)
   const s = await sat;
-  if (s && Object.values(s.porCuenca).some(c => c.encima)) { R = await calcular().catch(() => R); pintar(); }
+  if (s && Object.values(s.porCuenca).some(c => c.encima)) { R = await calcular().catch(() => R); pintar(); guardarCalculo(); }
 }
 // cada 5 min (los rayos llegan con ~5 min de atraso; los pronósticos se bajan a lo más una vez por hora y las imágenes del GOES
 // quedan guardadas) y al volver a la pestaña: el celular congela los relojes de una página que no se está mirando
