@@ -391,7 +391,8 @@ function material(t, aluviones) {
   return 1 - (1 - s) * Math.exp(-(t - t0) / 86400 / PAR.tauRec);
 }
 
-// esc: { time (s unix), p (mm/h), li, cin, v700, d700, hr700, iso, forzar? (Set de índices con tormenta vista en el satélite) }
+// esc: { time (s unix), p (mm/h), li, cin, v700, d700, hr700, iso, forzar? (Set de índices con tormenta vista en el satélite),
+//        qMin? ({ índice: chance mínima de celda } por la tormenta observada: la que está encima y la que viene) }
 // dia[i] = índice de día de la hora i. Devuelve la prob. media por hora y, por día, la del peor momento.
 function simular(esc, cu, dia, nDias, nDraws, seed) {
   const n = esc.p.length, r = rng(seed);
@@ -400,9 +401,11 @@ function simular(esc, cu, dia, nDias, nDraws, seed) {
   const hora = new Float64Array(n), acum = new Float64Array(n), porDia = new Float64Array(nDias), maxDia = new Float64Array(nDias);
   const lluvia = new Float64Array(n), q = new Float64Array(n), rec = new Float64Array(n), mat = new Float64Array(n), avance = new Float64Array(n);
   for (let i = 0; i < n; i++) {
-    lluvia[i] = (esc.p[i] || 0) * kCerro(esc.v700[i], esc.d700[i], esc.hr700[i]) * fLiquida(esc.iso[i], cu.hyp);
+    // bajo una tormenta observada llueve aunque el pronóstico, que no la ve, dé casi nada: 0,5 mm/h de piso en la celda
+    const qObs = esc.forzar?.has(i) ? 1 : esc.qMin?.[i] ?? 0;
+    lluvia[i] = Math.max(qObs ? 0.5 : 0, esc.p[i] || 0) * kCerro(esc.v700[i], esc.d700[i], esc.hr700[i]) * fLiquida(esc.iso[i], cu.hyp);
     let li = null; for (let k = Math.max(0, i - 2); k <= Math.min(n - 1, i + 2); k++) if (esc.li[k] != null) li = li == null ? esc.li[k] : Math.min(li, esc.li[k]);
-    q[i] = esc.forzar?.has(i) ? 1 : pCelda(li, esc.cin[i]);
+    q[i] = Math.max(qObs, pCelda(li, esc.cin[i]));
     rec[i] = recuperacion(esc.time[i]); mat[i] = material(ini.get(dia[i]), cu.aluviones);
     // una celda rápida pasa en pocos minutos y deja menos agua en la cuenca; una lenta se queda encima
     avance[i] = Math.min(PAR.fMax, (PAR.vRef / Math.max(5, esc.v700[i] ?? PAR.vRef)) ** PAR.betaV);
@@ -459,8 +462,9 @@ const bajoN = n => n === 'n0' || n === 'n1';
 const enN = p => Math.round(2 ** (10 - escala(p))), palabra = p => NIVTXT[nivel(p)].replace('riesgo ', '');
 const unoEn = p => escala(p) <= 0 ? 'casi nula' : enN(p) < 2 ? 'más de la mitad de los días' : `1 de cada ${enN(p)} días`;
 // qué significa y qué hacer, según el nivel de hoy (y si mañana sube)
-// el riesgo de la hora i (lo que sube la acumulada del día), el mismo de la curva; y su «1 de cada N horas»
-const horaDe = (o, i) => Math.max(0, o.acum[i] - (i && R.dia[i] === R.dia[i - 1] ? o.acum[i - 1] : 0));
+// el riesgo de la hora i por sí sola, el mismo de la curva (antes «lo que sube el día», que daba 0 a una hora menos
+// peligrosa que la peor ya pasada aunque siguiera la tormenta: 26-oct 21:45); y su «1 de cada N horas»
+const horaDe = (o, i) => o.hora[i];
 const unoEnH = p => unoEn(p).replace('días', 'horas como esta').replace('de los días', 'de las horas');
 // qué significa y qué hacer, según el nivel de AHORA; si más tarde sube, se dice cuándo
 function queHacer(n, P, luego, P1, cuandoMan, cu, rayos) {
@@ -849,6 +853,13 @@ function textoCercania() { // el texto bajo el mapa lo escribe pintarReporte, co
   if (!satelite?.porCuenca?.[sel]) $('cerca').textContent = 'No se pudo leer la imagen del satélite.';
 }
 // «Ahora», arriba junto a la probabilidad: hacia dónde va la nube de lluvia, los rayos y hasta cuándo llueve, en simple
+// la tormenta que el satélite ve viniendo hacia la quebrada: cuándo llegaría (unix), o null. La usan el cálculo y el cuadro
+function tormentaQueViene(id) {
+  const mv = satelite?.mov, fr = mv?.frio?.[id];
+  if (!fr?.cerca || fr.ahora == null || fr.ahora >= 0.15 || (fr.antes ?? 0) >= 0.5 || mv.mx == null || Math.hypot(mv.mx, mv.my) < 8) return null;
+  const hacia = (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist, t = mv.t1 + fr.cerca.dist / Math.max(hacia, 1e-6) * 3600;
+  return hacia > 5 && t > Date.now() / 1000 ? t : null;
+}
 let REP = null, llegada = null; // la quebrada del resumen; cuándo llegaría la tormenta que se acerca (satélite)
 function pintarReporte() {
   const c = CU.find(x => x.id === REP), o = R?.out[REP];
@@ -871,7 +882,7 @@ function pintarReporte() {
       const donde = `a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}`;
       const hacia = vel == null || !dir ? 0 : (-(mv.mx * fr.cerca.dx) - mv.my * fr.cerca.dy) / fr.cerca.dist; // km/h hacia la quebrada
       const llega = mv.t1 + fr.cerca.dist / Math.max(hacia, 1e-6) * 3600;
-      if (hacia > 5 && llega > NOW) llegada = { t: llega, rayos: (s?.rayo?.dist ?? 99) < 25 };
+      const tq = tormentaQueViene(c.id); if (tq) llegada = { t: tq, cuenta: (s?.rayo?.dist ?? 99) < 25 }; // «cuenta»: entra al cálculo (trae rayos cerca)
       if (hacia > 5) T('warn', 'se acerca', `Hay una tormenta ${donde} que viene hacia acá` + (llega > NOW ? `: llegaría cerca de las ${hora(llega)}.` : ': podría estar llegando.'));
       else if (hacia < -5) T('ok', 'se aleja', `La tormenta más cercana está ${donde} y se aleja.`);
       else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', `Está nublado sobre la quebrada: puede llover. La tormenta más cercana está ${donde}${dir ? ' y no viene hacia acá' : ''}.`);
@@ -955,16 +966,25 @@ function correr(det, ens) {
     const g = det[b].hourly, ix = new Map(g.time.map((t, i) => [t, i])), al = k => horas.map(t => { const i = ix.get(t); return i == null ? null : g[k][i]; });
     const met = { time: horas, li: al('lifted_index'), cin: al('convective_inhibition'), v700: al('wind_speed_700hPa'), d700: al('wind_direction_700hPa'), hr700: al('relative_humidity_700hPa'), iso: al('freezing_level_height') };
     const sc = satelite?.porCuenca[cu.id]; // rayos de los últimos ~15 min (llegan con ~5 min de retraso), no una imagen de hace una hora
-    if (sc?.encima && NOW - sc.rayo.t < 1800) met.forzar = new Set([0]);
+    // la tormenta observada entra al cálculo (los pronósticos no la ven). Con rayos encima, seguro en la hora en curso y,
+    // como hoy las tormentas siguieron 1-2 horas sobre la zona (26-oct: 16:26-17:40 y 19:50-21:45), 60 % en la siguiente
+    // y 30 % en la otra; antes la curva caía a 0 a la hora siguiente con la tormenta todavía encima. Si viene una tormenta
+    // que ya trae rayos cerca, 50 % en la hora en que llegaría y 25 % en la siguiente (la hora de llegada es aproximada).
+    // ponytail: chances a ojo con las tormentas de un día, sin calibrar; afinarlas cuando haya más días con rayos medidos
+    const qMin = {};
+    if (sc?.encima && NOW - sc.rayo.t < 1800) Object.assign(qMin, { 0: 1, 1: 0.6, 2: 0.3 });
+    const tLl = (sc?.rayo?.dist ?? 99) < 25 ? tormentaQueViene(cu.id) : null, kLl = tLl ? horas.findIndex(t => tLl >= t - 3600 && tLl < t) : -1;
+    if (kLl >= 0) { qMin[kLl] = Math.max(qMin[kLl] ?? 0, 0.5); if (kLl + 1 < horas.length) qMin[kLl + 1] = Math.max(qMin[kLl + 1] ?? 0, 0.25); }
+    if (Object.keys(qMin).length) met.qMin = qMin;
     const hAcc = new Float64Array(H), aAcc = new Float64Array(H), porDia = new Float64Array(fechas.length), lluvias = Array.from({ length: H }, () => []);
-    let ultimo = null, nCentros = 0; const porCentro = []; // lo acumulado de cada centro, para el rango de horas
+    let ultimo = null, nCentros = 0; const porCentro = []; // el riesgo por hora de cada centro, para el rango de horas
     for (const { d } of ens) {
       const e = d[b].hourly, ie = new Map(e.time.map((t, i) => [t, i]));
       // una hora sin dato no es lluvia cero: el miembro que no cubre todas las horas queda fuera
       const miembros = Object.keys(e).filter(k => k.startsWith('precipitation') && horas.every(t => e[k][ie.get(t)] != null));
       if (!miembros.length) continue;
       nCentros++;
-      const hC = new Float64Array(H), aC = new Float64Array(H), dC = new Float64Array(fechas.length); porCentro.push(aC);
+      const hC = new Float64Array(H), aC = new Float64Array(H), dC = new Float64Array(fechas.length); porCentro.push(hC);
       miembros.forEach((k, m) => {
         const p = horas.map(t => e[k][ie.get(t)]);
         const r = simular({ ...met, p }, cu, dia, fechas.length, 12, 97 + m);
@@ -979,7 +999,7 @@ function correr(det, ens) {
     for (let i = 0; i < H; i++) { hAcc[i] /= nCentros; aAcc[i] /= nCentros; }
     for (let j = 0; j < fechas.length; j++) porDia[j] /= nCentros;
     out[cu.id] = { hora: hAcc, acum: aAcc, porDia, q: ultimo.q, rec: ultimo.rec, mat: ultimo.mat, lluviaMed: lluvias.map(v => quant(v, .5)), lluviaAlta: lluvias.map(v => quant(v, .9)),
-      iso: met.iso, liq: met.iso.map(v => fLiquida(v, cu.hyp)), acumCentro: porCentro.map(a => Array.from(a)) }; // isoterma 0 °C (GFS) y parte de la cuenca bajo la cota de nieve
+      iso: met.iso, liq: met.iso.map(v => fLiquida(v, cu.hyp)), horaCentro: porCentro.map(a => Array.from(a)) }; // isoterma 0 °C (GFS) y parte de la cuenca bajo la cota de nieve
   });
   return { horas, fechas, dia, out, centros: ens.map(e => e.nom) };
 }
@@ -1029,7 +1049,7 @@ function pintar() {
 }
 function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
 // la hora con más chance de que el aluvión ocurra ESA hora (lo que sube la acumulada), la misma medida del gráfico de 24 h
-function picoHora(o, dia, j) { let best = -1, bi = 0; o.acum.forEach((v, i) => { if (dia[i] !== j) return; const d = v - (i && dia[i - 1] === j ? o.acum[i - 1] : 0); if (d > best) { best = d; bi = i; } }); return bi; }
+function picoHora(o, dia, j) { let best = -1, bi = 0; o.hora.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; } // la hora más riesgosa del día j
 function elegir(id) {
   sel = id; try { localStorage.setItem('quebrada', id); } catch {}
   const u = new URL(location.href); u.searchParams.set('q', id); history.replaceState(null, '', u); // el enlace sirve para compartir esa quebrada
@@ -1048,7 +1068,7 @@ function hoy() {
   const ix = verDia == null ? [...Array(Math.min(24, horas.length)).keys()] : horas.map((_, i) => i).filter(i => dia[i] === verDia);
   const n = ix.length, T = ix.map(i => horas[i]), desdeAhora = verDia == null || verDia === 0; // la primera barra es la hora en curso
   const nomVer = verDia == null ? '' : nomDia(horas[dia.indexOf(verDia)], verDia);
-  const inc = ix.map(i => Math.max(0, o.acum[i] - (i && dia[i] === dia[i - 1] ? o.acum[i - 1] : 0)));
+  const inc = ix.map(i => o.hora[i]); // el riesgo de cada hora por sí sola
   // un día entero usa el mismo número de su tarjeta (antes 5,6 en el texto y 5,7 en la tarjeta); las 24 h, el de sus horas
   const total = verDia == null ? 1 - inc.reduce((s, v) => s * (1 - v), 1) : o.porDia[verDia], lluvia = ix.map(i => o.lluviaMed[i] ?? 0);
   const ini = k => hora(T[k] - 3600), fin = k => hora(T[k]), deDia = k => verDia != null || fecha(T[k] - 3600) === fecha(NOW) ? '' : ' de mañana';
@@ -1059,19 +1079,19 @@ function hoy() {
   pel.forEach((v, k) => { if (!v) return; if (tramos.length && tramos.at(-1)[1] >= k - 2) tramos.at(-1)[1] = k; else tramos.push([k, k]); }); // un hueco de 1 h no corta el tramo
   // la hora de término cambia con cada actualización del pronóstico (26-oct: «hasta las 20» y luego «hasta las 21»): se da
   // el rango que dan los centros meteorológicos, cada uno con el mismo umbral (30 % de la peor hora)
-  const incC = (o.acumCentro ?? []).map(a => ix.map(i => Math.max(0, a[i] - (i && dia[i] === dia[i - 1] ? a[i - 1] : 0))));
+  const incC = (o.horaCentro ?? []).map(a => ix.map(i => a[i]));
   const rangoFin = ([p, q], tope) => {
     const fins = incC.map(v => { let f = -1; for (let k = p; k <= tope; k++) if (v[k] >= 0.3 * inc[kPk]) f = k; return f; }).filter(f => f >= 0);
     const a = Math.min(...fins), b = Math.max(...fins);
     return fins.length > 1 && b > a && (a !== q || b !== q) ? ` (los pronósticos dicen que termina entre las ${fin(a)} y las ${fin(b)})` : '';
   };
   const rayosAhora = desdeAhora && !!satelite?.porCuenca?.[sel]?.encima;
-  const txtTramo = ([p, q], j, l) => (p === 0 && rayosAhora ? (q > 0 ? `ahora, mientras caigan rayos encima, y según los pronósticos hasta cerca de las ${fin(q)}${deDia(q)}` : 'ahora, mientras caigan rayos sobre la quebrada') : p === 0 && desdeAhora ? `desde ahora hasta cerca de las ${fin(q)}${deDia(q)}` : `entre las ${ini(p)} y cerca de las ${fin(q)}${deDia(q)}`) + rangoFin([p, q], Math.min(n - 1, q + 4, l[j + 1] ? l[j + 1][0] - 1 : n - 1));
+  const txtTramo = ([p, q], j, l) => (p === 0 && rayosAhora ? (q > 0 ? `ahora, mientras caigan rayos encima, y hasta cerca de las ${fin(q)}${deDia(q)} si la tormenta sigue` : 'ahora, mientras caigan rayos sobre la quebrada') : p === 0 && desdeAhora ? `desde ahora hasta cerca de las ${fin(q)}${deDia(q)}` : `entre las ${ini(p)} y cerca de las ${fin(q)}${deDia(q)}`) + rangoFin([p, q], Math.min(n - 1, q + 4, l[j + 1] ? l[j + 1][0] - 1 : n - 1));
   const suma2 = ([p, q]) => inc.slice(p, q + 1).reduce((x, y) => x + y, 0), top = [...tramos].sort((u, v) => suma2(v) - suma2(u)).slice(0, 2).sort((u, v) => u[0] - v[0]);
   const lista = top.map((t, j) => txtTramo(t, j, top)), unir = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' y ' + l.at(-1);
   const cuando = verDia == null ? 'en las próximas 24 horas' : verDia === 0 ? 'en lo que queda de hoy' : verDia === 1 ? 'en todo el día de mañana' : `en todo el ${nomVer.toLowerCase()}`;
   const kLl = llegada ? T.findIndex(t => llegada.t >= t - 3600 && llegada.t < t) : -1; // hora en que llegaría la tormenta que se acerca
-  const notaLl = kLl >= 0 ? ` <b>Además viene una tormenta que llegaría cerca de las ${hora(llegada.t)}</b>: la curva no la incluye porque los pronósticos no ven tormentas tan chicas; si llega con rayos encima, el riesgo sube como hoy a las 16:30 y a las 20:00.` : '';
+  const notaLl = kLl >= 0 ? ` <b>Además viene una tormenta que llegaría cerca de las ${hora(llegada.t)}</b> (hora aproximada)` + (llegada.cuenta ? ': la curva ya la cuenta.' : ': como todavía no trae rayos cerca, la curva no la cuenta; si llega con rayos, el riesgo sube.') : '';
   $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.${notaLl}`
     : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor.${notaLl}${verDia == null ? '' : ` En total, <b>${fmtE(total)}, ${palabra(total)}</b>, ${cuando}: ${unoEn(total)}.`}`;
   // curva: la escala de cada hora sobre las franjas de los 5 niveles, dibujada al ancho real. La lluvia va solo en el

@@ -66,7 +66,8 @@ function material(t, aluviones) {
   return 1 - (1 - s) * Math.exp(-(t - t0) / 86400 / PAR.tauRec);
 }
 
-// esc: { time (s unix), p (mm/h), li, cin, v700, d700, hr700, iso, forzar? (Set de índices con tormenta vista en el satélite) }
+// esc: { time (s unix), p (mm/h), li, cin, v700, d700, hr700, iso, forzar? (Set de índices con tormenta vista en el satélite),
+//        qMin? ({ índice: chance mínima de celda } por la tormenta observada: la que está encima y la que viene) }
 // dia[i] = índice de día de la hora i. Devuelve la prob. media por hora y, por día, la del peor momento.
 function simular(esc, cu, dia, nDias, nDraws, seed) {
   const n = esc.p.length, r = rng(seed);
@@ -75,9 +76,11 @@ function simular(esc, cu, dia, nDias, nDraws, seed) {
   const hora = new Float64Array(n), acum = new Float64Array(n), porDia = new Float64Array(nDias), maxDia = new Float64Array(nDias);
   const lluvia = new Float64Array(n), q = new Float64Array(n), rec = new Float64Array(n), mat = new Float64Array(n), avance = new Float64Array(n);
   for (let i = 0; i < n; i++) {
-    lluvia[i] = (esc.p[i] || 0) * kCerro(esc.v700[i], esc.d700[i], esc.hr700[i]) * fLiquida(esc.iso[i], cu.hyp);
+    // bajo una tormenta observada llueve aunque el pronóstico, que no la ve, dé casi nada: 0,5 mm/h de piso en la celda
+    const qObs = esc.forzar?.has(i) ? 1 : esc.qMin?.[i] ?? 0;
+    lluvia[i] = Math.max(qObs ? 0.5 : 0, esc.p[i] || 0) * kCerro(esc.v700[i], esc.d700[i], esc.hr700[i]) * fLiquida(esc.iso[i], cu.hyp);
     let li = null; for (let k = Math.max(0, i - 2); k <= Math.min(n - 1, i + 2); k++) if (esc.li[k] != null) li = li == null ? esc.li[k] : Math.min(li, esc.li[k]);
-    q[i] = esc.forzar?.has(i) ? 1 : pCelda(li, esc.cin[i]);
+    q[i] = Math.max(qObs, pCelda(li, esc.cin[i]));
     rec[i] = recuperacion(esc.time[i]); mat[i] = material(ini.get(dia[i]), cu.aluviones);
     // una celda rápida pasa en pocos minutos y deja menos agua en la cuenca; una lenta se queda encima
     avance[i] = Math.min(PAR.fMax, (PAR.vRef / Math.max(5, esc.v700[i] ?? PAR.vRef)) ** PAR.betaV);
