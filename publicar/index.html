@@ -795,19 +795,34 @@ async function rayosDeArchivo(k) {
   if (!cab) throw new Error('no se encontraron los rayos en el archivo');
   const [la, lo] = await Promise.all([valoresFlash(url, cab.lat), valoresFlash(url, cab.lon)]), pts = [];
   for (let i = 0; i < la.length; i++) pts.push([la[i], lo[i]]);
-  cacheGLM.set(k, pts); if (cacheGLM.size > 80) cacheGLM.delete(cacheGLM.keys().next().value);
+  cacheGLM.set(k, pts); if (cacheGLM.size > 120) cacheGLM.delete(cacheGLM.keys().next().value);
   return pts;
 }
-async function leerRayosNOAA() { // los rayos de los últimos 10 min, archivo por archivo
+// cuándo cayeron rayos sobre cada quebrada por última vez, guardado 3 h en el navegador
+const recuerdoTormenta = id => { try { return JSON.parse(localStorage.getItem('tormentas') || '{}')[id] ?? 0; } catch { return 0; } };
+function guardarTormentas(pc) {
+  try {
+    const m = JSON.parse(localStorage.getItem('tormentas') || '{}'), hace3h = Date.now() / 1000 - 10800;
+    for (const [id, c] of Object.entries(pc)) if (c.tSobre) m[id] = Math.max(m[id] ?? 0, c.tSobre);
+    for (const id in m) if (m[id] < hace3h) delete m[id];
+    localStorage.setItem('tormentas', JSON.stringify(m));
+  } catch {}
+}
+async function leerRayosNOAA() { // los rayos de los últimos 10 min, archivo por archivo, y una muestra de la hora anterior
   const ahora = Date.now(), claves = [];
-  for (const dt of [600e3, 0]) {
+  for (const dt of [4200e3, 2100e3, 0]) {
     const d = new Date(ahora - dt), dia = Math.floor((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 864e5) + 1;
     const x = await (await fetch(`${NOAA}?list-type=2&prefix=GLM-L2-LCFA/${d.getUTCFullYear()}/${String(dia).padStart(3, '0')}/${String(d.getUTCHours()).padStart(2, '0')}/`, { signal: AbortSignal.timeout(20000) })).text();
     for (const [, k] of x.matchAll(/<Key>([^<]+)<\/Key>/g)) { const s = k.split('_s')[1]; claves.push({ k, t: Date.UTC(+s.slice(0, 4), 0, 1) / 1000 + (+s.slice(4, 7) - 1) * 86400 + +s.slice(7, 9) * 3600 + +s.slice(9, 11) * 60 + +s.slice(11, 13) }); }
   }
-  const vistas = [...new Map(claves.map(c => [c.k, c])).values()].filter(c => c.t > ahora / 1000 - 600).sort((a, b) => a.t - b.t);
+  const todas = [...new Map(claves.map(c => [c.k, c])).values()].sort((a, b) => a.t - b.t);
+  const vistas = todas.filter(c => c.t > ahora / 1000 - 600);
   if (!vistas.length) throw new Error('sin archivos de rayos recientes');
-  const pts = (await Promise.all(vistas.map(c => rayosDeArchivo(c.k)))).flat(), cosLa = Math.cos(BAS[0] * Math.PI / 180), porCuenca = {};
+  // la hora anterior, un archivo cada ~2 min: basta para ver una tormenta (tira varios rayos por minuto), no cada rayo suelto
+  const antes = todas.filter(c => c.t <= ahora / 1000 - 600 && c.t > ahora / 1000 - 3600).filter((c, i) => i % 6 === 0);
+  const [pts, ptsAntes] = await Promise.all([Promise.all(vistas.map(c => rayosDeArchivo(c.k))).then(a => a.flat()),
+    Promise.all(antes.map(c => rayosDeArchivo(c.k).then(p => ({ t: c.t, p })).catch(() => ({ t: c.t, p: [] }))))]);
+  const cosLa = Math.cos(BAS[0] * Math.PI / 180), porCuenca = {};
   for (const cu of CU) {
     // «tormenta encima»: un rayo sobre la quebrada misma (su radio + 2 km), o al menos 3 en la zona (+5 km más, el error del
     // GLM) en 10 min. Un rayo suelto a 8,4 km del centro bastaba para subir la Honda a 8,3 (26-oct 20:34); en los dos
@@ -819,8 +834,13 @@ async function leerRayosNOAA() { // los rayos de los últimos 10 min, archivo po
       if (dist <= radio) enZona++; if (dist <= rc) sobre = true;
       if (dist <= 130 && (!best || dist < best.dist)) best = { dist, dx, dy };
     }
-    porCuenca[cu.id] = { t: vistas.at(-1).t, dist: best?.dist ?? null, dx: best?.dx, dy: best?.dy, enZona, encima: sobre || enZona >= 3 };
+    const encima = sobre || enZona >= 3;
+    // la última vez que cayeron rayos sobre la quebrada misma en la hora anterior
+    let tSobre = encima ? vistas.at(-1).t : 0;
+    if (!tSobre) for (const { t, p } of ptsAntes) if (t > tSobre && p.some(([a, b]) => Math.hypot((b - lo) * 111.32 * cosLa, (a - la) * 110.57) <= rc)) tSobre = t;
+    porCuenca[cu.id] = { t: vistas.at(-1).t, dist: best?.dist ?? null, dx: best?.dx, dy: best?.dy, enZona, encima, tSobre: Math.max(tSobre, recuerdoTormenta(cu.id)) || null };
   }
+  guardarTormentas(porCuenca);
   return { t: vistas.at(-1).t, porCuenca, fuente: 'NOAA' };
 }
 async function leerRayos() { // NOAA primero (el dato original); RealEarth si NOAA falla
@@ -893,6 +913,7 @@ function pintarReporte() {
   const ry = s?.rayo;
   const rayoNota = 'Los dos aluviones pasados vinieron con rayos encima.';
   if (ry) ry.encima ? tarjeta('⚡', 'Rayos', 'bad', 'encima', `Caen sobre la quebrada (${hora(ry.t)}): es una tormenta, como en los dos aluviones.`, rayoNota)
+    : ry.tSobre && NOW - ry.tSobre < 3600 ? tarjeta('⚡', 'Rayos', 'warn', 'hace poco', `Hace ${fmt((NOW - ry.tSobre) / 60)} min caían sobre la quebrada; ahora ${ry.dist == null ? 'no hay a menos de 130 km' : `el más cercano está a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}`}. La tormenta puede volver.`, rayoNota)
     : ry.dist == null ? tarjeta('⚡', 'Rayos', 'ok', 'ninguno', 'Ninguno a menos de 130 km en los últimos 10 min.', rayoNota) /* el recuadro mide ±1,5°: ~139 km al este y al oeste */
     : tarjeta('⚡', 'Rayos', ry.dist < 25 ? 'warn' : 'ok', ry.dist < 25 ? 'cerca' : 'lejos', `El más cercano, a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}, en los últimos 10 min.`, rayoNota);
   else if (s) tarjeta('⚡', 'Rayos', 'warn', 'sin dato', 'La fuente de rayos no responde: no se sabe si hay rayos cerca. Si escuchas truenos, trátalo como tormenta.', rayoNota); // RealEarth caído (22-oct): antes el cuadro desaparecía
@@ -972,7 +993,11 @@ function correr(det, ens) {
     // que ya trae rayos cerca, 50 % en la hora en que llegaría y 25 % en la siguiente (la hora de llegada es aproximada).
     // ponytail: chances a ojo con las tormentas de un día, sin calibrar; afinarlas cuando haya más días con rayos medidos
     const qMin = {};
+    const minDesde = sc?.rayo?.tSobre ? (NOW - sc.rayo.tSobre) / 60 : Infinity; // minutos desde los últimos rayos encima
     if (sc?.encima && NOW - sc.rayo.t < 1800) Object.assign(qMin, { 0: 1, 1: 0.6, 2: 0.3 });
+    // la tormenta se fue hace poco: puede volver (26-oct 22:05: 7,5 → 0,8 apenas los rayos se corrieron unos km)
+    else if (minDesde <= 60) Object.assign(qMin, { 0: 0.6, 1: 0.3 });
+    else if (minDesde <= 120) Object.assign(qMin, { 0: 0.3 });
     const tLl = (sc?.rayo?.dist ?? 99) < 25 ? tormentaQueViene(cu.id) : null, kLl = tLl ? horas.findIndex(t => tLl >= t - 3600 && tLl < t) : -1;
     if (kLl >= 0) { qMin[kLl] = Math.max(qMin[kLl] ?? 0, 0.5); if (kLl + 1 < horas.length) qMin[kLl + 1] = Math.max(qMin[kLl + 1] ?? 0, 0.25); }
     if (Object.keys(qMin).length) met.qMin = qMin;
