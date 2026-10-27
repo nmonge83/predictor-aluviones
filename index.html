@@ -139,7 +139,7 @@ details.card[open] > summary::before { content: '▾ ' }
   <p>Es como la de los terremotos: va de <b>0</b> (casi imposible) a <b>10</b> (casi seguro que baja un aluvión).</p>
   <p><b>Cada punto más es el doble de probable.</b> Un 6 es el doble que un 5, y un 8 es cuatro veces un 6. Subir un punto es mucho.</p>
   <p class="niveles"><span style="--c:var(--n0)">muy bajo 0–3</span><span style="--c:var(--n1)">bajo 3–5</span><span style="--c:var(--n2)">moderado 5–7</span><span style="--c:var(--n3)">alto 7–8</span><span style="--c:var(--n4)">muy alto 8–10</span></p>
-  <p><b>«1 de cada 18 días»</b> quiere decir: si hubiera 18 días iguales a hoy, en uno bajaría un aluvión.</p>
+  <p><b>«1 de cada 40 horas como esta»</b> quiere decir: si hubiera 40 horas iguales a esta, en una bajaría un aluvión. El número grande es el de la hora en curso; el de cada día está en «Próximos días».</p>
   <p>Para comparar: un día cualquiera en la Quebrada Honda desde el incendio es un <b>3</b>; los dos días con aluvión fueron un <b>8,4</b>.</p>
   <form method="dialog"><button>Entendido</button></form>
 </dialog>
@@ -167,7 +167,7 @@ details.card[open] > summary::before { content: '▾ ' }
   </header>
 
   <nav class="card selector" aria-label="Elige tu quebrada">
-    <p class="sub" style="margin-bottom:8px"><b>Elige tu quebrada</b> · riesgo de hoy, de 0 a 10</p>
+    <p class="sub" style="margin-bottom:8px"><b>Elige tu quebrada</b> · riesgo ahora, de 0 a 10</p>
     <div class="chips" id="chips"><span class="sub">Calculando…</span></div>
   </nav>
 
@@ -183,7 +183,7 @@ details.card[open] > summary::before { content: '▾ ' }
     <p class="que" id="rque"></p>
     <div class="metro" aria-hidden="true"><div class="barra"><span></span><span></span><span></span><span></span><span></span></div><div class="pin" id="rpin" style="left:0"></div>
       <div class="etq"><span>muy bajo<br>0–3</span><span>bajo<br>3–5</span><span>moderado<br>5–7</span><span>alto<br>7–8</span><span>muy alto<br>8–10</span></div></div>
-    <p class="escala" id="escala"><b>Cómo leer el número:</b> va de 0 (casi nulo) a 10 (baja casi con certeza) y, desde el 1, <b>cada punto más es el doble de probable</b>: un 8 es cuatro veces más probable que un 6, como en la escala de los terremotos. Vale para el día, o para la hora en el gráfico hora a hora. Mira siempre la palabra y el color.</p>
+    <p class="escala" id="escala"><b>Cómo leer el número:</b> va de 0 (casi nulo) a 10 (baja casi con certeza) y, desde el 1, <b>cada punto más es el doble de probable</b>: un 8 es cuatro veces más probable que un 6, como en la escala de los terremotos. El número grande es el de la hora en curso; el de cada día entero está en «Próximos días». Mira siempre la palabra y el color.</p>
     <details class="escala"><summary>Ver la escala con días reales</summary>
       <div class="tbl"><table><tr><th>Escala</th><th class="num">Baja un aluvión</th><th>Ejemplo</th></tr>
         <tr><td>9 <span class="sub">muy alto</span></td><td class="num">1 de cada 2 días</td><td></td></tr>
@@ -201,7 +201,7 @@ details.card[open] > summary::before { content: '▾ ' }
    <div class="hero-der" id="hoy">
     <div class="curva-tit"><h3 id="htit">Próximas 24 horas</h3><button type="button" id="hvolver" class="volver" hidden>← volver a las próximas 24 horas</button></div>
     <div id="hchart"></div>
-    <p class="sub">Riesgo de cada hora en la misma escala de 0 a 10 (el número grande junta todas las horas del día). <b>Mueve el cursor o el dedo sobre la curva</b> para ver cada hora.</p>
+    <p class="sub">Riesgo de cada hora en la misma escala de 0 a 10; el número grande es el de ahora, el primer punto. <b>Mueve el cursor o el dedo sobre la curva</b> para ver cada hora.</p>
     <p class="hh-texto" id="htxt"></p>
    </div>
   </section>
@@ -459,14 +459,19 @@ const bajoN = n => n === 'n0' || n === 'n1';
 const enN = p => Math.round(2 ** (10 - escala(p))), palabra = p => NIVTXT[nivel(p)].replace('riesgo ', '');
 const unoEn = p => escala(p) <= 0 ? 'casi nula' : enN(p) < 2 ? 'más de la mitad de los días' : `1 de cada ${enN(p)} días`;
 // qué significa y qué hacer, según el nivel de hoy (y si mañana sube)
-function queHacer(n, P, P1, j, cuando, cuandoMan, cu) {
-  const q = cu.nombre.replace(/^Quebradas? /, 'quebrada '), dias = escala(P) >= 3 ? `de cada ${enN(P)} días como hoy, bajaría un aluvión en uno` : 'sería muy raro que bajara un aluvión';
-  const cerca = cuando.startsWith('ahora') ? cuando : `cerca de ${cuando}`;
-  const man = j && !bajoN(nivel(P1)) ? ` <b>Mañana sube a ${fmtE(P1)}</b> (${palabra(P1)}): lo más peligroso, ${cuandoMan}.` : '';
-  if (n === 'n4') return `<b>Riesgo muy alto:</b> ${dias}. Si vives junto a la ${q}, ${cuando.startsWith('ahora') ? 'sal ahora' : `sal antes de ${cuando}`} y vuelve cuando pase. Sigue las instrucciones de Senapred.${man}`;
-  if (n === 'n3') return `<b>Riesgo alto:</b> ${dias}. Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo ${cerca}. Sigue las instrucciones de Senapred.${man}`;
-  if (n === 'n2') return `<b>Puede pasar:</b> ${dias}. Evita las calles y pasajes por donde baja el agua de la ${q}, sobre todo ${cerca}, y atento a lo que diga Senapred.${man}`;
-  return `<b>${n === 'n0' ? 'Muy poco probable' : 'Poco probable'}:</b> ${dias}.${man} Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
+// el riesgo de la hora i (lo que sube la acumulada del día), el mismo de la curva; y su «1 de cada N horas»
+const horaDe = (o, i) => Math.max(0, o.acum[i] - (i && R.dia[i] === R.dia[i - 1] ? o.acum[i - 1] : 0));
+const unoEnH = p => unoEn(p).replace('días', 'horas como esta').replace('de los días', 'de las horas');
+// qué significa y qué hacer, según el nivel de AHORA; si más tarde sube, se dice cuándo
+function queHacer(n, P, luego, P1, cuandoMan, cu, rayos) {
+  const q = cu.nombre.replace(/^Quebradas? /, 'quebrada '), horas = escala(P) >= 3 ? `de cada ${enN(P)} horas como esta, bajaría un aluvión en una` : 'es muy raro que baje un aluvión en una hora así';
+  const ahora = rayos ? 'ahora, mientras caigan rayos encima' : 'ahora';
+  const despues = luego ? ` <b>Más tarde sube: cerca de las ${luego.h} llega a ${fmtE(luego.p)}</b> (${palabra(luego.p)}).` : '';
+  const man = !bajoN(nivel(P1)) ? ` Mañana, el día completo: <b>${fmtE(P1)}</b> (${palabra(P1)}); lo más peligroso, ${cuandoMan}.` : '';
+  if (n === 'n4') return `<b>Riesgo muy alto:</b> ${horas}. Si vives junto a la ${q}, sal ahora y vuelve cuando pase. Sigue las instrucciones de Senapred.${despues}${man}`;
+  if (n === 'n3') return `<b>Riesgo alto:</b> ${horas}. Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo ${ahora}. Sigue las instrucciones de Senapred.${despues}${man}`;
+  if (n === 'n2') return `<b>Puede pasar:</b> ${horas}. Evita las calles y pasajes por donde baja el agua de la ${q}, y atento a lo que diga Senapred.${despues}${man}`;
+  return `<b>${n === 'n0' ? 'Muy poco probable' : 'Poco probable'} ahora:</b> ${horas}.${despues}${man} Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
 }
 const quant = (a, q) => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
 async function getJSON(u) { // Open-Meteo responde 429 o se sobrecarga (5xx) en días de tormenta: se reintenta con espera creciente
@@ -989,23 +994,24 @@ function pintar() {
     poligonos[c.id].setTooltipContent(`${c.nombre}: hoy ${fmtE(o.porDia[0])} (${palabra(o.porDia[0])}), mañana ${fmtE(o.porDia[1] ?? 0)} (${palabra(o.porDia[1] ?? 0)}), en la escala de 0 a 10`);
   }
   poligonos[sel]?.bringToFront(); // que el borde rojo no quede tapado por las vecinas
-  // resumen: la quebrada más riesgosa entre hoy y mañana. El número grande es SIEMPRE hoy (lo que queda del día) y mañana
-  // va escrito al lado: antes mostraba el día más alto y se leía como «ahora» (20-oct: 7 % de mañana arriba, 3 % de hoy abajo).
-  // resumen = la quebrada ELEGIDA (antes, siempre la más riesgosa)
-  const top = filas.find(f => f.c.id === sel) ?? filas[0], mas = filas[0], P = top.o.porDia[0], P1 = top.o.porDia[1] ?? 0, j = escala(P1) > escala(P) ? 1 : 0, n = nivel(P), nMax = nivel(Math.max(P, P1));
+  // resumen = la quebrada ELEGIDA. El número grande es la HORA EN CURSO, el mismo con que parte la curva, y cambia apenas
+  // cambian las condiciones (26-oct: «debiera ser preciso, mostrar el riesgo por hora y cambiar cuando las condiciones
+  // cambian»); el día entero queda en «Próximos días». Antes era lo que quedaba del día y se leía como «ahora».
+  const top = filas.find(f => f.c.id === sel) ?? filas[0], mas = filas[0], o0 = top.o, P = horaDe(o0, 0), Pdia = o0.porDia[0], P1 = o0.porDia[1] ?? 0, n = nivel(P);
   REP = top.c.id;
   $('resumen').style.setProperty('--sev', `var(--${n})`);
-  $('rmax').innerHTML = `${fmtE(P)}<small>de 10</small>`; $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} hoy`; $('runo').textContent = unoEn(P);
+  $('rmax').innerHTML = `${fmtE(P)}<small>de 10</small>`; $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} ahora`; $('runo').textContent = unoEnH(P);
   $('rpin').style.left = `${escala(P) * 10}%`;
-  // la hora más peligrosa de hoy y la de mañana, cada una para su consejo (antes el de hoy usaba la de mañana)
-  const kHoy = picoHora(top.o, R.dia, 0), cuandoHoy = kHoy !== 0 ? `las ${hora(horas[kHoy] - 3600)}` : satelite?.porCuenca?.[top.c.id]?.encima ? 'ahora, mientras caigan rayos encima' : 'ahora', cuandoMan = `mañana a las ${hora(horas[picoHora(top.o, R.dia, 1)] - 3600)}`;
+  // la hora más peligrosa que queda hoy, si es más tarde y más alta que la de ahora; y la de mañana
+  const kHoy = picoHora(o0, R.dia, 0), luego = kHoy > 0 && escala(horaDe(o0, kHoy)) > escala(P) ? { h: hora(horas[kHoy] - 3600), p: horaDe(o0, kHoy) } : null;
+  const cuandoMan = `mañana a las ${hora(horas[picoHora(o0, R.dia, 1)] - 3600)}`;
   $('rtit').textContent = `${top.c.nombre} (${top.c.comuna})`;
-  $('rque').innerHTML = queHacer(n, P, P1, j, cuandoHoy, cuandoMan, top.c);
+  $('rque').innerHTML = queHacer(n, P, luego, P1, cuandoMan, top.c, !!satelite?.porCuenca?.[top.c.id]?.encima);
   const cuantas = (...l) => filas.filter(f => l.includes(nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)))).length;
-  $('rtxt').innerHTML = `Mañana: <b>${fmtE(P1)}</b>, ${palabra(P1)} (${unoEn(P1)}). ${j ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(P, P1) / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. ` +
+  $('rtxt').innerHTML = `Lo que queda de hoy, todo junto: <b>${fmtE(Pdia)}</b>, ${palabra(Pdia)}. Mañana, el día completo: <b>${fmtE(P1)}</b>, ${palabra(P1)}. ${P1 > Pdia ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(Pdia, P1) / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. ` +
     `De ${CU.length} quebradas (hoy y mañana): ${cuantas('n4', 'n3')} en riesgo alto o muy alto, ${cuantas('n2')} moderado y ${cuantas('n1', 'n0')} bajo o muy bajo.` +
     (mas !== top ? ` La de más riesgo: ${mas.c.nombre} (${fmtE(Math.max(mas.o.porDia[0], mas.o.porDia[1] ?? 0))}, ${palabra(Math.max(mas.o.porDia[0], mas.o.porDia[1] ?? 0))}).` : '');
-  $('chips').innerHTML = filas.map(({ c, o }) => `<button type="button" class="qchip" data-id="${c.id}" aria-pressed="${c.id === sel}"><b>${c.nombre.replace(/^(Quebradas?|Estero) (de(l)? )?/, '')}</b><span class="pill" style="--c:var(--${nivel(o.porDia[0])})">${fmtE(o.porDia[0])} ${palabra(o.porDia[0])}</span></button>`).join('');
+  $('chips').innerHTML = filas.map(({ c, o }) => `<button type="button" class="qchip" data-id="${c.id}" aria-pressed="${c.id === sel}"><b>${c.nombre.replace(/^(Quebradas?|Estero) (de(l)? )?/, '')}</b><span class="pill" style="--c:var(--${nivel(horaDe(o, 0))})">${fmtE(horaDe(o, 0))} ${palabra(horaDe(o, 0))}</span></button>`).join('');
   document.querySelectorAll('#chips .qchip').forEach(b => b.onclick = () => elegir(b.dataset.id));
   document.querySelector('#chips [aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 
