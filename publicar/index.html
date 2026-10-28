@@ -73,13 +73,13 @@ a { color: var(--accent) }
 .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c); vertical-align: -1px; margin-right: 4px }
 @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr } #map { height: 400px } }
 @media (max-width: 560px) { #ranking th:nth-child(4), #ranking td:nth-child(4), #ranking th:nth-child(5), #ranking td:nth-child(5) { display: none } }
-@media (max-width: 520px) { .resumen { grid-template-columns: 1fr; gap: 10px } .metro .etq { font-size: .66rem } .escala th, .escala td, #validacion th, #validacion td { padding: 6px 4px } .escala td.num, .escala th.num, #validacion td.num, #validacion th.num { white-space: normal; text-align: left } .big { font-size: 3rem } .dias { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+@media (max-width: 520px) { .resumen { grid-template-columns: 1fr; gap: 10px } .escala th, .escala td, #validacion th, #validacion td { padding: 6px 4px } .escala td.num, .escala th.num, #validacion td.num, #validacion th.num { white-space: normal; text-align: left } .dias { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 /* Panel para gente común: nivel en palabras, «1 en N», escala, tarjetas de «Ahora» y hora a hora con la lluvia */
 .hero { display: grid; gap: 18px 28px; align-items: start; border-left: 6px solid var(--sev, var(--line)) } .hero > * { min-width: 0 }
 .hero-izq, .hero-der { display: grid; gap: 10px; min-width: 0 } .curva-tit { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap } .curva-tit h3 { margin: 0 }
 @media (min-width: 900px) { .hero { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) } }
 /* en una columna, la curva va justo después del consejo y antes de la barra y la explicación */
-@media (max-width: 899px) { .hero { row-gap: 10px } .hero-izq { display: contents } .hero-der { order: 1 } .hero-izq > :nth-child(n+5) { order: 2 } }
+@media (max-width: 899px) { .hero { row-gap: 10px } .hero-izq { display: contents } .hero-der { order: 1 } .hero-izq > :nth-child(n+4) { order: 2 } }
 #hchart svg .cur { stroke: var(--fg); stroke-dasharray: 3 3 }
 .hora-act { margin-top: -4px } .hora-act .volver { margin-left: 6px }
 .hero-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px }
@@ -88,11 +88,6 @@ a { color: var(--accent) }
 .big { font: 800 3.2rem/1 var(--display) }
 .unoen { font: 700 1.05rem/1.3 var(--display); color: var(--muted) }
 .que { font-size: 1.02rem; line-height: 1.55; max-width: 75ch }
-.metro { position: relative; max-width: 560px; margin-top: 2px }
-.metro .barra { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 2px; height: 10px; border-radius: 99px; overflow: hidden }
-.metro .barra span:nth-child(1) { background: var(--n0) } .metro .barra span:nth-child(2) { background: var(--n1) } .metro .barra span:nth-child(3) { background: var(--n2) } .metro .barra span:nth-child(4) { background: var(--n3) } .metro .barra span:nth-child(5) { background: var(--n4) }
-.metro .pin { position: absolute; top: -5px; width: 4px; height: 20px; background: var(--fg); border-radius: 2px; transform: translateX(-50%); box-shadow: 0 0 0 2px var(--panel) }
-.metro .etq { display: grid; gap: 2px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); font-size: .74rem; line-height: 1.25; color: var(--muted); margin-top: 6px }
 .big small { font: 700 1.1rem var(--display); color: var(--muted); margin-left: 4px }
 .escala { font-size: .86rem } .escala > summary { cursor: pointer; color: var(--accent); font-weight: 600 } .escala table { margin-top: 8px; max-width: 640px }
 .escala td:first-child { font: 700 .95rem var(--display); white-space: nowrap }
@@ -125,6 +120,43 @@ details.card[open] > summary::before { content: '▾ ' }
 .dias button.dia[aria-pressed="true"] { background: var(--soft); box-shadow: inset 0 0 0 2px var(--c) }
 [hidden] { display: none !important } /* si no, una regla con display le gana al atributo */
 .volver { font: 600 .8rem system-ui, sans-serif; background: none; border: 0; color: var(--accent); padding: 0; text-decoration: underline }
+/* ---------- rediseño (28-oct): más aire, tarjetas suaves, medidor de aguja, cuadros con íconos de color ---------- */
+:root { --sombra: 0 1px 2px rgb(16 24 20 / .06), 0 12px 30px -20px rgb(16 24 20 / .35); --radio: 16px }
+@media (prefers-color-scheme: dark) { :root { --sombra: 0 1px 2px rgb(0 0 0 / .4), 0 12px 30px -18px rgb(0 0 0 / .7) } }
+body { background: radial-gradient(1100px 460px at 50% -140px, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%) no-repeat, var(--bg) }
+main { gap: 18px }
+.card { border: 1px solid color-mix(in srgb, var(--line) 75%, transparent); border-radius: var(--radio); box-shadow: var(--sombra); padding: 18px 20px }
+h2 { font-size: 1.08rem }
+.cabecera { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; padding: 2px }
+.marca { display: flex; gap: 12px; align-items: center } .logo { width: 44px; height: 44px; flex: none }
+.cabecera h1 { font-size: 1.55rem } .cabecera #upd, .cabecera .enlaces { grid-column: 1 / -1 }
+.enlaces { display: flex; flex-wrap: wrap; gap: 6px }
+.enlaces a { font-size: .8rem; text-decoration: none; padding: 4px 11px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line); color: var(--fg) }
+.enlaces a:hover { border-color: var(--accent); color: var(--accent) }
+.aviso { border: 0; border-left: 4px solid var(--warn); background: color-mix(in srgb, var(--warn) 9%, var(--panel)); border-radius: 12px; font-size: .82rem; line-height: 1.45 }
+@media (max-width: 600px) { .cabecera { grid-template-columns: 1fr } .cabecera .ayuda { justify-self: start } .cabecera h1 { font-size: 1.35rem } }
+.qchip { border-radius: 12px; transition: border-color .15s, transform .15s } .qchip:hover { transform: translateY(-1px); border-color: var(--muted) }
+.hero { border-left: 0; position: relative; overflow: hidden }
+.hero::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 6px; background: var(--sev, var(--line)) }
+.hero-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 24px; align-items: center }
+.medidor-caja { display: grid; justify-items: center; width: 230px }
+.medidor { width: 230px; height: auto; display: block; overflow: visible } .medidor text { font: 600 11px var(--mono); fill: var(--muted) }
+#aguja { transition: transform .9s cubic-bezier(.3, 1.35, .5, 1) }
+.medidor-caja .big { margin: 2px 0 0; font: 800 3.3rem/1 var(--display); text-align: center }
+.hero-nivel { display: grid; gap: 8px; justify-items: start } .hero .nivel { font-size: .8rem; padding: 7px 12px; white-space: nowrap }
+.hero .unoen { font-size: 1.1rem; color: var(--fg) }
+.rtit { margin: 6px 0 0; font-size: 1.15rem }
+.que { background: color-mix(in srgb, var(--sev, var(--line)) 10%, var(--panel)); border-left: 4px solid var(--sev, var(--line)); padding: 12px 14px; border-radius: 12px }
+#rtxt { font-size: .82rem }
+@media (max-width: 520px) { .hero-top { grid-template-columns: 1fr; justify-items: center; text-align: center } .hero-nivel { justify-items: center } }
+.tile { border: 0; background: color-mix(in srgb, var(--c, var(--line)) 7%, var(--panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c, var(--line)) 24%, transparent); border-radius: 14px; padding: 14px 16px }
+.tile .ico { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 1.2rem; background: color-mix(in srgb, var(--c, var(--line)) 18%, var(--panel)); flex: none }
+.dia { border-radius: 14px; border-top-width: 5px; padding: 12px 14px } .dia b { font-size: 1.8rem }
+#map { border-radius: 12px; height: 560px }
+.grid2 { grid-template-columns: 1fr } /* el mapa a lo ancho y la tabla debajo: lado a lado la tabla quedaba apretada */
+.tiles { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) }
+@media (max-width: 900px) { #map { height: 420px } }
+details.card > summary { font-size: 1.05rem }
 </style>
 </head>
 <body>
@@ -144,6 +176,16 @@ details.card[open] > summary::before { content: '▾ ' }
   <form method="dialog"><button>Entendido</button></form>
 </dialog>
 <main>
+  <header class="cabecera">
+    <div class="marca">
+      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="var(--accent)"/><path d="M5 31 L15 14 L20 21 L25 15 L35 31 Z" fill="var(--panel)" opacity=".95"/><path d="M20 23c0 0-3.2 3.6-3.2 5.6a3.2 3.2 0 0 0 6.4 0C23.2 26.6 20 23 20 23z" fill="var(--accent)"/></svg>
+      <div><h1>Riesgo de aluvión estimado</h1>
+        <p class="sub">proyecto aficionado e independiente · precordillera de Santiago</p></div>
+    </div>
+    <button type="button" class="ayuda" data-abre="pop-escala">¿Cómo funciona la escala?</button>
+    <p class="sub" id="upd">Descargando pronósticos de 6 centros meteorológicos para 15 quebradas…</p>
+    <nav class="enlaces" aria-label="Más información"><a href="#metodo">Cómo se calcula</a><a href="#validacion">¿Funciona?</a><a href="#fuentes">Fuentes</a><a href="#creditos">Créditos</a></nav>
+  </header>
   <p class="aviso" role="note"><b>Proyecto aficionado e independiente, sin carácter oficial.</b> La información es solo referencial, puede contener errores y no se garantiza su exactitud. Se actualiza sola cada 5 minutos con los pronósticos y el satélite más nuevos, así que el riesgo de mañana y de los días siguientes puede cambiar. <b>Las alertas oficiales las emite Senapred: sigue siempre sus indicaciones y las de las autoridades.</b></p>
   <script>
   // los botones con data-abre abren su ventana; va aquí arriba para que respondan aunque se toquen mientras carga la página
@@ -158,13 +200,6 @@ details.card[open] > summary::before { content: '▾ ' }
     d.showModal();
   })();
   </script>
-  <header>
-    <h1>Riesgo de aluvión estimado</h1>
-    <p class="sub" style="font-weight:600">proyecto aficionado e independiente · precordillera de Santiago</p>
-    <p class="sub" id="upd">Descargando pronósticos de 6 centros meteorológicos para 15 quebradas…</p>
-    <p><button type="button" class="ayuda" data-abre="pop-escala">¿Cómo funciona la escala?</button></p>
-    <p class="sub"><a href="#metodo">Cómo se calcula</a> · <a href="#validacion">¿Funciona?</a> · <a href="#fuentes">Fuentes</a> · <a href="#creditos">Créditos</a></p>
-  </header>
 
   <nav class="card selector" aria-label="Elige tu quebrada">
     <p class="sub" style="margin-bottom:8px"><b>Elige tu quebrada</b> · riesgo ahora, de 0 a 10</p>
@@ -174,16 +209,15 @@ details.card[open] > summary::before { content: '▾ ' }
   <section class="card hero" id="resumen">
    <div class="hero-izq">
     <div class="hero-top">
-      <span class="nivel" id="rniv">calculando…</span>
-      <span class="big" id="rmax">–</span>
-      <span class="unoen" id="runo"></span>
+      <div class="medidor-caja"><svg class="medidor" viewBox="0 0 220 124" aria-hidden="true"><path d="M22.0 112.0 A88 88 0 0 1 57.2 41.6" stroke="var(--n0)" stroke-width="18" fill="none"/><path d="M59.4 40.0 A88 88 0 0 1 108.6 24.0" stroke="var(--n1)" stroke-width="18" fill="none"/><path d="M111.4 24.0 A88 88 0 0 1 160.6 40.0" stroke="var(--n2)" stroke-width="18" fill="none"/><path d="M162.8 41.6 A88 88 0 0 1 180.4 59.2" stroke="var(--n3)" stroke-width="18" fill="none"/><path d="M182.0 61.4 A88 88 0 0 1 198.0 112.0" stroke="var(--n4)" stroke-width="18" fill="none"/><text x="4.0" y="116.0" text-anchor="middle">0</text><text x="47.7" y="30.2" text-anchor="middle">3</text><text x="110.0" y="10.0" text-anchor="middle">5</text><text x="172.3" y="30.2" text-anchor="middle">7</text><text x="195.8" y="53.7" text-anchor="middle">8</text><text x="216.0" y="116.0" text-anchor="middle">10</text><g id="aguja" style="transform-origin:110px 112px"><line x1="110" y1="112" x2="40" y2="112" stroke="var(--fg)" stroke-width="5" stroke-linecap="round"/><circle cx="110" cy="112" r="8" fill="var(--fg)"/><circle cx="110" cy="112" r="3" fill="var(--panel)"/></g></svg><p class="big" id="rmax">–</p></div>
+      <div class="hero-nivel">
+        <span class="nivel" id="rniv">calculando…</span>
+        <span class="unoen" id="runo"></span>
+        <p class="sub hora-act"><span id="rhora">Calculando…</span> <button type="button" class="volver" id="refrescar">↻ Actualizar</button></p>
+      </div>
     </div>
-    <p class="sub hora-act"><span id="rhora">Calculando…</span> <button type="button" class="volver" id="refrescar">↻ Actualizar</button></p>
-    <h2 id="rtit" style="margin:0">Calculando el riesgo de cada quebrada</h2>
+    <h2 id="rtit" class="rtit">Calculando el riesgo de cada quebrada</h2>
     <p class="que" id="rque"></p>
-    <div class="metro" aria-hidden="true"><div class="barra"><span></span><span></span><span></span><span></span><span></span></div><div class="pin" id="rpin" style="left:0"></div>
-      <div class="etq"><span>muy bajo<br>0–3</span><span>bajo<br>3–5</span><span>moderado<br>5–7</span><span>alto<br>7–8</span><span>muy alto<br>8–10</span></div></div>
-    <p class="escala" id="escala"><b>Cómo leer el número:</b> va de 0 (casi nulo) a 10 (baja casi con certeza) y, desde el 1, <b>cada punto más es el doble de probable</b>: un 8 es cuatro veces más probable que un 6, como en la escala de los terremotos. El número grande es el de la hora en curso; el de cada día entero está en «Próximos días». Mira siempre la palabra y el color.</p>
     <details class="escala"><summary>Ver la escala con días reales</summary>
       <div class="tbl"><table><tr><th>Escala</th><th class="num">Baja un aluvión</th><th>Ejemplo</th></tr>
         <tr><td>9 <span class="sub">muy alto</span></td><td class="num">1 de cada 2 días</td><td></td></tr>
@@ -962,7 +996,7 @@ function pintarReporte() {
   if (R && llegada?.t !== antes) hoy(); // la curva marca la tormenta que viene
   const tt = items.find(t => t.tit === 'Tormenta'), rr = items.find(t => t.tit === 'Rayos');
   if (tt || rr) { $('cerca').textContent = [`${c.nombre}.`, tt && `Tormenta: ${tt.txt}`, rr && `Rayos: ${rr.txt}`].filter(Boolean).join(' '); $('cerca').classList.toggle('alerta', [tt, rr].some(t => t?.est === 'bad' || t?.est === 'warn')); }
-  $('rrep').innerHTML = items.map(t => `<div class="tile"><div class="cab"><span class="ico" aria-hidden="true">${t.ico}</span>${t.tit}<span class="estado" style="--c:var(--${t.est})">${t.etq}</span></div><p>${t.txt}</p><small>${t.nota}</small></div>`).join('');
+  $('rrep').innerHTML = items.map(t => `<div class="tile" style="--c:var(--${t.est})"><div class="cab"><span class="ico" aria-hidden="true">${t.ico}</span>${t.tit}<span class="estado" style="--c:var(--${t.est})">${t.etq}</span></div><p>${t.txt}</p><small>${t.nota}</small></div>`).join('');
   $('ahora').hidden = false;
 }
 
@@ -1063,7 +1097,7 @@ function pintar() {
   REP = top.c.id;
   $('resumen').style.setProperty('--sev', `var(--${n})`);
   $('rmax').innerHTML = `${fmtE(P)}<small>de 10</small>`; $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} ahora`; $('runo').textContent = unoEnH(P);
-  $('rpin').style.left = `${escala(P) * 10}%`;
+  $('aguja').style.transform = `rotate(${escala(P) * 18}deg)`; // 0 a la izquierda, 10 a la derecha
   // la hora más peligrosa que queda hoy, si es más tarde y más alta que la de ahora; y la de mañana
   const kHoy = picoHora(o0, R.dia, 0), luego = kHoy > 0 && escala(horaDe(o0, kHoy)) > escala(P) ? { h: hora(horas[kHoy] - 3600), p: horaDe(o0, kHoy) } : null;
   const cuandoMan = `mañana a las ${hora(horas[picoHora(o0, R.dia, 1)] - 3600)}`;
