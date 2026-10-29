@@ -1379,7 +1379,7 @@ addEventListener('pageshow', e => { if (e.persisted && Date.now() - ultimo > 5 *
 // La columna aparece solo si el vigía contesta: mientras no exista, la página queda igual que antes. El chat no pide cuenta:
 // el navegador resuelve un desafío corto antes de preguntar (anti-bots) y le pasa a Degú lo que esta página calculó.
 const DEGU = 'https://stage.getdegu.com/agent/publico/prohack/vigias/quebrada-honda';
-const PUNTO_DEGU = { encima: 'n3', sigue_encima: 'n3', se_acerca: 'n2', se_fue: 'n1' };
+const PUNTO_DEGU = { encima: 'n3', sigue_encima: 'n3', se_acerca: 'n2', cerca: 'n2', se_fue: 'n1' };
 const escDegu = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const kmDegu = km => String(Math.max(1, Math.round(km || 0)));
 let retoDegu = null; // { reto, nonce, vence }: se resuelve antes de que pregunten, para que la respuesta no espere
