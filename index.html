@@ -157,9 +157,57 @@ h2 { font-size: 1.08rem }
 .tiles { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) }
 @media (max-width: 900px) { #map { height: 420px } }
 details.card > summary { font-size: 1.05rem }
+/* ---------- Degú (28-oct): «Un aporte de Degú» arriba y su columna, con el vigía de la quebrada y el chat ---------- */
+:root { --degu-texto: #0a7a64; --degu-boton: #0a7a64 }
+@media (prefers-color-scheme: dark) { :root { --degu-texto: #5fd3b5; --degu-boton: #0d9e81 } }
+.acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end }
+.aporte { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 10px; background: #10352d; color: #e8f3ef; text-decoration: none; font-size: .85rem }
+.aporte:hover { background: #0b2a23; color: #fff }
+.aporte svg, .dico { width: 22px; height: 22px; flex: none; border-radius: 5px }
+@media (max-width: 600px) { .acciones { display: contents } .aporte { order: -1; justify-content: center } }
+.degu { display: grid; gap: 18px; align-content: start }
+/* en pantalla ancha va a la derecha y acompaña al bajar; en el celular, justo después del riesgo */
+@media (min-width: 1100px) {
+  main { grid-template-columns: minmax(0, 1fr) 370px; align-items: start }
+  main > * { grid-column: 1 }
+  main > .cabecera, main > .aviso { grid-column: 1 / -1 }
+  main > #degu { grid-column: 2; grid-row: 3 / span 4; position: sticky; top: 16px }
+}
+.dcab { display: flex; align-items: center; gap: 10px; margin-bottom: 6px } .dcab h2 { margin: 0; flex: 1 }
+.envivo { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700; color: var(--degu-texto) }
+.envivo::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #0d9e81; animation: latido 2s infinite }
+@keyframes latido { 50% { opacity: .35 } }
+@media (prefers-reduced-motion: reduce) { .envivo::before { animation: none } }
+.dahora { margin: 10px 0 4px; font-weight: 600; font-size: .9rem }
+.dlista { list-style: none; margin: 0; padding: 0 }
+.dlista li { display: grid; grid-template-columns: 52px 10px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-size: .9rem; line-height: 1.45 }
+.dlista time { font: .8rem var(--mono); color: var(--muted); padding-top: 2px }
+.dlista i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-top: 6px }
+.dlista .vacio { display: block; color: var(--muted) }
+.dconv { display: grid; gap: 10px; margin-block: 8px 12px }
+.dconv .yo { justify-self: end; max-width: 88%; background: var(--accent); color: #fff; padding: 9px 13px; border-radius: 14px 14px 4px 14px }
+.degu-dice { display: flex; gap: 8px; align-items: flex-start; max-width: 96% }
+.degu-dice p { background: var(--soft); padding: 9px 13px; border-radius: 14px 14px 14px 4px; line-height: 1.45 }
+.degu-dice .pensando { color: var(--muted); font-style: italic }
+.dchips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px }
+.dchips button { font: inherit; font-size: .85rem; border-radius: 99px; min-height: 40px; padding: 6px 13px; background: var(--panel); text-align: left }
+.dchips button:hover { border-color: var(--degu-texto); color: var(--degu-texto) }
+.dform label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px }
+.dform div { display: flex; gap: 8px }
+.dform input { flex: 1; min-width: 0; font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg) }
+.dform button { width: 44px; height: 44px; justify-content: center; border: 0; border-radius: 10px; background: var(--degu-boton); color: #fff; padding: 0; flex: none }
+.dform button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round }
+.dform button:disabled, .dform input:disabled { opacity: .6; cursor: wait }
+.dnota { margin-top: 10px; font-size: .78rem }
+.dmarca { background: #10352d; color: #e8f3ef; border-color: #10352d }
+.dmarca .dico.grande { width: 36px; height: 36px; border-radius: 8px }
+.dmarca .dcab span { font-size: .75rem; color: #a9cfc4 } .dmarca h2 { font-size: 1.3rem; font-weight: 800; color: #fff }
+.dmarca p { margin: 6px 0 12px; line-height: 1.5; font-size: .9rem }
+.dmarca a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 10px; background: #5fd3b5; color: #0b2620; font-weight: 700; text-decoration: none }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="degu-ico" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="236" fill="#0d9e81"/><svg x="178.1" y="311.5" width="667.7" height="401" viewBox="48.1 -619 830.9 499" fill="#fff"><path d="M482-120q-96 0-165-62t-77-154C239.3-356 239.1-376 242-396q13-88 79.1-146T475-600q21.36 0 42.18 3t37.82 9q8-3 15.98-5.29 7.99-2.28 16.5-4Q596-599 604-599.5t17.11-.5q73.89 0 126.39 51.5T800-423v12q0 7-2 15l36 35q22 21 33.5 46.5t11.5 54.67q0 58.35-40 99.09T741-120H482Zm0-60h257q32 0 56.5-24t24.5-56q0-16.34-7-30.17Q806-304 792-318l-59-58q4-12 5.5-23.5T740-422q0-49-34.51-83.5T621-540q-46 0-78.5 33.35T510-425q0 21.05 6 40.53Q522-365 535-349l-42 42q-23-24-33-55.4T450-427q0-31.27 10-60.14Q470-516 490-539q-8-2-13.5-1.5t-10.5.5q-67 0-117.5 55T298-357q0 35.87 14.5 67.93Q327-257 352.45-232.65q25.45 24.34 59 38.5Q445-180 482-180ZM559-390Z"/><path d="M256.8 -387.4A22 22 0 0 1 267.2 -344.6C245.8 -339.4 223.4 -336 203.5 -335.8C183.3 -335.5 161.9 -338.6 144.7 -345.6C127.3 -352.7 109.6 -366.1 98.2 -382.8C87.1 -398.9 78.9 -422.1 76.1 -447.6L76.1 -447.6C34.8 -494.4 41.9 -563.6 79.6 -619C128.4 -573 150.1 -507 119.9 -452.4L119.9 -452.4C122.1 -431.9 126.6 -419.1 134.5 -407.7C141.9 -396.9 149.2 -391.3 161.3 -386.4C173.6 -381.4 186.2 -379.5 202.9 -379.7C219.8 -380 237.2 -382.6 256.8 -387.4Z"/><circle cx="680" cy="-280" r="30"/></svg></symbol></svg>
 <dialog id="bienvenida" class="ventana" aria-labelledby="btit">
   <h2 id="btit">Bienvenido/a a la escala de riesgo de aluvión</h2>
   <p id="btxt"></p>
@@ -182,7 +230,10 @@ details.card > summary { font-size: 1.05rem }
       <div><h1>Riesgo de aluvión estimado</h1>
         <p class="sub">proyecto aficionado e independiente · precordillera de Santiago</p></div>
     </div>
-    <button type="button" class="ayuda" data-abre="pop-escala">¿Cómo funciona la escala?</button>
+    <div class="acciones">
+      <a class="aporte" href="https://getdegu.com" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#degu-ico"/></svg><span>Un aporte de <b>Degú</b></span></a>
+      <button type="button" class="ayuda" data-abre="pop-escala">¿Cómo funciona la escala?</button>
+    </div>
     <p class="sub" id="upd">Descargando pronósticos de 6 centros meteorológicos para 15 quebradas…</p>
     <nav class="enlaces" aria-label="Más información"><a href="#metodo">Cómo se calcula</a><a href="#validacion">¿Funciona?</a><a href="#fuentes">Fuentes</a><a href="#creditos">Créditos</a></nav>
   </header>
@@ -239,6 +290,38 @@ details.card > summary { font-size: 1.05rem }
     <p class="hh-texto" id="htxt"></p>
    </div>
   </section>
+
+  <aside id="degu" class="degu" aria-label="Degú" hidden>
+    <section class="card dvigia" aria-labelledby="dvtit">
+      <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dvtit">Degú vigila la quebrada</h2><span class="envivo">en vivo</span></div>
+      <p class="sub">Mira los rayos del satélite cada minuto y escribe aquí cuando algo cambia.</p>
+      <p class="dahora" id="dahora"></p>
+      <ol class="dlista" id="dlista"></ol>
+    </section>
+    <section class="card dchat" aria-labelledby="dctit">
+      <div class="dcab"><h2 id="dctit">Pregúntale a Degú</h2></div>
+      <p class="sub">Solo sobre aluviones y clima en Chile.</p>
+      <div class="dconv" id="dconv" aria-live="polite">
+        <div class="degu-dice"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><p>Hola, soy Degú. Pregúntame por el riesgo, la lluvia o las tormentas de la quebrada.</p></div>
+      </div>
+      <div class="dchips" id="dchips">
+        <button type="button">¿Está lloviendo ahora en la quebrada?</button>
+        <button type="button">¿Hasta qué hora sigue el riesgo?</button>
+        <button type="button">¿Qué significa el número?</button>
+        <button type="button">Windy dice otra cosa, ¿a quién le creo?</button>
+      </div>
+      <form class="dform" id="dform">
+        <label for="dpreg">Tu pregunta</label>
+        <div><input id="dpreg" type="text" maxlength="300" autocomplete="off" placeholder="¿Puedo subir al cerro mañana temprano?"><button type="submit" id="denviar" aria-label="Enviar pregunta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      </form>
+      <p class="sub dnota">Degú puede equivocarse. Ante cualquier alerta, sigue siempre lo que indiquen las autoridades (Senapred).</p>
+    </section>
+    <section class="card dmarca" aria-labelledby="dmtit">
+      <div class="dcab"><svg class="dico grande" aria-hidden="true"><use href="#degu-ico"/></svg><div><span>Hecho con</span><h2 id="dmtit">Degú</h2></div></div>
+      <p>Degú es la plataforma de IA para empresas y profesionales: lee tus documentos, cruza tus datos y trabaja contigo. Aquí vigila la quebrada gratis, para ayudar a la comunidad.</p>
+      <a href="https://getdegu.com" target="_blank" rel="noopener">Conoce Degú →</a>
+    </section>
+  </aside>
 
   <section class="card" id="ahora" hidden>
     <h2 id="atit">Ahora</h2>
@@ -1291,6 +1374,94 @@ setInterval(actualizar, 5 * 60 * 1000);
 setInterval(() => { if (!timer) cargarNubes(); }, 10 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - ultimo > 5 * 60 * 1000) { actualizar(); if (!timer) cargarNubes(); } });
 addEventListener('pageshow', e => { if (e.persisted && Date.now() - ultimo > 5 * 60 * 1000) { actualizar(); if (!timer) cargarNubes(); } }); // página restaurada desde la memoria del navegador
+
+// ---------- Degú vigila la quebrada (28-oct): los avisos y el chat los da el vigía público de Degú ----------
+// La columna aparece solo si el vigía contesta: mientras no exista, la página queda igual que antes. El chat no pide cuenta:
+// el navegador resuelve un desafío corto antes de preguntar (anti-bots) y le pasa a Degú lo que esta página calculó.
+const DEGU = 'https://stage.getdegu.com/agent/publico/prohack/vigias/quebrada-honda';
+const PUNTO_DEGU = { encima: 'n3', sigue_encima: 'n3', se_acerca: 'n2', se_fue: 'n1' };
+const escDegu = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const kmDegu = km => String(Math.max(1, Math.round(km || 0)));
+let retoDegu = null; // { reto, nonce, vence }: se resuelve antes de que pregunten, para que la respuesta no espere
+function horaDegu(iso) {
+  const d = new Date(iso), dia = x => x.toLocaleDateString('es-CL', { timeZone: TZ });
+  const t = d.toLocaleTimeString('es-CL', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  return dia(d) === dia(new Date()) ? t : `ayer ${t}`; // los avisos son de las últimas 24 horas
+}
+function ahoraDegu(a) {
+  if (!a?.situacion) return '';
+  const cuando = a.actualizado ? ` · revisado a las ${horaDegu(a.actualizado)}` : '';
+  if (a.situacion === 'encima') return `Ahora: tormenta encima, rayo a ${kmDegu(a.km)} km${cuando}`;
+  if (a.situacion === 'cerca') return `Ahora: rayos a ${kmDegu(a.km)} km al ${a.rumbo}${cuando}`;
+  return `Ahora: sin rayos a menos de 40 km${cuando}`;
+}
+async function verDegu() {
+  try {
+    const r = await fetch(DEGU, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error(`vigía ${r.status}`);
+    const d = await r.json();
+    $('dvtit').textContent = `Degú vigila ${d.nombre}`;
+    $('dahora').textContent = ahoraDegu(d.ahora);
+    $('dlista').innerHTML = d.avisos.length
+      ? d.avisos.map(a => `<li><time>${horaDegu(a.hora)}</time><i style="--c:var(--${PUNTO_DEGU[a.tipo] || 'n0'})"></i><p>${escDegu(a.texto)}</p></li>`).join('')
+      : '<li class="vacio">Sin avisos en las últimas 24 horas: no hubo tormentas con rayos cerca.</li>';
+    $('degu').hidden = false;
+    if (!retoDegu) resolverRetoDegu();
+  } catch (e) {
+    if (!$('degu').hidden) $('dahora').textContent = 'No pude hablar con Degú hace un momento: reintento en un minuto.';
+  }
+}
+const cerosDegu = (b, bits) => { for (let i = 0; i < bits; i++) if (b[i >> 3] & (0x80 >> (i & 7))) return false; return true; };
+async function resolverRetoDegu() { // ~65.000 intentos de SHA-256, de a 256 en paralelo: un segundo en un teléfono
+  try {
+    const r = await fetch(`${DEGU}/reto`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return;
+    const { reto, bits } = await r.json(), cod = new TextEncoder(), vence = Date.now() + 240e3;
+    for (let base = 0; base < 4e6; base += 256) {
+      const hs = await Promise.all(Array.from({ length: 256 }, (_, i) => crypto.subtle.digest('SHA-256', cod.encode(`${reto}:${base + i}`))));
+      const k = hs.findIndex(h => cerosDegu(new Uint8Array(h), bits));
+      if (k >= 0) { retoDegu = { reto, nonce: String(base + k), vence }; return; }
+    }
+  } catch {}
+}
+function datosParaDegu() { // lo que esta página calculó para la quebrada elegida: Degú lo usa para contestar
+  if (!R) return {};
+  const c = CU.find(x => x.id === sel), o = R.out[sel], P = horaDe(o, 0);
+  return {
+    quebrada_elegida: `${c.nombre} (${c.comuna})`,
+    riesgo_ahora: `${fmtE(P)} de 10, ${palabra(P)} (${unoEnH(P)})`,
+    proximas_horas: R.horas.slice(0, 12).map((t, i) => `${hora(t - 3600)} ${fmtE(horaDe(o, i))}`).join(' · '),
+    hoy_y_manana: `hoy ${fmtE(o.porDia[0])} ${palabra(o.porDia[0])}; mañana ${fmtE(o.porDia[1] ?? 0)} ${palabra(o.porDia[1] ?? 0)}`,
+    escala: 'de 0 a 10: muy bajo 0-3, bajo 3-5, moderado 5-7, alto 7-8, muy alto 8-10; cada punto más es el doble de riesgo',
+    ahora_en_la_quebrada: ($('rrep')?.innerText || '').replace(/\s+/g, ' ').slice(0, 700),
+    calculado_a_las: hora(NOW)
+  };
+}
+async function preguntarDegu(texto) {
+  texto = texto.trim().slice(0, 300);
+  if (!texto || $('dpreg').disabled) return;
+  const conv = $('dconv');
+  conv.insertAdjacentHTML('beforeend', `<p class="yo">${escDegu(texto)}</p><div class="degu-dice"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><p class="pensando">Degú está mirando los datos…</p></div>`);
+  const resp = conv.lastElementChild.querySelector('p');
+  $('dpreg').value = ''; $('dpreg').disabled = $('denviar').disabled = true;
+  try {
+    if (!retoDegu || Date.now() > retoDegu.vence) { retoDegu = null; await resolverRetoDegu(); }
+    const { reto, nonce } = retoDegu || {}; retoDegu = null;
+    // como texto y no como JSON: así el navegador no pide permiso antes de mandarla
+    const r = await fetch(`${DEGU}/preguntar`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ pregunta: texto, reto, nonce, datos: datosParaDegu() }), signal: AbortSignal.timeout(60000) });
+    const d = await r.json().catch(() => ({}));
+    resp.textContent = d.respuesta || d.detalle || 'Degú no pudo contestar ahora. Vuelve a intentarlo en un momento.';
+  } catch { resp.textContent = 'No pude hablar con Degú. Revisa tu conexión y vuelve a intentarlo.'; }
+  resp.classList.remove('pensando');
+  $('dpreg').disabled = $('denviar').disabled = false;
+  while (conv.children.length > 13) conv.children[1].remove(); // el saludo y las últimas seis preguntas
+  resolverRetoDegu();
+}
+$('dchips').addEventListener('click', e => { const b = e.target.closest('button'); if (b) preguntarDegu(b.textContent); });
+$('dform').addEventListener('submit', e => { e.preventDefault(); preguntarDegu($('dpreg').value); });
+verDegu();
+setInterval(() => { if (!document.hidden) verDegu(); }, 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) verDegu(); });
 })();
 </script>
 </body>
