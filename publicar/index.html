@@ -1549,6 +1549,7 @@ function cambioDegu() {
   if ($('degu').hidden) return;
   const c = CU.find(x => x.id === sel);
   if ($('dconv').querySelector('.yo')) $('dconv').insertAdjacentHTML('beforeend', `<p class="nota">Ahora hablamos de ${escDegu(c.nombre)}</p>`);
+  $('degu').scrollTo({ top: 0 }); $('dconv').scrollTop = $('dconv').scrollHeight; // a la vista el nombre de la quebrada nueva
   verDegu();
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) verDegu(); });
