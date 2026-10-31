@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<!-- Siempre por https: por http el vigía de Degú no le contesta a la página (solo acepta orígenes https), y GitHub
+     tarda en empezar a redirigir solo. En la máquina de quien la prueba (localhost) se queda como está. -->
+<script>if (location.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) location.replace('https://' + location.host + location.pathname + location.search + location.hash);</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Riesgo de aluvión estimado</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
