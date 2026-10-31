@@ -1503,6 +1503,8 @@ const DEGU_CORRE = $('cdegu').innerHTML; // el mismo degú que corre en la app d
 const DEGU_QUIETO = '<svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg>';
 const PUNTO_DEGU = { encima: 'n3', sigue_encima: 'n3', se_acerca: 'n2', cerca: 'n2', parte: 'n1', se_fue: 'n1', despejado: 'n0' };
 const escDegu = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+// «de el Estero» → «del Estero»: el motor de producción todavía no contrae (arreglado en el motor aparte)
+const conDel = t => String(t).replace(/\bde el\b/g, 'del').replace(/\ba el\b/g, 'al');
 const kmDegu = km => String(Math.max(1, Math.round(km || 0)));
 let retoDegu = null; // { reto, nonce, vence }: se resuelve antes de que pregunten, para que la respuesta no espere
 function horaDegu(iso) {
@@ -1529,7 +1531,9 @@ function pintarAhoraDegu() {
 function ahoraDegu(a) {
   if (!a?.situacion) return '';
   const cuando = a.actualizado ? ` · ${haceDegu(a.actualizado)}` : '';
-  if (a.seguimiento) return `Ahora: ${a.seguimiento}${cuando}`; // el parte de la tormenta, minuto a minuto
+  // el parte de la tormenta, minuto a minuto; solo con rayos a menos de 40 km: más lejos, un rayo suelto a 74 km salía como
+  // «Tormenta a 74 km… recién aparece» (31-oct)
+  if (a.seguimiento && a.situacion !== 'sin_rayos') return `Ahora: ${conDel(a.seguimiento)}${cuando}`;
   if (a.situacion === 'encima') return `Ahora: tormenta encima, rayo a ${kmDegu(a.km)} km${cuando}`;
   if (a.situacion === 'cerca') return `Ahora: rayos a ${kmDegu(a.km)} km al ${a.rumbo}${cuando}`;
   return `Ahora: sin rayos a menos de 40 km${cuando}`;
@@ -1552,7 +1556,7 @@ async function verDegu() {
     $('dparte').hidden = !d.avisos.length;
     avisosDegu = d.avisos; ahoraDeguVisto = d.ahora; pintarAhoraDegu();
     $('dpsum').textContent = d.avisos.length ? `Avisos de las últimas 24 horas · ${d.avisos.length} · el último, a las ${horaDegu(d.avisos[0].hora)}` : '';
-    $('dlista').innerHTML = d.avisos.map(a => `<li><time>${horaDegu(a.hora)}</time><i style="--c:var(--${PUNTO_DEGU[a.tipo] || 'n0'})"></i><p>${escDegu(a.texto)}</p></li>`).join('');
+    $('dlista').innerHTML = d.avisos.map(a => `<li><time>${horaDegu(a.hora)}</time><i style="--c:var(--${PUNTO_DEGU[a.tipo] || 'n0'})"></i><p>${escDegu(conDel(a.texto))}</p></li>`).join('');
     const nuevo = d.avisos[0] && Date.now() - Date.parse(d.avisos[0].hora) < 15 * 60e3;
     if (nuevo && !$('dparte').dataset.visto) { $('dparte').open = true; $('dparte').dataset.visto = '1'; }
     $('degu').hidden = false;
