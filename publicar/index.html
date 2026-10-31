@@ -183,19 +183,25 @@ details.card > summary { font-size: 1.05rem }
 .aporte:hover { background: #0b2a23; color: #fff }
 .aporte svg, .dico { width: 22px; height: 22px; flex: none; border-radius: 5px }
 @media (max-width: 600px) { .acciones { display: contents } .aporte { order: -1; justify-content: center } }
-.degu { display: grid; gap: 18px; align-content: start }
-/* desde 1200 px va como columna fija a la derecha; más angosto, después del contenido principal (riesgo,
-   quebradas, mapa) y antes de los detalles técnicos */
-@media (min-width: 1200px) {
-  main:has(> #degu:not([hidden])) { grid-template-columns: minmax(0, 1fr) 370px; align-items: start }
-  main:has(> #degu:not([hidden])) > * { grid-column: 1 }
-  main:has(> #degu:not([hidden])) > :is(.cabecera, .aviso) { grid-column: 1 / -1 }
-  /* misma especificidad que la regla de arriba y escrita después: con `main > #degu` pesaba menos que el `> *` del
-     :has y Degú quedaba arriba a la izquierda, empujando todo hacia abajo (31-oct) */
-  main:has(> #degu:not([hidden])) > #degu { grid-column: 2; grid-row: 3 / span 4; position: sticky; top: 16px }
-  /* sin esto la columna, más alta que la pantalla, dejaba la caja de la pregunta fuera de alcance hasta el final de la página */
-  #degu { max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin }
-}
+/* el vigía, arriba y a lo ancho (31-oct, «Degú informante debe ir arriba»): una línea con lo de ahora y el parte plegado */
+.dvigia { padding: 12px 18px; display: grid; gap: 4px; border-left: 4px solid #0d9e81 }
+.dvigia .dcab { margin: 0 } .dvigia h2 { font-size: 1rem }
+.dvigia .dahora { margin: 0 }
+.dparte > summary { cursor: pointer; color: var(--degu-texto); font-weight: 600; font-size: .85rem; margin-top: 2px }
+.dparte[open] > summary { margin-bottom: 4px }
+/* el chat: un globito con el degú abajo a la derecha que se despliega (31-oct) */
+.degu { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 900; display: grid; justify-items: end; gap: 12px }
+.dboton { display: inline-flex; align-items: center; gap: 10px; border: 0; border-radius: 99px; padding: 8px 18px 8px 8px; background: #10352d; color: #e8f3ef;
+  font: 700 .95rem var(--display); box-shadow: 0 8px 24px -8px rgb(0 0 0 / .45); cursor: pointer }
+.dboton:hover { background: #0b2a23 } .dboton .dico { width: 40px; height: 40px; border-radius: 50% }
+.dboton[aria-expanded="true"] { padding-right: 8px } .dboton[aria-expanded="true"] span { display: none }
+.dpanel { width: min(400px, calc(100vw - 32px)); max-height: min(640px, calc(100dvh - 110px)); display: flex; flex-direction: column; padding: 0; overflow: hidden }
+.dpanel .dcab { padding: 14px 16px 10px; margin: 0; border-bottom: 1px solid var(--line) }
+.dpanel .cerrar { font: 700 1.1rem system-ui, sans-serif; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; width: 32px; height: 32px; justify-content: center; padding: 0 }
+.dpanel .dcuerpo { padding: 12px 16px 14px; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 4px; align-content: start }
+.dpanel .dconv { max-height: none; overflow: visible }
+.dpanel .dmarca { font-size: .8rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; margin-top: 6px }
+@media (max-width: 600px) { .dboton span { display: none } .dboton { padding: 8px } }
 .dcab { display: flex; align-items: center; gap: 10px; margin-bottom: 6px } .dcab h2 { margin: 0; flex: 1 }
 .envivo { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700; color: var(--degu-texto) }
 .envivo::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #0d9e81; animation: latido 2s infinite }
@@ -233,8 +239,7 @@ details.card > summary { font-size: 1.05rem }
 @keyframes dcola { 0%, 100% { transform: rotate(-3deg) } 50% { transform: rotate(7deg) } }
 @media (prefers-reduced-motion: reduce) { .dcorre * { animation: none !important } }
 .degu-dice.piensa p { color: var(--muted) }
-/* la conversación crece hacia arriba y se desplaza sola: antes empujaba la caja de la pregunta fuera de la pantalla */
-.dconv { max-height: min(52vh, 460px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px }
+.dconv { padding-right: 4px }
 .dconv .nota { justify-self: center; font-size: .8rem; color: var(--muted) }
 /* mientras se calcula: sin datos, cubre el indicador; con los de antes a la vista, una franja arriba que dice de cuándo son */
 .cargando { display: none; position: absolute; inset: 0; z-index: 3; place-content: center; justify-items: center; gap: 12px; padding: 16px; text-align: center; font-weight: 600; background: color-mix(in srgb, var(--panel) 82%, transparent) }
@@ -294,6 +299,12 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
     d.showModal();
   })();
   </script>
+
+  <section class="card dvigia" id="dvigia" aria-labelledby="dvtit" hidden title="Degú mira los rayos del satélite cada minuto y escribe aquí cuando algo cambia.">
+    <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dvtit">Degú vigila la quebrada</h2><span class="envivo">en vivo</span></div>
+    <p class="dahora" id="dahora"></p>
+    <details class="dparte" id="dparte" hidden><summary id="dpsum">Parte de las últimas 24 horas</summary><ol class="dlista" id="dlista"></ol></details>
+  </section>
 
   <nav class="card selector" aria-label="Elige tu quebrada">
     <p class="sub" style="margin-bottom:8px"><b>Elige tu quebrada</b> · riesgo ahora, de 0 a 10</p>
@@ -370,7 +381,7 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
           <li><i style="--c:rgb(230,255,0)"></i><b>Amarillo:</b> cimas muy altas (−46 a −54 °C): tormenta fuerte.</li>
           <li><i style="--c:linear-gradient(90deg, rgb(255,153,0), rgb(255,26,0))"></i><b>Naranjo y rojo:</b> bajo −54 °C: tormenta muy fuerte.</li>
         </ul>
-        <p>La imagen llega con 30 a 50 min de atraso, y el color solo no dice si hay tormenta: la página la cuenta cuando caen rayos encima.</p>
+        <p>Las imágenes más nuevas son de NOAA y llegan con 10 a 20 min de atraso (solo sobre Santiago); las anteriores, de NASA, con 30 a 50. El color solo no dice si hay tormenta: la página la cuenta cuando caen rayos encima.</p>
         <p><i style="--c:transparent;outline:3px solid #ff1a1a;outline-offset:-3px"></i><b>Borde rojo:</b> la quebrada elegida. Cada quebrada va pintada con el color de su riesgo de hoy.</p>
       </details>
     </section>
@@ -383,14 +394,9 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
   </div>
 
   <aside id="degu" class="degu" aria-label="Degú" hidden>
-    <section class="card dvigia" aria-labelledby="dvtit">
-      <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dvtit">Degú vigila la quebrada</h2><span class="envivo">en vivo</span></div>
-      <p class="sub">Mira los rayos del satélite cada minuto y escribe aquí cuando algo cambia.</p>
-      <p class="dahora" id="dahora"></p>
-      <ol class="dlista" id="dlista"></ol>
-    </section>
-    <section class="card dchat" aria-labelledby="dctit">
-      <div class="dcab"><h2 id="dctit">Pregúntale a Degú</h2></div>
+    <section class="card dchat dpanel" id="dpanel" aria-labelledby="dctit" hidden>
+      <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dctit">Pregúntale a Degú</h2><button type="button" class="cerrar" id="dcerrar" aria-label="Cerrar el chat">×</button></div>
+      <div class="dcuerpo" id="dcuerpo">
       <p class="sub">Solo sobre aluviones y clima en Chile.</p>
       <div class="dconv" id="dconv" aria-live="polite">
         <div class="degu-dice"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><p>Hola, soy Degú. Pregúntame por el riesgo, la lluvia o las tormentas de la quebrada.</p></div>
@@ -406,12 +412,10 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
         <div><input id="dpreg" type="text" maxlength="300" autocomplete="off" placeholder="¿Puedo subir al cerro mañana temprano?"><button type="submit" id="denviar" aria-label="Enviar pregunta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
       </form>
       <p class="sub dnota">Degú puede equivocarse. Ante cualquier alerta, sigue siempre lo que indiquen las autoridades (Senapred).</p>
+      <p class="dmarca">Hecho con <b>Degú</b>, la plataforma de IA para empresas y profesionales. Aquí vigila la quebrada gratis, para ayudar a la comunidad. <a href="https://getdegu.com" target="_blank" rel="noopener">Conoce Degú →</a></p>
+      </div>
     </section>
-    <section class="card dmarca" aria-labelledby="dmtit">
-      <div class="dcab"><svg class="dico grande" aria-hidden="true"><use href="#degu-ico"/></svg><div><span>Hecho con</span><h2 id="dmtit">Degú</h2></div></div>
-      <p>Degú es la plataforma de IA para empresas y profesionales: lee tus documentos, cruza tus datos y trabaja contigo. Aquí vigila la quebrada gratis, para ayudar a la comunidad.</p>
-      <a href="https://getdegu.com" target="_blank" rel="noopener">Conoce Degú →</a>
-    </section>
+    <button type="button" class="dboton" id="dboton" aria-expanded="false" aria-controls="dpanel"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><span>Pregúntale a Degú</span></button>
   </aside>
 
   <section class="card curiosos" aria-labelledby="ctit">
@@ -472,7 +476,7 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
     <ul class="sub">
       <li><b>Avisos oficiales (mandan sobre esta página):</b> <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">lluvia diaria en Tobalaba</a>.</li>
       <li><b>Pronóstico del tiempo:</b> <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, que entrega los pronósticos de los centros de Europa (ECMWF y ECMWF-IA), Alemania (ICON), EE.UU. (GFS), Canadá (GEM) y Reino Unido (UKMO), con unos 200 escenarios en total.</li>
-      <li><b>Nubes en vivo:</b> satélite GOES-19 de NOAA, canal infrarrojo, que toma una imagen cada 10 min. Los datos de arriba (tormenta encima, hacia dónde va la nube) se leen del archivo original en <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>, que llega unos 10 min después de cada imagen; la página baja solo la franja de Santiago. El mapa usa las imágenes de <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>, que llegan con 30 a 40 min de atraso (y si NOAA falla, la página usa GIBS con su <a href="https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml" target="_blank" rel="noopener">tabla de colores</a>).</li>
+      <li><b>Nubes en vivo:</b> satélite GOES-19 de NOAA, canal infrarrojo, que toma una imagen cada 10 min. Los datos de arriba (tormenta encima, hacia dónde va la nube) se leen del archivo original en <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>, que llega unos 10 min después de cada imagen; la página baja solo la franja de Santiago. El mapa muestra esas mismas imágenes de NOAA cuando son más nuevas (10 a 20 min de atraso, sobre Santiago) y, para el resto, las de <a href="https://nasa-gibs.github.io/gibs-api-docs/" target="_blank" rel="noopener">NASA GIBS</a>, que llegan con 30 a 40 min de atraso (y si NOAA falla, la página usa GIBS con su <a href="https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwave_Infrared_Window_Band.xml" target="_blank" rel="noopener">tabla de colores</a>).</li>
       <li><b>Rayos en vivo:</b> detector de rayos del GOES-19 (GLM), leído directo de <a href="https://registry.opendata.aws/noaa-goes/" target="_blank" rel="noopener">NOAA en AWS</a>: un archivo cada 20 s con la ubicación de cada rayo; la página baja solo esa parte (unos 30 KB por archivo). Si NOAA falla, usa las imágenes de <a href="https://realearth.ssec.wisc.edu/" target="_blank" rel="noopener">RealEarth</a> de la Universidad de Wisconsin. Un rayo sobre la quebrada o a menos de unos 7 km de su borde cuenta como tormenta encima (el satélite ubica cada rayo con ~5 km de error). Llega con unos 2 a 5 min de atraso.</li>
       <li><b>Cómo responde un cerro quemado a la lluvia:</b> la fórmula del Servicio Geológico de EE.UU. para aluviones después de incendios, de Staley y otros (2017), <i>Geomorphology</i> 278: 149-162 (<a href="https://doi.org/10.1016/j.geomorph.2016.10.019" target="_blank" rel="noopener">artículo</a> · <a href="https://www.usgs.gov/programs/landslide-hazards/science/postfire-debris-flow-hazards" target="_blank" rel="noopener">cómo la usa el USGS</a>).</li>
       <li><b>Cuánto llueve en pocos minutos:</b> Bell (1969), la relación entre la lluvia de 15, 30 y 60 minutos.</li>
@@ -684,7 +688,7 @@ map.fitBounds(L.featureGroup(Object.values(poligonos)).getBounds().pad(0.15));
 
 const GIBS = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best', BAS = [-33.43, -70.50];
 const CAPAS = { ir: ['GOES-East_ABI_Band13_Clean_Infrared', 'GoogleMapsCompatible_Level6', 6, 0.7], geo: ['GOES-East_ABI_GeoColor', 'GoogleMapsCompatible_Level7', 7, 0.8] };
-let frames = [], capa = 'ir', idx = 0, timer = null, layers = [], satelite = null;
+let frames = [], capa = 'ir', idx = 0, timer = null, layers = [], satelite = null, GOES = null, capasNOAA = [];
 const iso = t => new Date(t * 1000).toISOString().slice(0, 19) + 'Z';
 const wmsUrl = (capaGibs, px, r, t) => `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=${capaGibs}&CRS=EPSG:4326&FORMAT=image/png&WIDTH=${px}&HEIGHT=${px}&BBOX=${BAS[0] - r},${BAS[1] - r},${BAS[0] + r},${BAS[1] + r}&TIME=${iso(t)}`;
 async function pixeles(url, px) { // con plazo: GIBS a veces deja colgada la imagen que aún está procesando
@@ -715,10 +719,50 @@ async function cargarNubes() {
   frames = Array.from({ length: 10 }, (_, k) => t0 - (9 - k) * 1200);
   layers = frames.map(t => L.tileLayer(`${GIBS}/${nom}/default/${iso(t)}/${tms}/{z}/{y}/{x}.png`, { maxNativeZoom: maxN, maxZoom: 14, opacity: 0 }).addTo(map));
   mostrar(frames.length - 1);
+  agregarNOAA();
+}
+// Las imágenes de NASA llegan con 30 a 50 min de atraso, y las de NOAA, que la página ya lee para calcular, con 10 a 20
+// (31-oct: «40 o más minutos es mucho»). Las de NOAA más nuevas que la última de NASA se pintan con la misma tabla de
+// colores y van al final de la animación. Cubren 3° × 3° alrededor de Santiago, que es lo que se baja para calcular.
+let LUT_IR = null;
+async function lutIR() { // de −100 a +60 °C, cada 0,25 °C: el color de la tabla de NASA más cercano
+  if (LUT_IR) return LUT_IR;
+  const tabla = await TEMP; if (!tabla?.pal) return null;
+  const lut = new Uint8ClampedArray(641 * 3);
+  for (let k = 0; k <= 640; k++) {
+    const t = -100 + k / 4; let mejor = tabla.pal[0], d = Infinity;
+    for (const e of tabla.pal) { const x = Math.abs(e[3] - t); if (x < d) { d = x; mejor = e; } }
+    lut.set(mejor.slice(0, 3), k * 3);
+  }
+  return (LUT_IR = lut);
+}
+function imagenIR(T, lut) {
+  const N = 150, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const cx = cv.getContext('2d'), img = cx.createImageData(N, N);
+  for (let p = 0; p < N * N; p++) {
+    const t = T[p]; if (!(t === t)) continue; // sin dato: transparente
+    const k = Math.max(0, Math.min(640, Math.round((t + 100) * 4))) * 3;
+    img.data[4 * p] = lut[k]; img.data[4 * p + 1] = lut[k + 1]; img.data[4 * p + 2] = lut[k + 2]; img.data[4 * p + 3] = 255;
+  }
+  cx.putImageData(img, 0, 0);
+  return cv.toDataURL();
+}
+async function agregarNOAA() {
+  capasNOAA.forEach(l => { map.removeLayer(l); const j = layers.indexOf(l); if (j >= 0) { layers.splice(j, 1); frames.splice(j, 1); } });
+  capasNOAA = [];
+  if (capa !== 'ir' || !GOES || !frames.length) return;
+  const lut = await lutIR(); if (!lut || capa !== 'ir') return;
+  const ultima = frames.at(-1), caja = [[BAS[0] - 1.5, BAS[1] - 1.5], [BAS[0] + 1.5, BAS[1] + 1.5]];
+  for (const [t, T] of [[GOES.t1 - 2400, GOES.C], [GOES.t1 - 1200, GOES.A], [GOES.t1, GOES.B]]) {
+    if (!T || t <= ultima) continue;
+    const l = L.imageOverlay(imagenIR(T, lut), caja, { opacity: 0 }).addTo(map);
+    capasNOAA.push(l); layers.push(l); frames.push(t);
+  }
+  if (!timer) mostrar(frames.length - 1);
 }
 function mostrar(k) {
   idx = k; layers.forEach((l, j) => l.setOpacity(j === k ? CAPAS[capa][3] : 0));
-  if (frames[k]) $('frame').textContent = 'Imagen de las ' + hora(frames[k]);
+  if (frames[k]) $('frame').textContent = 'Imagen de las ' + hora(frames[k]) + (capasNOAA.includes(layers[k]) ? ' · NOAA, sobre Santiago' : ' · NASA');
 }
 $('play').onclick = () => {
   if (timer) { clearInterval(timer); timer = null; $('play').textContent = '▶ Animar últimas 3 h'; mostrar(frames.length - 1); return; }
@@ -809,11 +853,13 @@ const TEMP = fetch('https://gibs.earthdata.nasa.gov/colormaps/v1.3/Clean_Longwav
   }
   // la imagen achicada mezcla tonos (solo ~1/3 de los píxeles trae un color exacto de la tabla): se usa el más parecido
   const cache = new Map();
-  return (r, g, b) => {
+  const tabla = (r, g, b) => {
     const k = (r << 16) | (g << 8) | b; let t = cache.get(k);
     if (t === undefined) { let d = Infinity; for (const [pr, pg, pb, v] of pal) { const e = (pr - r) ** 2 + (pg - g) ** 2 + (pb - b) ** 2; if (e < d) { d = e; t = v; } } cache.set(k, t); }
     return t;
   };
+  tabla.pal = pal; // la misma tabla, al revés, pinta las imágenes de NOAA (`lutIR`)
+  return tabla;
 }).catch(() => null);
 // Hacia dónde va la nube de lluvia y cuánto de cada cuenca cubre (cimas bajo −40 °C).
 // Movimiento: cuánto se corrió el centro de la masa fría en 40 min, a menos de 120 km. El 20-oct la búsqueda en bloque
@@ -1046,7 +1092,7 @@ async function framesGOES() { // la última imagen y las de 20 y 40 min antes
 }
 async function medirSatelite() {
   const g = await framesGOES().catch(e => (console.warn('GOES directo', e.message), null));
-  if (g) { const s = await leerSatelite(g.t1, g.B); s.mov = await leerMovimiento(g.t1, g); s.fuente = 'NOAA'; return s; }
+  if (g) { GOES = g; agregarNOAA(); const s = await leerSatelite(g.t1, g.B); s.mov = await leerMovimiento(g.t1, g); s.fuente = 'NOAA'; return s; }
   // El GOES toma una imagen cada 10 min y GIBS la publica ~30 min después. Cada vez se busca la más nueva (sin el margen
   // de 10 min de antes) y gana la primera que llegue completa; antes se leían los cuadros del mapa del ciclo
   // anterior y el dato quedaba 10-20 min más viejo de lo necesario (20-oct: a las 19:13 mostraba 18:20 con 18:40 publicada).
@@ -1469,9 +1515,16 @@ function horaDegu(iso) {
   const t = d.toLocaleTimeString('es-CL', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   return dia(d) === dia(new Date()) ? t : `ayer ${t}`; // los avisos son de las últimas 24 horas
 }
+// «revisado hace 2 min» y no «a las 15:51»: con la hora sola parecía que no se movía (31-oct, «actualiza cada demasiado tiempo»)
+function haceDegu(iso) {
+  const min = Math.floor((Date.now() - Date.parse(iso)) / 60000);
+  return min < 1 ? 'revisado recién' : min < 60 ? `revisado hace ${min} min` : `revisado a las ${horaDegu(iso)}`;
+}
+let ahoraDeguVisto = null;
+const pintarAhoraDegu = () => { $('dahora').textContent = ahoraDegu(ahoraDeguVisto) + ($('dparte').hidden ? ' · sin avisos en las últimas 24 horas' : ''); };
 function ahoraDegu(a) {
   if (!a?.situacion) return '';
-  const cuando = a.actualizado ? ` · revisado a las ${horaDegu(a.actualizado)}` : '';
+  const cuando = a.actualizado ? ` · ${haceDegu(a.actualizado)}` : '';
   if (a.seguimiento) return `Ahora: ${a.seguimiento}${cuando}`; // el parte de la tormenta, minuto a minuto
   if (a.situacion === 'encima') return `Ahora: tormenta encima, rayo a ${kmDegu(a.km)} km${cuando}`;
   if (a.situacion === 'cerca') return `Ahora: rayos a ${kmDegu(a.km)} km al ${a.rumbo}${cuando}`;
@@ -1487,17 +1540,20 @@ async function verDegu() {
     const d = await r.json();
     if (pedida !== sel) return; // cambiaron de quebrada mientras llegaba
     $('dvtit').textContent = `Degú vigila ${d.nombre}`;
-    // sin el vigía de las 15, la tarjeta de los rayos solo va con la Honda: con otra elegida, decía «vigila la Quebrada
+    // sin el vigía de las 15, la franja de los rayos solo va con la Honda: con otra elegida, decía «vigila la Quebrada
     // Honda» arriba de esa otra (31-oct). El chat sigue y contesta sobre la elegida.
-    document.querySelector('.dvigia').hidden = !todas && sel !== 'honda';
-    $('dahora').textContent = ahoraDegu(d.ahora);
-    $('dlista').innerHTML = d.avisos.length
-      ? d.avisos.map(a => `<li><time>${horaDegu(a.hora)}</time><i style="--c:var(--${PUNTO_DEGU[a.tipo] || 'n0'})"></i><p>${escDegu(a.texto)}</p></li>`).join('')
-      : '<li class="vacio">Sin avisos en las últimas 24 horas: no hubo tormentas con rayos cerca.</li>';
+    $('dvigia').hidden = !todas && sel !== 'honda';
+    // el parte, plegado; se abre solo si hay un aviso de la última hora (una tormenta en curso)
+    $('dparte').hidden = !d.avisos.length;
+    ahoraDeguVisto = d.ahora; pintarAhoraDegu();
+    $('dpsum').textContent = `Parte de las últimas 24 horas · ${d.avisos.length} ${d.avisos.length === 1 ? 'aviso' : 'avisos'}`;
+    $('dlista').innerHTML = d.avisos.map(a => `<li><time>${horaDegu(a.hora)}</time><i style="--c:var(--${PUNTO_DEGU[a.tipo] || 'n0'})"></i><p>${escDegu(a.texto)}</p></li>`).join('');
+    const nuevo = d.avisos[0] && Date.now() - Date.parse(d.avisos[0].hora) < 3600e3;
+    if (nuevo && !$('dparte').dataset.visto) { $('dparte').open = true; $('dparte').dataset.visto = '1'; }
     $('degu').hidden = false;
     if (!retoDegu) resolverRetoDegu();
   } catch (e) {
-    if (!$('degu').hidden) $('dahora').textContent = 'No pude hablar con Degú hace un momento: reintento en un minuto.';
+    if (!$('dvigia').hidden) $('dahora').textContent = 'No pude hablar con Degú hace un momento: reintento en 30 segundos.';
   }
 }
 const cerosDegu = (b, bits) => { for (let i = 0; i < bits; i++) if (b[i >> 3] & (0x80 >> (i & 7))) return false; return true; };
@@ -1534,7 +1590,7 @@ async function preguntarDegu(texto) {
   $('dchips').hidden = true; // las sugeridas son para empezar: con la conversación andando estorbaban la lectura
   conv.insertAdjacentHTML('beforeend', `<p class="yo">${escDegu(texto)}</p><div class="degu-dice piensa">${DEGU_CORRE}<p>Degú está mirando los datos</p></div>`);
   const caja = conv.lastElementChild, resp = caja.querySelector('p');
-  conv.scrollTop = conv.scrollHeight;
+  $('dcuerpo').scrollTop = $('dcuerpo').scrollHeight;
   $('dpreg').value = ''; $('dpreg').disabled = $('denviar').disabled = true;
   try {
     if (!retoDegu || Date.now() > retoDegu.vence) { retoDegu = null; await resolverRetoDegu(); }
@@ -1547,7 +1603,7 @@ async function preguntarDegu(texto) {
     if (d.respuesta) historialDegu.push({ pregunta: texto, respuesta: d.respuesta });
   } catch { resp.textContent = 'No pude hablar con Degú. Revisa tu conexión y vuelve a intentarlo.'; }
   caja.classList.remove('piensa'); caja.querySelector('.dcorre').outerHTML = DEGU_QUIETO;
-  conv.scrollTop = conv.scrollHeight;
+  $('dcuerpo').scrollTop = $('dcuerpo').scrollHeight;
   $('dpreg').disabled = $('denviar').disabled = false;
   while (conv.children.length > 15) conv.children[1].remove(); // el saludo y las últimas preguntas
   resolverRetoDegu();
@@ -1555,13 +1611,23 @@ async function preguntarDegu(texto) {
 $('dchips').addEventListener('click', e => { const b = e.target.closest('button'); if (b) preguntarDegu(b.textContent); });
 $('dform').addEventListener('submit', e => { e.preventDefault(); preguntarDegu($('dpreg').value); });
 verDegu();
-setInterval(() => { if (!document.hidden) verDegu(); }, 60 * 1000);
+setInterval(() => { if (!document.hidden) verDegu(); }, 30 * 1000); // el vigía revisa cada minuto: a 30 s, la página no le agrega otro
+setInterval(() => { if (ahoraDeguVisto && !$('dvigia').hidden) pintarAhoraDegu(); }, 15 * 1000); // el «hace N min» avanza solo
+// el globito: abre y cierra el chat
+function abrirDegu(abre) {
+  $('dpanel').hidden = !abre; $('dboton').setAttribute('aria-expanded', String(abre));
+  $('dboton').setAttribute('aria-label', abre ? 'Cerrar el chat de Degú' : 'Pregúntale a Degú');
+  if (abre) { $('dcuerpo').scrollTop = $('dcuerpo').scrollHeight; $('dpreg').focus({ preventScroll: true }); }
+}
+$('dboton').addEventListener('click', () => abrirDegu($('dpanel').hidden));
+$('dcerrar').addEventListener('click', () => { abrirDegu(false); $('dboton').focus(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('dpanel').hidden) { abrirDegu(false); $('dboton').focus(); } });
 // al cambiar de quebrada, Degú pasa a esa: su parte, y las preguntas que siguen (`elegir`)
 function cambioDegu() {
   if ($('degu').hidden) return;
   const c = CU.find(x => x.id === sel);
   if ($('dconv').querySelector('.yo')) $('dconv').insertAdjacentHTML('beforeend', `<p class="nota">Ahora hablamos de ${escDegu(c.nombre)}</p>`);
-  $('degu').scrollTo({ top: 0 }); $('dconv').scrollTop = $('dconv').scrollHeight; // a la vista el nombre de la quebrada nueva
+  $('dcuerpo').scrollTop = $('dcuerpo').scrollHeight;
   verDegu();
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) verDegu(); });
