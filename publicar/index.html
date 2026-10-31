@@ -633,12 +633,20 @@ const horaDe = (o, i) => o.hora[i];
 const unoEnH = p => unoEn(p).replace('días', 'horas como esta').replace('de los días', 'de las horas');
 // qué hacer, según el nivel de AHORA. Sin repetir lo que ya está a la vista (31-oct, «repetitiva»): el «1 de cada N horas»
 // va arriba junto al número, la hora más peligrosa en la curva y mañana en «Próximos días»
+// el nombre con su artículo y sus contracciones: «la quebrada Honda», «las quebradas de Chicureo», «el estero El Arrayán»
+// (31-oct: se leía «Ahora en la Estero El Arrayán» y «junto a la Estero»)
+function lugar(nombre) {
+  const m = nombre.match(/^(Quebradas|Quebrada|Estero) (.*)$/), n = m ? `${m[1].toLowerCase()} ${m[2]}` : nombre;
+  const art = m?.[1] === 'Quebradas' ? 'las' : m?.[1] === 'Estero' ? 'el' : 'la';
+  return { el: `${art} ${n}`, del: art === 'el' ? `del ${n}` : `de ${art} ${n}`, al: art === 'el' ? `al ${n}` : `a ${art} ${n}`,
+    todo: art === 'el' ? `todo el ${n}` : art === 'las' ? `todas las ${n}` : `toda la ${n}` };
+}
 function queHacer(n, P, cu, rayos) {
-  const q = cu.nombre.replace(/^Quebradas? /, 'quebrada ');
+  const L = lugar(cu.nombre);
   const ahora = rayos ? 'ahora, mientras caigan rayos encima' : 'ahora';
-  if (n === 'n4') return `<b>Riesgo muy alto.</b> Si vives junto a la ${q}, sal ahora y vuelve cuando pase. Sigue las instrucciones de Senapred.`;
-  if (n === 'n3') return `<b>Riesgo alto.</b> Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo ${ahora}. Sigue las instrucciones de Senapred.`;
-  if (n === 'n2') return `<b>Puede pasar.</b> Evita las calles y pasajes por donde baja el agua de la ${q}, y atento a lo que diga Senapred.`;
+  if (n === 'n4') return `<b>Riesgo muy alto.</b> Si vives junto ${L.al}, sal ahora y vuelve cuando pase. Sigue las instrucciones de Senapred.`;
+  if (n === 'n3') return `<b>Riesgo alto.</b> Si vives junto ${L.al}, ten lista una salida y evita las calles por donde baja el agua, sobre todo ${ahora}. Sigue las instrucciones de Senapred.`;
+  if (n === 'n2') return `<b>Puede pasar.</b> Evita las calles y pasajes por donde baja el agua ${L.del}, y atento a lo que diga Senapred.`;
   return `<b>${n === 'n0' ? 'Muy poco probable' : 'Poco probable'} ahora${escala(P) < 3 ? ': es muy raro que baje un aluvión en una hora así' : ''}.</b> Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
 }
 const quant = (a, q) => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
@@ -1163,14 +1171,14 @@ function pintarReporte() {
   // cota de nieve: ya entra al cálculo (paso 1: solo cuenta la lluvia que cae bajo la cota); aquí se muestra en simple
   const iso = o.iso?.[0], liq = o.liq?.[0], llueve = ini === 0 || ini === 1;
   if (iso != null && isFinite(iso)) {
-    const cota = Math.round((iso - PAR.nieve) / 100) * 100, techo = c.hyp[20], q = c.nombre.replace(/^Quebradas? /, 'quebrada ');
-    const txt = liq >= 0.99 ? `Nieva sobre ~${fmt(cota)} m: toda la ${q} (hasta ${fmt(techo)} m) recibe lluvia, no nieve.`
-      : liq <= 0.01 ? `Nieva sobre ~${fmt(cota)} m: en toda la ${q} caería nieve, que no arrastra barro de inmediato.`
-      : `Nieva sobre ~${fmt(cota)} m: el ${fmt(liq * 100)} % de la ${q} recibe lluvia; más arriba cae nieve.`;
+    const cota = Math.round((iso - PAR.nieve) / 100) * 100, techo = c.hyp[20], L = lugar(c.nombre);
+    const txt = liq >= 0.99 ? `Nieva sobre ~${fmt(cota)} m: ${L.todo} (hasta ${fmt(techo)} m) recibe lluvia, no nieve.`
+      : liq <= 0.01 ? `Nieva sobre ~${fmt(cota)} m: en ${L.todo} caería nieve, que no arrastra barro de inmediato.`
+      : `Nieva sobre ~${fmt(cota)} m: el ${fmt(liq * 100)} % ${L.del} recibe lluvia; más arriba cae nieve.`;
     tarjeta('❄️', 'Cota de nieve', liq >= 0.99 && llueve ? 'warn' : 'ok', liq >= 0.99 ? 'todo lluvia' : liq <= 0.01 ? 'todo nieve' : 'parte nieve', txt,
       `Isoterma 0 °C a ~${fmt(Math.round(iso / 100) * 100)} m (GFS). Cuanto más alta, más cerro recibe lluvia: en el aluvión de Macul de 1993 subió a 3.000-4.000 m.`);
   }
-  $('atit').textContent = `Ahora en la ${c.nombre.replace(/^Quebradas? /, 'quebrada ')}`;
+  $('atit').textContent = `Ahora en ${lugar(c.nombre).el}`;
   if (R && llegada?.t !== antes) hoy(); // la curva marca la tormenta que viene
   const tt = items.find(t => t.tit === 'Tormenta'), rr = items.find(t => t.tit === 'Rayos');
   if (tt || rr) { $('cerca').textContent = [`${c.nombre}.`, tt && `Tormenta: ${tt.txt}`, rr && `Rayos: ${rr.txt}`].filter(Boolean).join(' '); $('cerca').classList.toggle('alerta', [tt, rr].some(t => t?.est === 'bad' || t?.est === 'warn')); }
