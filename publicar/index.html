@@ -132,10 +132,7 @@ main { gap: 18px }
 h2 { font-size: 1.08rem }
 .cabecera { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; padding: 2px }
 .marca { display: flex; gap: 12px; align-items: center } .logo { width: 44px; height: 44px; flex: none }
-.cabecera h1 { font-size: 1.55rem } .cabecera #upd, .cabecera .enlaces { grid-column: 1 / -1 }
-.enlaces { display: flex; flex-wrap: wrap; gap: 6px }
-.enlaces a { font-size: .8rem; text-decoration: none; padding: 4px 11px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line); color: var(--fg) }
-.enlaces a:hover { border-color: var(--accent); color: var(--accent) }
+.cabecera h1 { font-size: 1.55rem }
 .aviso { border: 0; border-left: 4px solid var(--warn); background: color-mix(in srgb, var(--warn) 9%, var(--panel)); border-radius: 12px; font-size: .82rem; line-height: 1.45 }
 @media (max-width: 600px) { .cabecera { grid-template-columns: 1fr } .cabecera .ayuda { justify-self: start } .cabecera h1 { font-size: 1.35rem } }
 .qchip { border-radius: 12px; transition: border-color .15s, transform .15s } .qchip:hover { transform: translateY(-1px); border-color: var(--muted) }
@@ -160,6 +157,24 @@ h2 { font-size: 1.08rem }
 .tiles { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) }
 @media (max-width: 900px) { #map { height: 420px } }
 details.card > summary { font-size: 1.05rem }
+/* ---------- rediseño (31-oct): menos texto repetido, todo lo secundario plegado y el color del nivel donde se mira ---------- */
+.aviso { padding: 9px 14px; font-size: .84rem } .aviso .volver { font-size: .84rem; margin-left: 2px }
+#upd:empty { display: none }
+.hero { background: linear-gradient(180deg, color-mix(in srgb, var(--sev, var(--line)) 9%, var(--panel)) 0, var(--panel) 260px) }
+.qchip { border-top: 4px solid var(--c, var(--line)); padding-top: 7px }
+.qchip[aria-pressed="true"] { background: color-mix(in srgb, var(--c, var(--line)) 10%, var(--panel)); box-shadow: inset 0 0 0 1.5px var(--c, var(--fg)); border-color: var(--c, var(--fg)) }
+.leyenda > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: .85rem }
+.leyenda[open] > summary { margin-bottom: 6px }
+/* «para curiosos»: una sola tarjeta con sus secciones plegadas, en vez de cinco tarjetas seguidas */
+.curiosos > h2 { margin-bottom: 4px }
+.curiosos > details { border-top: 1px solid var(--line); padding: 12px 0 }
+.curiosos > details:last-child { padding-bottom: 0 }
+.curiosos > details > summary { cursor: pointer; font: 700 .98rem var(--display); list-style: none }
+.curiosos > details > summary::-webkit-details-marker { display: none }
+.curiosos > details > summary::before { content: '▸ '; color: var(--muted) }
+.curiosos > details[open] > summary { margin-bottom: 12px }
+.curiosos > details[open] > summary::before { content: '▾ ' }
+.pie { text-align: center; color: var(--muted); font-size: .82rem; padding: 6px 12px 0 } .pie p { max-width: 70ch; margin: 0 auto }
 /* ---------- Degú (28-oct): «Un aporte de Degú» arriba y su columna, con el vigía de la quebrada y el chat ---------- */
 :root { --degu-texto: #0a7a64; --degu-boton: #0a7a64 }
 @media (prefers-color-scheme: dark) { :root { --degu-texto: #5fd3b5; --degu-boton: #0d9e81 } }
@@ -240,7 +255,7 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="degu-ico" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="236" fill="#0d9e81"/><svg x="178.1" y="311.5" width="667.7" height="401" viewBox="48.1 -619 830.9 499" fill="#fff"><path d="M482-120q-96 0-165-62t-77-154C239.3-356 239.1-376 242-396q13-88 79.1-146T475-600q21.36 0 42.18 3t37.82 9q8-3 15.98-5.29 7.99-2.28 16.5-4Q596-599 604-599.5t17.11-.5q73.89 0 126.39 51.5T800-423v12q0 7-2 15l36 35q22 21 33.5 46.5t11.5 54.67q0 58.35-40 99.09T741-120H482Zm0-60h257q32 0 56.5-24t24.5-56q0-16.34-7-30.17Q806-304 792-318l-59-58q4-12 5.5-23.5T740-422q0-49-34.51-83.5T621-540q-46 0-78.5 33.35T510-425q0 21.05 6 40.53Q522-365 535-349l-42 42q-23-24-33-55.4T450-427q0-31.27 10-60.14Q470-516 490-539q-8-2-13.5-1.5t-10.5.5q-67 0-117.5 55T298-357q0 35.87 14.5 67.93Q327-257 352.45-232.65q25.45 24.34 59 38.5Q445-180 482-180ZM559-390Z"/><path d="M256.8 -387.4A22 22 0 0 1 267.2 -344.6C245.8 -339.4 223.4 -336 203.5 -335.8C183.3 -335.5 161.9 -338.6 144.7 -345.6C127.3 -352.7 109.6 -366.1 98.2 -382.8C87.1 -398.9 78.9 -422.1 76.1 -447.6L76.1 -447.6C34.8 -494.4 41.9 -563.6 79.6 -619C128.4 -573 150.1 -507 119.9 -452.4L119.9 -452.4C122.1 -431.9 126.6 -419.1 134.5 -407.7C141.9 -396.9 149.2 -391.3 161.3 -386.4C173.6 -381.4 186.2 -379.5 202.9 -379.7C219.8 -380 237.2 -382.6 256.8 -387.4Z"/><circle cx="680" cy="-280" r="30"/></svg></symbol></svg>
 <dialog id="bienvenida" class="ventana" aria-labelledby="btit">
   <h2 id="btit">Bienvenido/a a la escala de riesgo de aluvión</h2>
-  <p id="btxt"></p>
+  <p id="btxt"><b>Proyecto aficionado e independiente, sin carácter oficial.</b> La información es solo referencial, puede contener errores y no se garantiza su exactitud. Se actualiza sola cada 5 minutos con los pronósticos y el satélite más nuevos, así que el riesgo de mañana y de los días siguientes puede cambiar. <b>Las alertas oficiales las emite Senapred: sigue siempre sus indicaciones y las de las autoridades.</b></p>
   <p>Es un proyecto de código abierto: el código, los datos y el método están en <a href="https://github.com/nmonge83/predictor-aluviones" target="_blank" rel="noopener">GitHub</a>.</p>
   <form method="dialog"><button value="ok" autofocus>Aceptar</button></form>
 </dialog>
@@ -258,24 +273,22 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
     <div class="marca">
       <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="var(--accent)"/><path d="M5 31 L15 14 L20 21 L25 15 L35 31 Z" fill="var(--panel)" opacity=".95"/><path d="M20 23c0 0-3.2 3.6-3.2 5.6a3.2 3.2 0 0 0 6.4 0C23.2 26.6 20 23 20 23z" fill="var(--accent)"/></svg>
       <div><h1>Riesgo de aluvión estimado</h1>
-        <p class="sub">proyecto aficionado e independiente · precordillera de Santiago</p></div>
+        <p class="sub">Precordillera de Santiago · 15 quebradas · proyecto independiente</p></div>
     </div>
     <div class="acciones">
       <a class="aporte" href="https://getdegu.com" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#degu-ico"/></svg><span>Un aporte de <b>Degú</b></span></a>
       <button type="button" class="ayuda" data-abre="pop-escala">¿Cómo funciona la escala?</button>
     </div>
-    <p class="sub" id="upd">Descargando pronósticos de 6 centros meteorológicos para 15 quebradas…</p>
-    <nav class="enlaces" aria-label="Más información"><a href="#metodo">Cómo se calcula</a><a href="#validacion">¿Funciona?</a><a href="#fuentes">Fuentes</a><a href="#creditos">Créditos</a></nav>
   </header>
-  <p class="aviso" role="note"><b>Proyecto aficionado e independiente, sin carácter oficial.</b> La información es solo referencial, puede contener errores y no se garantiza su exactitud. Se actualiza sola cada 5 minutos con los pronósticos y el satélite más nuevos, así que el riesgo de mañana y de los días siguientes puede cambiar. <b>Las alertas oficiales las emite Senapred: sigue siempre sus indicaciones y las de las autoridades.</b></p>
+  <p class="aviso" role="note"><b>Referencial, sin carácter oficial:</b> puede tener errores y cambia con cada pronóstico. <b>Las alertas oficiales las emite Senapred</b>: sigue siempre sus indicaciones. <button type="button" class="volver" data-abre="bienvenida">Leer el aviso completo</button></p>
   <script>
-  // los botones con data-abre abren su ventana; va aquí arriba para que respondan aunque se toquen mientras carga la página
+  // los botones con data-abre abren su ventana; va aquí arriba para que respondan aunque se toquen mientras carga la página.
+  // La franja corta abre la de bienvenida, que tiene el aviso entero
   document.addEventListener('click', e => { const b = e.target.closest?.('[data-abre]'); if (b) document.getElementById(b.dataset.abre).showModal(); });
   (() => { // la primera vez hay que aceptar el aviso (el mismo texto de la franja); después queda solo la franja
     const d = document.getElementById('bienvenida'); let visto = false;
     try { visto = localStorage.getItem('aviso-aceptado') === '1'; } catch {}
     if (visto || !d.showModal) return;
-    document.getElementById('btxt').innerHTML = document.querySelector('.aviso').innerHTML;
     // se acepta con el botón: si se cierra de otra forma (Esc, que Chrome deja pasar igual), se vuelve a abrir
     d.addEventListener('close', () => { if (d.returnValue !== 'ok') return d.showModal(); try { localStorage.setItem('aviso-aceptado', '1'); } catch {} });
     d.showModal();
@@ -296,6 +309,7 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
         <span class="nivel" id="rniv">calculando…</span>
         <span class="unoen" id="runo"></span>
         <p class="sub hora-act"><span id="rhora">Calculando…</span> <button type="button" class="volver" id="refrescar">↻ Actualizar</button></p>
+        <p class="sub" id="upd"></p>
       </div>
     </div>
     <h2 id="rtit" class="rtit">Calculando el riesgo de cada quebrada</h2>
@@ -317,7 +331,7 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
    <div class="hero-der" id="hoy">
     <div class="curva-tit"><h3 id="htit">Próximas 24 horas</h3><button type="button" id="hvolver" class="volver" hidden>← volver a las próximas 24 horas</button></div>
     <div id="hchart"></div>
-    <p class="sub">Riesgo de cada hora en la misma escala de 0 a 10; el número grande es el de ahora, el primer punto. <b>Mueve el cursor o el dedo sobre la curva</b> para ver cada hora.</p>
+    <p class="sub">Toca la curva o pasa el cursor para ver cada hora.</p>
     <p class="hh-texto" id="htxt"></p>
    </div>
   </section>
@@ -328,7 +342,7 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
   </section>
 
   <section class="card" id="dias">
-    <h2>Próximos días <span class="sub" style="font-weight:400">· es un pronóstico: cambia con cada actualización · toca uno para verlo hora a hora</span></h2>
+    <h2>Próximos días <span class="sub" style="font-weight:400">· toca uno para verlo hora a hora</span></h2>
     <div class="dias" id="ddias"></div>
   </section>
 
@@ -344,9 +358,10 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
         <a class="chip" href="https://zoom.earth/maps/satellite/#view=-33.45,-70.6,8z" target="_blank" rel="noopener">Zoom Earth ↗</a>
         <span class="sub" id="frame"></span>
       </div>
-      <p id="cerca" class="cerca">Midiendo la distancia a la tormenta más cercana…</p>
-      <div class="leyenda">
-        <p><b>Colores de las nubes</b> · el infrarrojo mide qué tan fría está la cima de la nube: más fría, más alta y con más lluvia</p>
+      <p id="cerca" class="cerca" hidden></p>
+      <details class="leyenda">
+        <summary>¿Qué significan los colores?</summary>
+        <p>El infrarrojo mide qué tan fría está la cima de la nube: más fría, más alta y con más lluvia.</p>
         <ul class="simbolos">
           <li><i style="--c:rgb(96,96,96)"></i><b>Gris oscuro:</b> suelo o cielo despejado.</li>
           <li><i style="--c:rgb(190,190,190)"></i><b>Gris claro:</b> nubes bajas o medias (sobre −20 °C): lluvia débil o nada.</li>
@@ -357,14 +372,14 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
         </ul>
         <p>La imagen llega con 30 a 50 min de atraso, y el color solo no dice si hay tormenta: la página la cuenta cuando caen rayos encima.</p>
         <p><i style="--c:transparent;outline:3px solid #ff1a1a;outline-offset:-3px"></i><b>Borde rojo:</b> la quebrada elegida. Cada quebrada va pintada con el color de su riesgo de hoy.</p>
-      </div>
+      </details>
     </section>
 
-    <section class="card">
-      <h2>Todas las quebradas, día a día</h2>
+    <details class="card" id="todas">
+      <summary>Todas las quebradas, día a día</summary>
       <div class="tbl"><table id="ranking"><tbody><tr><td class="sub">Calculando…</td></tr></tbody></table></div>
-      <p class="sub" style="margin-top:8px">Riesgo de cada día en la escala de 0 a 10; el color es su nivel (toca un número para ver la chance). Para comparar, un día cualquiera desde el incendio: 3,0 en la Quebrada Honda, ~2 en las quemadas a medias y 0 en las sin quemar. Toca una quebrada para elegirla.</p>
-    </section>
+      <p class="sub" style="margin-top:8px">Para comparar, un día cualquiera desde el incendio: 3,0 en la Quebrada Honda, ~2 en las quemadas a medias y 0 en las sin quemar. Toca una quebrada para elegirla.</p>
+    </details>
   </div>
 
   <aside id="degu" class="degu" aria-label="Degú" hidden>
@@ -399,16 +414,18 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
     </section>
   </aside>
 
-  <details class="card" id="detalle">
-    <summary id="dtit">Detalle técnico de la quebrada (para curiosos)</summary>
+  <section class="card curiosos" aria-labelledby="ctit">
+  <h2 id="ctit">Para curiosos</h2>
+  <details id="detalle">
+    <summary id="dtit">Detalle técnico de la quebrada</summary>
     <p class="sub" id="dnota" style="margin-bottom:10px"></p>
     <div id="dchart"></div>
     <p class="sub">Barras: probabilidad de que el aluvión se gatille en esa hora, en los próximos días. Línea punteada: chance de que una celda de tormenta pase sobre la cuenca.</p>
     <div class="factores" id="dfact"></div>
   </details>
 
-  <details class="card" id="metodo">
-    <summary>Cómo funciona el cálculo (para curiosos)</summary>
+  <details id="metodo">
+    <summary>Cómo funciona el cálculo</summary>
     <p style="margin-bottom:10px">Un aluvión en una cuenca quemada no lo gatilla la lluvia acumulada: lo gatilla el agua que corre sobre el suelo quemado durante un chubasco de pocos minutos. El 6-oct cayeron 111 mm en Tobalaba y no pasó nada; el 8-oct cayeron 35 mm con tormenta y hubo aluvión. El modelo encadena cinco pasos, hora a hora y para cada uno de los ~200 escenarios de pronóstico:</p>
     <ul class="sub">
       <li><b>1. Lluvia en la cuenca:</b> lluvia del pronóstico × parte de la cuenca bajo la cota de nieve (isoterma − 300 m, con la curva de altitudes de cada cuenca). Se probó realzarla por el cerro, de 1 a 2,3 veces, y el dato no lo pide.</li>
@@ -422,8 +439,9 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
     </ul>
   </details>
 
-  <details class="card" id="validacion">
-    <summary>¿Funciona? Cómo le fue con los días pasados (29-dic-2025 al 19-oct-2026)</summary>
+  <details id="validacion">
+    <summary>¿Funciona? Cómo le fue con los días pasados</summary>
+    <p class="sub" style="margin-bottom:10px">Del 29-dic-2025 al 19-oct-2026.</p>
     <div class="grid2" style="gap:24px">
       <div class="tbl"><table>
         <tr><th>Día</th><th class="num">Escala del modelo</th><th class="num">Puesto</th><th>Qué pasó</th></tr>
@@ -448,8 +466,8 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
     </div>
   </details>
 
-  <section class="card" id="fuentes">
-    <h2>Fuentes</h2>
+  <details id="fuentes">
+    <summary>Fuentes</summary>
     <p class="sub" style="margin-bottom:8px">Todo lo que usa esta página es público y se puede revisar. El código y los datos de la calibración están en <a href="https://github.com/nmonge83/predictor-aluviones" target="_blank" rel="noopener">GitHub</a>, junto con un <a href="https://github.com/nmonge83/predictor-aluviones/blob/main/ESTUDIO.md" target="_blank" rel="noopener">estudio de la literatura sobre aluviones después de incendios</a> y de en qué se aparta esta estimación.</p>
     <ul class="sub">
       <li><b>Avisos oficiales (mandan sobre esta página):</b> <a href="https://senapred.cl/alertas/" target="_blank" rel="noopener">alertas de Senapred</a> · <a href="https://www.meteochile.gob.cl/PortalDMC-web/index.xhtml" target="_blank" rel="noopener">Dirección Meteorológica de Chile</a> · <a href="https://climatologia.meteochile.gob.cl/application/mensual/aguaCaidaMensual/330019/2026/10" target="_blank" rel="noopener">lluvia diaria en Tobalaba</a>.</li>
@@ -461,12 +479,12 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
       <li><b>Rayos y lluvia intensa:</b> los rayos se usan para anticipar chaparrones y crecidas repentinas (por ejemplo, el proyecto europeo <a href="https://cordis.europa.eu/project/id/36852" target="_blank" rel="noopener">FLASH</a>). Su ausencia no descarta un aluvión: el de <a href="https://nhess.copernicus.org/articles/18/3037/2018/" target="_blank" rel="noopener">Montecito en 2018</a> lo gatilló una banda de lluvia de un frente frío.</li>
       <li><b>Relieve, cauces y mapa:</b> <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">relieve Terrarium (AWS)</a>, <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a>, Esri y Leaflet.</li>
     </ul>
+  </details>
   </section>
 
-  <section class="card" id="creditos">
-    <h2>Créditos</h2>
-    <p class="sub">Creado por <b>Nicolás Monge</b> (<a href="https://www.linkedin.com/in/nicolasmongeiriarte/" target="_blank" rel="noopener">LinkedIn</a>), como proyecto aficionado, independiente y de código abierto: el código, los datos y el método están en <a href="https://github.com/nmonge83/predictor-aluviones" target="_blank" rel="noopener">GitHub</a>. Los datos son públicos y vienen de las fuentes de arriba.</p>
-  </section>
+  <footer class="pie" id="creditos">
+    <p>Creado por <b>Nicolás Monge</b> (<a href="https://www.linkedin.com/in/nicolasmongeiriarte/" target="_blank" rel="noopener">LinkedIn</a>) · proyecto independiente y de código abierto en <a href="https://github.com/nmonge83/predictor-aluviones" target="_blank" rel="noopener">GitHub</a> · datos públicos (ver <a href="#fuentes">Fuentes</a>) · <a href="https://getdegu.com" target="_blank" rel="noopener">un aporte de Degú</a></p>
+  </footer>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -614,16 +632,15 @@ const unoEn = p => escala(p) <= 0 ? 'casi nula' : enN(p) < 2 ? 'más de la mitad
 // peligrosa que la peor ya pasada aunque siguiera la tormenta: 26-oct 21:45); y su «1 de cada N horas»
 const horaDe = (o, i) => o.hora[i];
 const unoEnH = p => unoEn(p).replace('días', 'horas como esta').replace('de los días', 'de las horas');
-// qué significa y qué hacer, según el nivel de AHORA; si más tarde sube, se dice cuándo
-function queHacer(n, P, luego, P1, cuandoMan, cu, rayos) {
-  const q = cu.nombre.replace(/^Quebradas? /, 'quebrada '), horas = escala(P) >= 3 ? `de cada ${enN(P)} horas como esta, bajaría un aluvión en una` : 'es muy raro que baje un aluvión en una hora así';
+// qué hacer, según el nivel de AHORA. Sin repetir lo que ya está a la vista (31-oct, «repetitiva»): el «1 de cada N horas»
+// va arriba junto al número, la hora más peligrosa en la curva y mañana en «Próximos días»
+function queHacer(n, P, cu, rayos) {
+  const q = cu.nombre.replace(/^Quebradas? /, 'quebrada ');
   const ahora = rayos ? 'ahora, mientras caigan rayos encima' : 'ahora';
-  const despues = luego ? ` <b>Más tarde sube: cerca de las ${luego.h} llega a ${fmtE(luego.p)}</b> (${palabra(luego.p)}).` : '';
-  const man = !bajoN(nivel(P1)) ? ` Mañana, el día completo: <b>${fmtE(P1)}</b> (${palabra(P1)}); lo más peligroso, ${cuandoMan}.` : '';
-  if (n === 'n4') return `<b>Riesgo muy alto:</b> ${horas}. Si vives junto a la ${q}, sal ahora y vuelve cuando pase. Sigue las instrucciones de Senapred.${despues}${man}`;
-  if (n === 'n3') return `<b>Riesgo alto:</b> ${horas}. Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo ${ahora}. Sigue las instrucciones de Senapred.${despues}${man}`;
-  if (n === 'n2') return `<b>Puede pasar:</b> ${horas}. Evita las calles y pasajes por donde baja el agua de la ${q}, y atento a lo que diga Senapred.${despues}${man}`;
-  return `<b>${n === 'n0' ? 'Muy poco probable' : 'Poco probable'} ahora:</b> ${horas}.${despues}${man} Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
+  if (n === 'n4') return `<b>Riesgo muy alto.</b> Si vives junto a la ${q}, sal ahora y vuelve cuando pase. Sigue las instrucciones de Senapred.`;
+  if (n === 'n3') return `<b>Riesgo alto.</b> Si vives junto a la ${q}, ten lista una salida y evita las calles por donde baja el agua, sobre todo ${ahora}. Sigue las instrucciones de Senapred.`;
+  if (n === 'n2') return `<b>Puede pasar.</b> Evita las calles y pasajes por donde baja el agua de la ${q}, y atento a lo que diga Senapred.`;
+  return `<b>${n === 'n0' ? 'Muy poco probable' : 'Poco probable'} ahora${escala(P) < 3 ? ': es muy raro que baje un aluvión en una hora así' : ''}.</b> Igual, si llueve fuerte, no cruces cauces ni calles con agua corriendo.`;
 }
 const quant = (a, q) => { const s = a.filter(x => x != null).sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
 async function getJSON(u) { // Open-Meteo responde 429 o se sobrecarga (5xx) en días de tormenta: se reintenta con espera creciente
@@ -1116,7 +1133,7 @@ function pintarReporte() {
   if (R && llegada?.t !== antes) hoy(); // la curva marca la tormenta que viene
   const tt = items.find(t => t.tit === 'Tormenta'), rr = items.find(t => t.tit === 'Rayos');
   if (tt || rr) { $('cerca').textContent = [`${c.nombre}.`, tt && `Tormenta: ${tt.txt}`, rr && `Rayos: ${rr.txt}`].filter(Boolean).join(' '); $('cerca').classList.toggle('alerta', [tt, rr].some(t => t?.est === 'bad' || t?.est === 'warn')); }
-  $('rrep').innerHTML = items.map(t => `<div class="tile" style="--c:var(--${t.est})"><div class="cab"><span class="ico" aria-hidden="true">${t.ico}</span>${t.tit}<span class="estado" style="--c:var(--${t.est})">${t.etq}</span></div><p>${t.txt}</p><small>${t.nota}</small></div>`).join('');
+  $('rrep').innerHTML = items.map(t => `<div class="tile" style="--c:var(--${t.est})" title="${String(t.nota).replace(/<[^>]*>/g, '').replace(/"/g, '&quot;')}"><div class="cab"><span class="ico" aria-hidden="true">${t.ico}</span>${t.tit}<span class="estado" style="--c:var(--${t.est})">${t.etq}</span></div><p>${t.txt}</p></div>`).join('');
   $('ahora').hidden = false;
 }
 
@@ -1227,21 +1244,16 @@ function pintar() {
   // resumen = la quebrada ELEGIDA. El número grande es la HORA EN CURSO, el mismo con que parte la curva, y cambia apenas
   // cambian las condiciones (26-oct: «debiera ser preciso, mostrar el riesgo por hora y cambiar cuando las condiciones
   // cambian»); el día entero queda en «Próximos días». Antes era lo que quedaba del día y se leía como «ahora».
-  const top = filas.find(f => f.c.id === sel) ?? filas[0], mas = filas[0], o0 = top.o, P = horaDe(o0, 0), Pdia = o0.porDia[0], P1 = o0.porDia[1] ?? 0, n = nivel(P);
+  const top = filas.find(f => f.c.id === sel) ?? filas[0], o0 = top.o, P = horaDe(o0, 0), Pdia = o0.porDia[0], P1 = o0.porDia[1] ?? 0, n = nivel(P);
   REP = top.c.id;
   $('resumen').style.setProperty('--sev', `var(--${n})`);
   $('rmax').innerHTML = `${fmtE(P)}<small>de 10</small>`; $('rniv').textContent = `${ICONO[n]} ${NIVTXT[n]} ahora`; $('runo').textContent = unoEnH(P);
   $('aguja').style.transform = `rotate(${escala(P) * 18}deg)`; // 0 a la izquierda, 10 a la derecha
-  // la hora más peligrosa que queda hoy, si es más tarde y más alta que la de ahora; y la de mañana
-  const kHoy = picoHora(o0, R.dia, 0), luego = kHoy > 0 && escala(horaDe(o0, kHoy)) > escala(P) ? { h: hora(horas[kHoy] - 3600), p: horaDe(o0, kHoy) } : null;
-  const cuandoMan = `mañana a las ${hora(horas[picoHora(o0, R.dia, 1)] - 3600)}`;
   $('rtit').textContent = `${top.c.nombre} (${top.c.comuna})`;
-  $('rque').innerHTML = queHacer(n, P, luego, P1, cuandoMan, top.c, !!satelite?.porCuenca?.[top.c.id]?.encima);
-  const cuantas = (...l) => filas.filter(f => l.includes(nivel(Math.max(f.o.porDia[0], f.o.porDia[1] ?? 0)))).length;
-  $('rtxt').innerHTML = `Lo que queda de hoy, todo junto: <b>${fmtE(Pdia)}</b>, ${palabra(Pdia)}. Mañana, el día completo: <b>${fmtE(P1)}</b>, ${palabra(P1)}. ${P1 > Pdia ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(Pdia, P1) / top.c.base)} veces el riesgo de un día cualquiera en esa quebrada desde el incendio. ` +
-    `De ${CU.length} quebradas (hoy y mañana): ${cuantas('n4', 'n3')} en riesgo alto o muy alto, ${cuantas('n2')} moderado y ${cuantas('n1', 'n0')} bajo o muy bajo.` +
-    (mas !== top ? ` La de más riesgo: ${mas.c.nombre} (${fmtE(Math.max(mas.o.porDia[0], mas.o.porDia[1] ?? 0))}, ${palabra(Math.max(mas.o.porDia[0], mas.o.porDia[1] ?? 0))}).` : '');
-  $('chips').innerHTML = filas.map(({ c, o }) => `<button type="button" class="qchip" data-id="${c.id}" aria-pressed="${c.id === sel}"><b>${c.nombre.replace(/^(Quebradas?|Estero) (de(l)? )?/, '')}</b><span class="pill" style="--c:var(--${nivel(horaDe(o, 0))})">${fmtE(horaDe(o, 0))} ${palabra(horaDe(o, 0))}</span></button>`).join('');
+  $('rque').innerHTML = queHacer(n, P, top.c, !!satelite?.porCuenca?.[top.c.id]?.encima);
+  // lo de hoy y mañana va en «Próximos días» y las demás quebradas en el selector: aquí solo la comparación con lo normal
+  $('rtxt').textContent = `${P1 > Pdia ? 'Mañana' : 'Hoy'} es ${fmt(Math.max(Pdia, P1) / top.c.base)} veces el riesgo de un día cualquiera en esta quebrada desde el incendio.`;
+  $('chips').innerHTML = filas.map(({ c, o }) => `<button type="button" class="qchip" style="--c:var(--${nivel(horaDe(o, 0))})" data-id="${c.id}" aria-pressed="${c.id === sel}"><b>${c.nombre.replace(/^(Quebradas?|Estero) (de(l)? )?/, '')}</b><span class="pill" style="--c:var(--${nivel(horaDe(o, 0))})">${fmtE(horaDe(o, 0))} ${palabra(horaDe(o, 0))}</span></button>`).join('');
   document.querySelectorAll('#chips .qchip').forEach(b => b.onclick = () => elegir(b.dataset.id));
   document.querySelector('#chips [aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 
@@ -1255,7 +1267,8 @@ function pintar() {
   document.querySelectorAll('#ranking tbody tr').forEach(tr => { tr.onclick = () => elegir(tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') elegir(tr.dataset.id); }; });
   detalle();
   pintarReporte();
-  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros meteorológicos`; document.body.classList.remove('viejo', 'calculando'); $('rhora').textContent = `Actualizado a las ${hora(NOW)}`; $('upd').title = R.centros.join(', ');
+  // la hora va una vez, junto al número; `upd` queda solo para los reintentos y errores
+  $('upd').textContent = ''; document.body.classList.remove('viejo', 'calculando'); $('rhora').textContent = `Actualizado a las ${hora(NOW)} · ${R.centros.length} centros meteorológicos`; $('rhora').title = R.centros.join(', ');
 }
 function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
 // la hora con más chance de que el aluvión ocurra ESA hora (lo que sube la acumulada), la misma medida del gráfico de 24 h
@@ -1340,7 +1353,7 @@ function hoy() {
 function detalle() {
   hoy();
   const cu = CU.find(c => c.id === sel), o = R.out[sel], { horas, fechas } = R;
-  $('dtit').textContent = `Detalle técnico · ${cu.nombre} (para curiosos)`;
+  $('dtit').textContent = `Detalle técnico · ${cu.nombre}`;
   $('dnota').textContent = `${fmt(cu.km2, 1)} km², de ${fmt(cu.hyp[0])} a ${fmt(cu.hyp[20])} m, ${fmt(cu.empinada * 100)} % con pendiente ≥ 23°. ${cu.nota}`;
   $('ddias').innerHTML = [...o.porDia].map((p, k) => `<button type="button" class="dia" data-k="${k}" aria-pressed="${verDia === k}" style="--c:var(--${nivel(p)})"><span>${nomDia(horas[R.dia.indexOf(k)], k)}</span><b>${fmtE(p)}</b><span>${palabra(p)}</span><span>${unoEn(p)}</span></button>`).join('');
   document.querySelectorAll('#ddias .dia').forEach(b => b.onclick = () => { verDia = +b.dataset.k; detalle(); $('resumen').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
