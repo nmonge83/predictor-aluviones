@@ -1378,7 +1378,9 @@ addEventListener('pageshow', e => { if (e.persisted && Date.now() - ultimo > 5 *
 // ---------- Degú vigila la quebrada (28-oct): los avisos y el chat los da el vigía público de Degú ----------
 // La columna aparece solo si el vigía contesta: mientras no exista, la página queda igual que antes. El chat no pide cuenta:
 // el navegador resuelve un desafío corto antes de preguntar (anti-bots) y le pasa a Degú lo que esta página calculó.
-const DEGU = 'https://stage.getdegu.com/agent/publico/prohack/vigias/quebrada-honda';
+// stage.getdegu.com va directo al balanceador, así que el tope de preguntas por conexión cuenta a cada persona;
+// por getdegu.com (CloudFront) contaría a todos los de un mismo borde como una sola.
+const DEGU = 'https://stage.getdegu.com/agent/publico/prohack-5/vigias/quebrada-honda';
 const PUNTO_DEGU = { encima: 'n3', sigue_encima: 'n3', se_acerca: 'n2', cerca: 'n2', se_fue: 'n1' };
 const escDegu = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const kmDegu = km => String(Math.max(1, Math.round(km || 0)));
