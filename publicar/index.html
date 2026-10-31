@@ -298,7 +298,7 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
   <section class="card dvigia" id="dvigia" aria-labelledby="dvtit" hidden title="Degú mira los rayos del satélite cada minuto y escribe aquí cuando algo cambia.">
     <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dvtit">Degú vigila la quebrada</h2><span class="envivo">en vivo</span></div>
     <p class="dahora" id="dahora"></p>
-    <details class="dparte" id="dparte" hidden><summary id="dpsum">Parte de las últimas 24 horas</summary><ol class="dlista" id="dlista"></ol></details>
+    <details class="dparte" id="dparte" hidden><summary id="dpsum">Avisos de las últimas 24 horas</summary><ol class="dlista" id="dlista"></ol></details>
   </section>
 
   <nav class="card selector" aria-label="Elige tu quebrada">
@@ -1515,8 +1515,17 @@ function haceDegu(iso) {
   const min = Math.floor((Date.now() - Date.parse(iso)) / 60000);
   return min < 1 ? 'revisado recién' : min < 60 ? `revisado hace ${min} min` : `revisado a las ${horaDegu(iso)}`;
 }
-let ahoraDeguVisto = null;
-const pintarAhoraDegu = () => { $('dahora').textContent = ahoraDegu(ahoraDeguVisto) + ($('dparte').hidden ? ' · sin avisos en las últimas 24 horas' : ''); };
+let ahoraDeguVisto = null, avisosDegu = [];
+// Un aviso de «viene una tormenta» que después no llegó quedaba como lo último, sin cierre: a las 16:55 seguía arriba el
+// de las 16:02 que la daba para las 16:49 (31-oct). El motor de producción no escribe ese cierre (lo trae la #6220, con
+// el parte cada 5 min y el «despejado»); mientras, la página lo dice con lo que el vigía mide AHORA.
+const TORMENTA_ACTIVA = new Set(['se_acerca', 'cerca', 'parte', 'encima', 'sigue_encima']);
+function pintarAhoraDegu() {
+  const u = avisosDegu[0], min = u ? (Date.now() - Date.parse(u.hora)) / 60000 : 0;
+  const yaNo = u && TORMENTA_ACTIVA.has(u.tipo) && ahoraDeguVisto?.situacion === 'sin_rayos' && min >= 15;
+  $('dahora').textContent = ahoraDegu(ahoraDeguVisto) +
+    (!u ? ' · sin avisos en las últimas 24 horas' : yaNo ? `. La tormenta del aviso de las ${horaDegu(u.hora)} ya no está: no hay rayos cerca.` : '');
+}
 function ahoraDegu(a) {
   if (!a?.situacion) return '';
   const cuando = a.actualizado ? ` · ${haceDegu(a.actualizado)}` : '';
@@ -1538,12 +1547,13 @@ async function verDegu() {
     // sin el vigía de las 15, la franja de los rayos solo va con la Honda: con otra elegida, decía «vigila la Quebrada
     // Honda» arriba de esa otra (31-oct). El chat sigue y contesta sobre la elegida.
     $('dvigia').hidden = !todas && sel !== 'honda';
-    // el parte, plegado; se abre solo si hay un aviso de la última hora (una tormenta en curso)
+    // los avisos, plegados; se abren solos solo si el último es de hace menos de 15 minutos (una tormenta en curso): uno de
+    // hace una hora abierto se leía como lo último que sabía Degú
     $('dparte').hidden = !d.avisos.length;
-    ahoraDeguVisto = d.ahora; pintarAhoraDegu();
-    $('dpsum').textContent = `Parte de las últimas 24 horas · ${d.avisos.length} ${d.avisos.length === 1 ? 'aviso' : 'avisos'}`;
+    avisosDegu = d.avisos; ahoraDeguVisto = d.ahora; pintarAhoraDegu();
+    $('dpsum').textContent = d.avisos.length ? `Avisos de las últimas 24 horas · ${d.avisos.length} · el último, a las ${horaDegu(d.avisos[0].hora)}` : '';
     $('dlista').innerHTML = d.avisos.map(a => `<li><time>${horaDegu(a.hora)}</time><i style="--c:var(--${PUNTO_DEGU[a.tipo] || 'n0'})"></i><p>${escDegu(a.texto)}</p></li>`).join('');
-    const nuevo = d.avisos[0] && Date.now() - Date.parse(d.avisos[0].hora) < 3600e3;
+    const nuevo = d.avisos[0] && Date.now() - Date.parse(d.avisos[0].hora) < 15 * 60e3;
     if (nuevo && !$('dparte').dataset.visto) { $('dparte').open = true; $('dparte').dataset.visto = '1'; }
     $('degu').hidden = false;
     if (!retoDegu) resolverRetoDegu();
