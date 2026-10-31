@@ -174,7 +174,9 @@ details.card > summary { font-size: 1.05rem }
   main:has(> #degu:not([hidden])) { grid-template-columns: minmax(0, 1fr) 370px; align-items: start }
   main:has(> #degu:not([hidden])) > * { grid-column: 1 }
   main:has(> #degu:not([hidden])) > :is(.cabecera, .aviso) { grid-column: 1 / -1 }
-  main > #degu { grid-column: 2; grid-row: 3 / span 4; position: sticky; top: 16px }
+  /* misma especificidad que la regla de arriba y escrita después: con `main > #degu` pesaba menos que el `> *` del
+     :has y Degú quedaba arriba a la izquierda, empujando todo hacia abajo (31-oct) */
+  main:has(> #degu:not([hidden])) > #degu { grid-column: 2; grid-row: 3 / span 4; position: sticky; top: 16px }
 }
 .dcab { display: flex; align-items: center; gap: 10px; margin-bottom: 6px } .dcab h2 { margin: 0; flex: 1 }
 .envivo { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700; color: var(--degu-texto) }
