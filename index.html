@@ -371,7 +371,6 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
     <section class="card dvigia" aria-labelledby="dvtit">
       <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dvtit">Degú vigila la quebrada</h2><span class="envivo">en vivo</span></div>
       <p class="sub">Mira los rayos del satélite cada minuto y escribe aquí cuando algo cambia.</p>
-      <p class="sub" id="dsolo" hidden></p>
       <p class="dahora" id="dahora"></p>
       <ol class="dlista" id="dlista"></ol>
     </section>
@@ -1474,10 +1473,10 @@ async function verDegu() {
     if (!r.ok) throw new Error(`vigía ${r.status}`);
     const d = await r.json();
     if (pedida !== sel) return; // cambiaron de quebrada mientras llegaba
-    const c = CU.find(x => x.id === sel);
     $('dvtit').textContent = `Degú vigila ${d.nombre}`;
-    $('dsolo').hidden = todas || sel === 'honda';
-    $('dsolo').textContent = `Por ahora Degú vigila los rayos solo en la Quebrada Honda. El chat sí te responde sobre ${c.nombre}.`;
+    // sin el vigía de las 15, la tarjeta de los rayos solo va con la Honda: con otra elegida, decía «vigila la Quebrada
+    // Honda» arriba de esa otra (31-oct). El chat sigue y contesta sobre la elegida.
+    document.querySelector('.dvigia').hidden = !todas && sel !== 'honda';
     $('dahora').textContent = ahoraDegu(d.ahora);
     $('dlista').innerHTML = d.avisos.length
       ? d.avisos.map(a => `<li><time>${horaDegu(a.hora)}</time><i style="--c:var(--${PUNTO_DEGU[a.tipo] || 'n0'})"></i><p>${escDegu(a.texto)}</p></li>`).join('')
