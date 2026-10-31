@@ -1417,7 +1417,7 @@ try {
   // una línea chica, y por eso se había bajado a 10 min; con la franja se puede volver a mostrar lo de antes
   if (g && Date.now() / 1000 - g.NOW < 3 * 3600 && fecha(g.NOW) === fecha(Date.now() / 1000)) {
     NOW = g.NOW; R = g.R; pintar(); document.body.classList.add('viejo', 'calculando');
-    $('upd').textContent = $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`;
+    $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`; // `upd` va al lado: escrito en los dos se leía dos veces
     $('ctxt').textContent = `Lo que ves es de las ${hora(NOW)}. Calculando el riesgo de ahora con 6 centros meteorológicos…`;
   }
 } catch (e) { console.warn('cálculo guardado', e.message); R = null; }
@@ -1434,7 +1434,7 @@ async function actualizar() {
   if (enCurso) return; enCurso = true; ultimo = Date.now(); revisarVersion();
   // lo que está a la vista tiene más de 5 min (pestaña que vuelve, celular que despierta): se atenúa hasta que llegue lo nuevo
   if (R && Date.now() / 1000 - NOW > 300) {
-    document.body.classList.add('viejo', 'calculando'); $('upd').textContent = $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`;
+    document.body.classList.add('viejo', 'calculando'); $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`; // `upd` va al lado: escrito en los dos se leía dos veces
     $('ctxt').textContent = `Lo que ves es de las ${hora(NOW)}. Calculando el riesgo de ahora con 6 centros meteorológicos…`;
   } else if (!R) document.body.classList.add('calculando');
   try { await ciclo(); } finally { enCurso = false; }
