@@ -65,7 +65,7 @@ a { color: var(--accent) }
 .cerca.alerta { color: var(--bad) }
 .err { color: var(--bad) }
 .aviso { margin: 0; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--warn); background: var(--panel); font-size: .88rem }
-.viejo #resumen, .viejo #ahora, .viejo #dias, .viejo #chips { opacity: .45; transition: opacity .2s } /* datos de hace más de 5 min mientras llegan los nuevos */
+.viejo #resumen > :not(.cargando), .viejo #ahora, .viejo #dias, .viejo #chips { opacity: .45; transition: opacity .2s } /* datos de hace más de 5 min mientras llegan los nuevos */
 .ventana { max-width: 520px; width: calc(100% - 32px); border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); padding: 20px }
 .ventana::backdrop { background: rgb(0 0 0 / .55) }
 .ventana h2 { font-size: 1.2rem; margin-bottom: 12px } .ventana p { margin: 0 0 10px; font-size: .95rem }
@@ -178,6 +178,8 @@ details.card > summary { font-size: 1.05rem }
   /* misma especificidad que la regla de arriba y escrita después: con `main > #degu` pesaba menos que el `> *` del
      :has y Degú quedaba arriba a la izquierda, empujando todo hacia abajo (31-oct) */
   main:has(> #degu:not([hidden])) > #degu { grid-column: 2; grid-row: 3 / span 4; position: sticky; top: 16px }
+  /* sin esto la columna, más alta que la pantalla, dejaba la caja de la pregunta fuera de alcance hasta el final de la página */
+  #degu { max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin }
 }
 .dcab { display: flex; align-items: center; gap: 10px; margin-bottom: 6px } .dcab h2 { margin: 0; flex: 1 }
 .envivo { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700; color: var(--degu-texto) }
@@ -203,6 +205,28 @@ details.card > summary { font-size: 1.05rem }
 .dform input { flex: 1; min-width: 0; font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg) }
 .dform button { width: 44px; height: 44px; justify-content: center; border: 0; border-radius: 10px; background: var(--degu-boton); color: #fff; padding: 0; flex: none }
 .dform button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round }
+/* el degú que corre mientras piensa o calcula: el mismo de la app de Degú (Degu.svelte, estado «run»), sin ruedita ni «…» */
+.dcorre { width: 30px; height: 30px; flex: none; color: var(--degu-texto); overflow: visible }
+.dcorre .runner { animation: dbote .46s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom }
+.dcorre .leg { transform-box: fill-box; transform-origin: top center }
+.dcorre .front { animation: dpata-a .46s ease-in-out infinite } .dcorre .rear { animation: dpata-b .46s ease-in-out infinite }
+.dcorre .leg2, .dcorre .leg4 { animation-delay: .06s }
+.dcorre .cola { transform-box: view-box; transform-origin: 248px -366px; animation: dcola .46s ease-in-out infinite }
+@keyframes dbote { 0%, 100% { transform: translateY(0) rotate(-1.5deg) } 50% { transform: translateY(-7%) rotate(1.5deg) } }
+@keyframes dpata-a { 0%, 100% { transform: rotate(20deg) } 50% { transform: rotate(-20deg) } }
+@keyframes dpata-b { 0%, 100% { transform: rotate(-20deg) } 50% { transform: rotate(20deg) } }
+@keyframes dcola { 0%, 100% { transform: rotate(-3deg) } 50% { transform: rotate(7deg) } }
+@media (prefers-reduced-motion: reduce) { .dcorre * { animation: none !important } }
+.degu-dice.piensa p { color: var(--muted) }
+/* la conversación crece hacia arriba y se desplaza sola: antes empujaba la caja de la pregunta fuera de la pantalla */
+.dconv { max-height: min(52vh, 460px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px }
+.dconv .nota { justify-self: center; font-size: .8rem; color: var(--muted) }
+/* mientras se calcula: sin datos, cubre el indicador; con los de antes a la vista, una franja arriba que dice de cuándo son */
+.cargando { display: none; position: absolute; inset: 0; z-index: 3; place-content: center; justify-items: center; gap: 12px; padding: 16px; text-align: center; font-weight: 600; background: color-mix(in srgb, var(--panel) 82%, transparent) }
+.cargando .dcorre { width: 72px; height: 72px }
+body.calculando .cargando { display: grid }
+body.viejo.calculando .cargando { display: flex; position: static; grid-column: 1 / -1; order: -1; align-items: center; justify-content: start; gap: 10px; padding: 6px 12px; border-radius: 10px; background: var(--soft); text-align: left }
+body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
 .dform button:disabled, .dform input:disabled { opacity: .6; cursor: wait }
 .dnota { margin-top: 10px; font-size: .78rem }
 .dmarca { background: #10352d; color: #e8f3ef; border-color: #10352d }
@@ -264,6 +288,7 @@ details.card > summary { font-size: 1.05rem }
   </nav>
 
   <section class="card hero" id="resumen">
+   <div class="cargando" id="cargando" role="status"><span id="cdegu"><svg class="dcorre" viewBox="40 -896 880 940" aria-hidden="true"><g class="runner"><g fill="none" stroke="currentColor" stroke-width="50" stroke-linecap="round"><line class="leg front leg1" x1="360" y1="-175" x2="360" y2="-65"/><line class="leg front leg2" x1="455" y1="-150" x2="455" y2="-65"/><line class="leg rear leg3" x1="600" y1="-150" x2="600" y2="-65"/><line class="leg rear leg4" x1="715" y1="-150" x2="715" y2="-65"/></g><path fill="currentColor" d="M482-120q-96 0-165-62t-77-154C239.3-356 239.1-376 242-396q13-88 79.1-146T475-600q21.36 0 42.18 3t37.82 9q8-3 15.98-5.29 7.99-2.28 16.5-4Q596-599 604-599.5t17.11-.5q73.89 0 126.39 51.5T800-423v12q0 7-2 15l36 35q22 21 33.5 46.5t11.5 54.67q0 58.35-40 99.09T741-120H482Zm0-60h257q32 0 56.5-24t24.5-56q0-16.34-7-30.17Q806-304 792-318l-59-58q4-12 5.5-23.5T740-422q0-49-34.51-83.5T621-540q-46 0-78.5 33.35T510-425q0 21.05 6 40.53Q522-365 535-349l-42 42q-23-24-33-55.4T450-427q0-31.27 10-60.14Q470-516 490-539q-8-2-13.5-1.5t-10.5.5q-67 0-117.5 55T298-357q0 35.87 14.5 67.93Q327-257 352.45-232.65q25.45 24.34 59 38.5Q445-180 482-180ZM559-390Z"/><path class="cola" fill="currentColor" d="M256.8 -387.4A22 22 0 0 1 267.2 -344.6C245.8 -339.4 223.4 -336 203.5 -335.8C183.3 -335.5 161.9 -338.6 144.7 -345.6C127.3 -352.7 109.6 -366.1 98.2 -382.8C87.1 -398.9 78.9 -422.1 76.1 -447.6L76.1 -447.6C34.8 -494.4 41.9 -563.6 79.6 -619C128.4 -573 150.1 -507 119.9 -452.4L119.9 -452.4C122.1 -431.9 126.6 -419.1 134.5 -407.7C141.9 -396.9 149.2 -391.3 161.3 -386.4C173.6 -381.4 186.2 -379.5 202.9 -379.7C219.8 -380 237.2 -382.6 256.8 -387.4Z"/><circle cx="680" cy="-280" r="30" fill="currentColor"/></g></svg></span><p id="ctxt">Calculando el riesgo con 6 centros meteorológicos…</p></div>
    <div class="hero-izq">
     <div class="hero-top">
       <div class="medidor-caja"><svg class="medidor" viewBox="0 0 220 124" aria-hidden="true"><path d="M22.0 112.0 A88 88 0 0 1 57.2 41.6" stroke="var(--n0)" stroke-width="18" fill="none"/><path d="M59.4 40.0 A88 88 0 0 1 108.6 24.0" stroke="var(--n1)" stroke-width="18" fill="none"/><path d="M111.4 24.0 A88 88 0 0 1 160.6 40.0" stroke="var(--n2)" stroke-width="18" fill="none"/><path d="M162.8 41.6 A88 88 0 0 1 180.4 59.2" stroke="var(--n3)" stroke-width="18" fill="none"/><path d="M182.0 61.4 A88 88 0 0 1 198.0 112.0" stroke="var(--n4)" stroke-width="18" fill="none"/><text x="4.0" y="116.0" text-anchor="middle">0</text><text x="47.7" y="30.2" text-anchor="middle">3</text><text x="110.0" y="10.0" text-anchor="middle">5</text><text x="172.3" y="30.2" text-anchor="middle">7</text><text x="195.8" y="53.7" text-anchor="middle">8</text><text x="216.0" y="116.0" text-anchor="middle">10</text><g id="aguja" style="transform-origin:110px 112px"><line x1="110" y1="112" x2="40" y2="112" stroke="var(--fg)" stroke-width="5" stroke-linecap="round"/><circle cx="110" cy="112" r="8" fill="var(--fg)"/><circle cx="110" cy="112" r="3" fill="var(--panel)"/></g></svg><p class="big" id="rmax">–</p></div>
@@ -346,6 +371,7 @@ details.card > summary { font-size: 1.05rem }
     <section class="card dvigia" aria-labelledby="dvtit">
       <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dvtit">Degú vigila la quebrada</h2><span class="envivo">en vivo</span></div>
       <p class="sub">Mira los rayos del satélite cada minuto y escribe aquí cuando algo cambia.</p>
+      <p class="sub" id="dsolo" hidden></p>
       <p class="dahora" id="dahora"></p>
       <ol class="dlista" id="dlista"></ol>
     </section>
@@ -607,7 +633,13 @@ async function getJSON(u) { // Open-Meteo responde 429 o se sobrecarga (5xx) en 
     if (r?.ok) return r.json();
     const j = r ? await r.json().catch(() => ({})) : {};
     // el cupo por HORA o por DÍA no vuelve reintentando: se corta altiro y entra el pronóstico único (21-oct: 4 min esperando)
-    if ((!r || r.status === 429 || r.status >= 500) && k < 2 && !/hourly|daily/i.test(j.reason || '')) { if (u.includes('open-meteo')) $('upd').textContent = r ? 'Open-Meteo, la fuente del pronóstico, está muy consultado: reintentando…' : 'Sin conexión: reintentando…'; await new Promise(ok => setTimeout(ok, 2000 * (k + 1))); continue; }
+    // «Too many concurrent requests»: Open-Meteo acepta pocos pedidos a la vez desde una conexión, y al pedir los 6 centros juntos
+    // uno suele rebotar; se reintenta al tiro (antes esperaba 2 s: el 31-oct era el pedido que más atrasaba el número)
+    const junto = /concurrent/i.test(j.reason || '');
+    if ((!r || r.status === 429 || r.status >= 500) && k < (junto ? 5 : 2) && !/hourly|daily/i.test(j.reason || '')) {
+      if (u.includes('open-meteo') && !junto) $('upd').textContent = r ? 'Open-Meteo, la fuente del pronóstico, está muy consultado: reintentando…' : 'Sin conexión: reintentando…';
+      await new Promise(ok => setTimeout(ok, junto ? 300 * (k + 1) : 2000 * (k + 1))); continue;
+    }
     if (!r) throw new Error('sin conexión');
     throw new Error(j.reason || 'error ' + r.status);
   }
@@ -1093,15 +1125,26 @@ function pintarReporte() {
 // Los centros publican cada 6 h y Open-Meteo corta a las 10.000 consultas diarias por conexión (cada quebrada cuenta):
 // se descarga a lo más una vez por hora y el modelo se recalcula cada 10 min con lo guardado.
 let DESCARGA = null;
+// los pronósticos se piden apenas entra la página, junto con el satélite: antes esperaban a que llegaran los rayos y las
+// imágenes (~5 s) y recién ahí partían (medido el 31-oct: el número aparecía a los 12 s)
+function bajar() {
+  if (!DESCARGA || Date.now() - DESCARGA.t > 3600e3) {
+    const p = descargar(); DESCARGA = { t: Date.now(), p };
+    p.catch(() => { if (DESCARGA?.p === p) DESCARGA = null; }); // una descarga fallida no queda guardada una hora
+  }
+  return DESCARGA.p;
+}
 async function calcular() {
-  if (!DESCARGA || Date.now() - DESCARGA.t > 3600e3) DESCARGA = { t: Date.now(), ...await descargar() };
-  return correr(DESCARGA.det, DESCARGA.ens);
+  const { det, ens } = await bajar();
+  return correr(det, ens);
 }
 const UNICOS = [['ecmwf_ifs025', 'ECMWF'], ['icon_global', 'ICON'], ['gfs_global', 'GFS'], ['gem_global', 'GEM'], ['ukmo_global_deterministic_10km', 'UKMO'], ['meteofrance_arpege_world', 'Météo-France']];
 async function descargar() {
-  const det = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LATS}&longitude=${LONS}&${Q}&models=gfs_global&hourly=lifted_index,convective_inhibition,freezing_level_height,wind_speed_700hPa,wind_direction_700hPa,relative_humidity_700hPa`);
-  const ens = (await Promise.all(CENTROS.map(([id, nom]) => getJSON(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${LATS}&longitude=${LONS}&${Q}&models=${id}&hourly=precipitation`)
-    .then(d => ({ nom, d }), e => (console.warn(nom, e.message), null))))).filter(Boolean);
+  const [det, todos] = await Promise.all([ // la atmósfera y los 6 centros a la vez: antes la atmósfera iba primero (~1,8 s)
+    getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LATS}&longitude=${LONS}&${Q}&models=gfs_global&hourly=lifted_index,convective_inhibition,freezing_level_height,wind_speed_700hPa,wind_direction_700hPa,relative_humidity_700hPa`),
+    Promise.all(CENTROS.map(([id, nom]) => getJSON(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${LATS}&longitude=${LONS}&${Q}&models=${id}&hourly=precipitation`)
+      .then(d => ({ nom, d }), e => (console.warn(nom, e.message), null))))]);
+  const ens = todos.filter(Boolean);
   if (!ens.length) { // sin ensambles (p. ej., se agotó el cupo diario del ensamble): el pronóstico único de cada centro
     const u = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LATS}&longitude=${LONS}&${Q}&models=${UNICOS.map(x => x[0]).join(',')}&hourly=precipitation`).catch(e => (console.warn('pronósticos únicos', e.message), null));
     if (u) for (const [id, nom] of UNICOS) if (u[0].hourly['precipitation_' + id]?.some(x => x != null))
@@ -1110,7 +1153,9 @@ async function descargar() {
   if (!ens.length) throw new Error('ningún centro respondió');
   return { det, ens };
 }
-function correr(det, ens) {
+// por partes (una quebrada y un centro a la vez): de un tirón congelaba la página ~3 s, con el degú quieto
+const respiro = () => new Promise(ok => setTimeout(ok));
+async function correr(det, ens) {
   NOW = Date.now() / 1000;
   // la lluvia de cada hora del pronóstico es la que cae en la hora que TERMINA a esa hora: la primera que cuenta es la
   // que termina en la próxima hora en punto (la hora en curso); antes se partía en una hora que ya había pasado
@@ -1123,7 +1168,7 @@ function correr(det, ens) {
   const H = horas.length;
   const dia = horas.map(t => fechas.indexOf(diaDe(t)));
   const out = {};
-  CU.forEach((cu, b) => {
+  for (const [b, cu] of CU.entries()) {
     const g = det[b].hourly, ix = new Map(g.time.map((t, i) => [t, i])), al = k => horas.map(t => { const i = ix.get(t); return i == null ? null : g[k][i]; });
     const met = { time: horas, li: al('lifted_index'), cin: al('convective_inhibition'), v700: al('wind_speed_700hPa'), d700: al('wind_direction_700hPa'), hr700: al('relative_humidity_700hPa'), iso: al('freezing_level_height') };
     const sc = satelite?.porCuenca[cu.id]; // rayos de los últimos ~15 min (llegan con ~5 min de retraso), no una imagen de hace una hora
@@ -1144,6 +1189,7 @@ function correr(det, ens) {
     const hAcc = new Float64Array(H), aAcc = new Float64Array(H), porDia = new Float64Array(fechas.length), lluvias = Array.from({ length: H }, () => []);
     let ultimo = null, nCentros = 0; const porCentro = []; // el riesgo por hora de cada centro, para el rango de horas
     for (const { d } of ens) {
+      await respiro();
       const e = d[b].hourly, ie = new Map(e.time.map((t, i) => [t, i]));
       // una hora sin dato no es lluvia cero: el miembro que no cubre todas las horas queda fuera
       const miembros = Object.keys(e).filter(k => k.startsWith('precipitation') && horas.every(t => e[k][ie.get(t)] != null));
@@ -1165,7 +1211,7 @@ function correr(det, ens) {
     for (let j = 0; j < fechas.length; j++) porDia[j] /= nCentros;
     out[cu.id] = { hora: hAcc, acum: aAcc, porDia, q: ultimo.q, rec: ultimo.rec, mat: ultimo.mat, lluviaMed: lluvias.map(v => quant(v, .5)), lluviaAlta: lluvias.map(v => quant(v, .9)),
       iso: met.iso, liq: met.iso.map(v => fLiquida(v, cu.hyp)), horaCentro: porCentro.map(a => Array.from(a)) }; // isoterma 0 °C (GFS) y parte de la cuenca bajo la cota de nieve
-  });
+  }
   return { horas, fechas, dia, out, centros: ens.map(e => e.nom) };
 }
 
@@ -1210,7 +1256,7 @@ function pintar() {
   document.querySelectorAll('#ranking tbody tr').forEach(tr => { tr.onclick = () => elegir(tr.dataset.id); tr.onkeydown = e => { if (e.key === 'Enter') elegir(tr.dataset.id); }; });
   detalle();
   pintarReporte();
-  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros meteorológicos`; document.body.classList.remove('viejo'); $('rhora').textContent = `Actualizado a las ${hora(NOW)}`; $('upd').title = R.centros.join(', ');
+  $('upd').textContent = `Actualizado a las ${hora(NOW)} · se actualiza sola cada 5 minutos · ${R.centros.length} centros meteorológicos`; document.body.classList.remove('viejo', 'calculando'); $('rhora').textContent = `Actualizado a las ${hora(NOW)}`; $('upd').title = R.centros.join(', ');
 }
 function pico(h, dia, j) { let best = -1, bi = 0; h.forEach((v, i) => { if (dia[i] === j && v > best) { best = v; bi = i; } }); return bi; }
 // la hora con más chance de que el aluvión ocurra ESA hora (lo que sube la acumulada), la misma medida del gráfico de 24 h
@@ -1219,6 +1265,7 @@ function elegir(id) {
   sel = id; try { localStorage.setItem('quebrada', id); } catch {}
   const u = new URL(location.href); u.searchParams.set('q', id); history.replaceState(null, '', u); // el enlace sirve para compartir esa quebrada
   if (R) pintar(); textoCercania(); const p = poligonos[id]; map.fitBounds(p.getBounds().pad(0.8), { maxZoom: 12 });
+  cambioDegu();
 }
 
 // Próximas 24 h para la quebrada elegida: barras = chance de que el aluvión ocurra en esa hora (lo que sube la acumulada del
@@ -1327,6 +1374,7 @@ function grafico(horas, o) {
 
 document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', () => { const d = document.querySelector(a.getAttribute('href')); if (d?.tagName === 'DETAILS') d.open = true; }));
 async function ciclo() {
+  bajar().catch(() => {}); // el error lo cuenta `calcular`, más abajo
   // se esperan el satélite y los rayos (hasta 10 s) antes de mostrar el número: si no, con tormenta encima se veía primero
   // la cifra sin la tormenta y al segundo la de verdad (26-oct: «una cifra más baja por un segundo y luego 7,9»)
   let llegoSat = false;
@@ -1336,7 +1384,7 @@ async function ciclo() {
     .then(([s, ry]) => { satelite = juntar(s, ry); llegoSat = true; textoCercania(); pintarReporte(); return satelite; });
   await Promise.race([sat, new Promise(ok => setTimeout(ok, 10000))]);
   try { R = await calcular(); pintar(); guardarCalculo(); }
-  catch (e) { $('upd').innerHTML = `<span class="err">No se pudo calcular (${e.message}). Se reintenta en 1 minuto.</span>`; setTimeout(actualizar, 60000); return; }
+  catch (e) { document.body.classList.remove('calculando'); $('upd').innerHTML = `<span class="err">No se pudo calcular (${e.message}). Se reintenta en 1 minuto.</span>`; setTimeout(actualizar, 60000); return; }
   if (llegoSat) return;
   // el satélite tardó más de 10 s: si trae una tormenta encima, se recalcula con ella (y se guarda esa cifra, no la anterior)
   const s = await sat;
@@ -1352,10 +1400,13 @@ function guardarCalculo() {
 }
 try {
   const g = JSON.parse(localStorage.getItem('ultimo-calculo') || 'null');
-  if (g && Date.now() / 1000 - g.NOW < 600) { // solo si es de hace menos de 10 min: con 3 h se veían datos viejos al entrar (26-oct)
-    // se ve atenuado y avisando que es de antes (26-oct: un 8,3 guardado de cuando caían rayos se leía como el de ahora)
-    NOW = g.NOW; R = g.R; pintar(); document.body.classList.add('viejo');
+  // lo último guardado primero (si es de hoy y de hace menos de 3 h), atenuado y con una franja que dice de cuándo es mientras
+  // se calcula lo de ahora: el 26-oct un 8,3 guardado de cuando caían rayos se leía como el de ahora, porque solo lo decía
+  // una línea chica, y por eso se había bajado a 10 min; con la franja se puede volver a mostrar lo de antes
+  if (g && Date.now() / 1000 - g.NOW < 3 * 3600 && fecha(g.NOW) === fecha(Date.now() / 1000)) {
+    NOW = g.NOW; R = g.R; pintar(); document.body.classList.add('viejo', 'calculando');
     $('upd').textContent = $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`;
+    $('ctxt').textContent = `Lo que ves es de las ${hora(NOW)}. Calculando el riesgo de ahora con 6 centros meteorológicos…`;
   }
 } catch (e) { console.warn('cálculo guardado', e.message); R = null; }
 // GitHub Pages deja el HTML 10 min en el navegador y una pestaña abierta sigue con el código viejo (26-oct: «no logro ver
@@ -1370,7 +1421,10 @@ async function revisarVersion() {
 async function actualizar() {
   if (enCurso) return; enCurso = true; ultimo = Date.now(); revisarVersion();
   // lo que está a la vista tiene más de 5 min (pestaña que vuelve, celular que despierta): se atenúa hasta que llegue lo nuevo
-  if (R && Date.now() / 1000 - NOW > 300) { document.body.classList.add('viejo'); $('upd').textContent = $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`; }
+  if (R && Date.now() / 1000 - NOW > 300) {
+    document.body.classList.add('viejo', 'calculando'); $('upd').textContent = $('rhora').textContent = `Actualizando: lo que ves es de las ${hora(NOW)}…`;
+    $('ctxt').textContent = `Lo que ves es de las ${hora(NOW)}. Calculando el riesgo de ahora con 6 centros meteorológicos…`;
+  } else if (!R) document.body.classList.add('calculando');
   try { await ciclo(); } finally { enCurso = false; }
 }
 document.addEventListener('click', e => { if (e.target?.id === 'refrescar' && !enCurso) { $('rhora').textContent = 'Actualizando…'; actualizar(); if (!timer) cargarNubes(); } });
@@ -1386,8 +1440,15 @@ addEventListener('pageshow', e => { if (e.persisted && Date.now() - ultimo > 5 *
 // el navegador resuelve un desafío corto antes de preguntar (anti-bots) y le pasa a Degú lo que esta página calculó.
 // stage.getdegu.com va directo al balanceador, así que el tope de preguntas por conexión cuenta a cada persona;
 // por getdegu.com (CloudFront) contaría a todos los de un mismo borde como una sola.
-const DEGU = 'https://stage.getdegu.com/agent/publico/prohack-5/vigias/quebrada-honda';
-const PUNTO_DEGU = { encima: 'n3', sigue_encima: 'n3', se_acerca: 'n2', cerca: 'n2', se_fue: 'n1' };
+// Un solo vigía mira las 15 quebradas y la página le pide la elegida (`?punto=`). Mientras ese vigía no exista, queda el de
+// la Quebrada Honda, que fue el primero (se vuelve a probar cada 10 min).
+const DEGU_BASE = 'https://stage.getdegu.com/agent/publico/prohack-5/vigias/', DEGU_TODAS = 'precordillera-santiago', DEGU_HONDA = 'quebrada-honda';
+let soloHonda = 0; // cuándo se vio que el de las 15 no contesta
+const conTodas = () => Date.now() - soloHonda > 600e3;
+const DEGU = () => DEGU_BASE + (conTodas() ? DEGU_TODAS : DEGU_HONDA);
+const DEGU_CORRE = $('cdegu').innerHTML; // el mismo degú que corre en la app de Degú mientras piensa
+const DEGU_QUIETO = '<svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg>';
+const PUNTO_DEGU = { encima: 'n3', sigue_encima: 'n3', se_acerca: 'n2', cerca: 'n2', parte: 'n1', se_fue: 'n1', despejado: 'n0' };
 const escDegu = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const kmDegu = km => String(Math.max(1, Math.round(km || 0)));
 let retoDegu = null; // { reto, nonce, vence }: se resuelve antes de que pregunten, para que la respuesta no espere
@@ -1399,16 +1460,24 @@ function horaDegu(iso) {
 function ahoraDegu(a) {
   if (!a?.situacion) return '';
   const cuando = a.actualizado ? ` · revisado a las ${horaDegu(a.actualizado)}` : '';
+  if (a.seguimiento) return `Ahora: ${a.seguimiento}${cuando}`; // el parte de la tormenta, minuto a minuto
   if (a.situacion === 'encima') return `Ahora: tormenta encima, rayo a ${kmDegu(a.km)} km${cuando}`;
   if (a.situacion === 'cerca') return `Ahora: rayos a ${kmDegu(a.km)} km al ${a.rumbo}${cuando}`;
   return `Ahora: sin rayos a menos de 40 km${cuando}`;
 }
 async function verDegu() {
+  const pedida = sel, todas = conTodas();
   try {
-    const r = await fetch(DEGU, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    const r = await fetch(todas ? `${DEGU()}?punto=${encodeURIComponent(pedida)}` : DEGU(), { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+      .catch(e => { if (todas) return null; throw e; }); // el de las 15 todavía sin crear contesta sin CORS: el navegador lo ve como un error de red
+    if (todas && !r?.ok) { soloHonda = Date.now(); return verDegu(); }
     if (!r.ok) throw new Error(`vigía ${r.status}`);
     const d = await r.json();
+    if (pedida !== sel) return; // cambiaron de quebrada mientras llegaba
+    const c = CU.find(x => x.id === sel);
     $('dvtit').textContent = `Degú vigila ${d.nombre}`;
+    $('dsolo').hidden = todas || sel === 'honda';
+    $('dsolo').textContent = `Por ahora Degú vigila los rayos solo en la Quebrada Honda. El chat sí te responde sobre ${c.nombre}.`;
     $('dahora').textContent = ahoraDegu(d.ahora);
     $('dlista').innerHTML = d.avisos.length
       ? d.avisos.map(a => `<li><time>${horaDegu(a.hora)}</time><i style="--c:var(--${PUNTO_DEGU[a.tipo] || 'n0'})"></i><p>${escDegu(a.texto)}</p></li>`).join('')
@@ -1422,7 +1491,7 @@ async function verDegu() {
 const cerosDegu = (b, bits) => { for (let i = 0; i < bits; i++) if (b[i >> 3] & (0x80 >> (i & 7))) return false; return true; };
 async function resolverRetoDegu() { // ~65.000 intentos de SHA-256, de a 256 en paralelo: un segundo en un teléfono
   try {
-    const r = await fetch(`${DEGU}/reto`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    const r = await fetch(`${DEGU()}/reto`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
     if (!r.ok) return;
     const { reto, bits } = await r.json(), cod = new TextEncoder(), vence = Date.now() + 240e3;
     for (let base = 0; base < 4e6; base += 256) {
@@ -1445,30 +1514,43 @@ function datosParaDegu() { // lo que esta página calculó para la quebrada eleg
     calculado_a_las: hora(NOW)
   };
 }
+const historialDegu = []; // lo conversado en esta página, solo en este navegador: viaja con cada pregunta para que Degú entienda «¿y mañana?»
 async function preguntarDegu(texto) {
   texto = texto.trim().slice(0, 300);
   if (!texto || $('dpreg').disabled) return;
   const conv = $('dconv');
-  conv.insertAdjacentHTML('beforeend', `<p class="yo">${escDegu(texto)}</p><div class="degu-dice"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><p class="pensando">Degú está mirando los datos…</p></div>`);
-  const resp = conv.lastElementChild.querySelector('p');
+  $('dchips').hidden = true; // las sugeridas son para empezar: con la conversación andando estorbaban la lectura
+  conv.insertAdjacentHTML('beforeend', `<p class="yo">${escDegu(texto)}</p><div class="degu-dice piensa">${DEGU_CORRE}<p>Degú está mirando los datos</p></div>`);
+  const caja = conv.lastElementChild, resp = caja.querySelector('p');
+  conv.scrollTop = conv.scrollHeight;
   $('dpreg').value = ''; $('dpreg').disabled = $('denviar').disabled = true;
   try {
     if (!retoDegu || Date.now() > retoDegu.vence) { retoDegu = null; await resolverRetoDegu(); }
     const { reto, nonce } = retoDegu || {}; retoDegu = null;
     // como texto y no como JSON: así el navegador no pide permiso antes de mandarla
-    const r = await fetch(`${DEGU}/preguntar`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ pregunta: texto, reto, nonce, datos: datosParaDegu() }), signal: AbortSignal.timeout(60000) });
+    const cuerpo = { pregunta: texto, reto, nonce, datos: datosParaDegu(), historial: historialDegu.slice(-3), ...(conTodas() ? { punto: sel } : {}) };
+    const r = await fetch(`${DEGU()}/preguntar`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(cuerpo), signal: AbortSignal.timeout(60000) });
     const d = await r.json().catch(() => ({}));
     resp.textContent = d.respuesta || d.detalle || 'Degú no pudo contestar ahora. Vuelve a intentarlo en un momento.';
+    if (d.respuesta) historialDegu.push({ pregunta: texto, respuesta: d.respuesta });
   } catch { resp.textContent = 'No pude hablar con Degú. Revisa tu conexión y vuelve a intentarlo.'; }
-  resp.classList.remove('pensando');
+  caja.classList.remove('piensa'); caja.querySelector('.dcorre').outerHTML = DEGU_QUIETO;
+  conv.scrollTop = conv.scrollHeight;
   $('dpreg').disabled = $('denviar').disabled = false;
-  while (conv.children.length > 13) conv.children[1].remove(); // el saludo y las últimas seis preguntas
+  while (conv.children.length > 15) conv.children[1].remove(); // el saludo y las últimas preguntas
   resolverRetoDegu();
 }
 $('dchips').addEventListener('click', e => { const b = e.target.closest('button'); if (b) preguntarDegu(b.textContent); });
 $('dform').addEventListener('submit', e => { e.preventDefault(); preguntarDegu($('dpreg').value); });
 verDegu();
 setInterval(() => { if (!document.hidden) verDegu(); }, 60 * 1000);
+// al cambiar de quebrada, Degú pasa a esa: su parte, y las preguntas que siguen (`elegir`)
+function cambioDegu() {
+  if ($('degu').hidden) return;
+  const c = CU.find(x => x.id === sel);
+  if ($('dconv').querySelector('.yo')) $('dconv').insertAdjacentHTML('beforeend', `<p class="nota">Ahora hablamos de ${escDegu(c.nombre)}</p>`);
+  verDegu();
+}
 document.addEventListener('visibilitychange', () => { if (!document.hidden) verDegu(); });
 })();
 </script>
