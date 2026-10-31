@@ -200,7 +200,7 @@ details.card > summary { font-size: 1.05rem }
 .dpanel .cerrar { font: 700 1.1rem system-ui, sans-serif; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; width: 32px; height: 32px; justify-content: center; padding: 0 }
 .dpanel .dcuerpo { padding: 12px 16px 14px; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 4px; align-content: start }
 .dpanel .dconv { max-height: none; overflow: visible }
-.dpanel .dmarca { font-size: .8rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; margin-top: 6px }
+.dfirma { font-size: .8rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; margin-top: 6px }
 @media (max-width: 600px) { .dboton span { display: none } .dboton { padding: 8px } }
 .dcab { display: flex; align-items: center; gap: 10px; margin-bottom: 6px } .dcab h2 { margin: 0; flex: 1 }
 .envivo { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700; color: var(--degu-texto) }
@@ -249,11 +249,6 @@ body.viejo.calculando .cargando { display: flex; position: static; grid-column: 
 body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
 .dform button:disabled, .dform input:disabled { opacity: .6; cursor: wait }
 .dnota { margin-top: 10px; font-size: .78rem }
-.dmarca { background: #10352d; color: #e8f3ef; border-color: #10352d }
-.dmarca .dico.grande { width: 36px; height: 36px; border-radius: 8px }
-.dmarca .dcab span { font-size: .75rem; color: #a9cfc4 } .dmarca h2 { font-size: 1.3rem; font-weight: 800; color: #fff }
-.dmarca p { margin: 6px 0 12px; line-height: 1.5; font-size: .9rem }
-.dmarca a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 10px; background: #5fd3b5; color: #0b2620; font-weight: 700; text-decoration: none }
 </style>
 </head>
 <body>
@@ -412,7 +407,7 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
         <div><input id="dpreg" type="text" maxlength="300" autocomplete="off" placeholder="¿Puedo subir al cerro mañana temprano?"><button type="submit" id="denviar" aria-label="Enviar pregunta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
       </form>
       <p class="sub dnota">Degú puede equivocarse. Ante cualquier alerta, sigue siempre lo que indiquen las autoridades (Senapred).</p>
-      <p class="dmarca">Hecho con <b>Degú</b>, la plataforma de IA para empresas y profesionales. Aquí vigila la quebrada gratis, para ayudar a la comunidad. <a href="https://getdegu.com" target="_blank" rel="noopener">Conoce Degú →</a></p>
+      <p class="dfirma">Hecho con <b>Degú</b>, la plataforma de IA para empresas y profesionales. Aquí vigila la quebrada gratis, para ayudar a la comunidad. <a href="https://getdegu.com" target="_blank" rel="noopener">Conoce Degú →</a></p>
       </div>
     </section>
     <button type="button" class="dboton" id="dboton" aria-expanded="false" aria-controls="dpanel"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><span>Pregúntale a Degú</span></button>
