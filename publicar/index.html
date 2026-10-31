@@ -169,8 +169,9 @@ details.card > summary { font-size: 1.05rem }
 .aporte svg, .dico { width: 22px; height: 22px; flex: none; border-radius: 5px }
 @media (max-width: 600px) { .acciones { display: contents } .aporte { order: -1; justify-content: center } }
 .degu { display: grid; gap: 18px; align-content: start }
-/* en pantalla ancha va a la derecha y acompaña al bajar; en el celular, justo después del riesgo */
-@media (min-width: 1100px) {
+/* desde 1200 px va como columna fija a la derecha; más angosto, después del contenido principal (riesgo,
+   quebradas, mapa) y antes de los detalles técnicos */
+@media (min-width: 1200px) {
   main:has(> #degu:not([hidden])) { grid-template-columns: minmax(0, 1fr) 370px; align-items: start }
   main:has(> #degu:not([hidden])) > * { grid-column: 1 }
   main:has(> #degu:not([hidden])) > :is(.cabecera, .aviso) { grid-column: 1 / -1 }
@@ -296,38 +297,6 @@ details.card > summary { font-size: 1.05rem }
    </div>
   </section>
 
-  <aside id="degu" class="degu" aria-label="Degú" hidden>
-    <section class="card dvigia" aria-labelledby="dvtit">
-      <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dvtit">Degú vigila la quebrada</h2><span class="envivo">en vivo</span></div>
-      <p class="sub">Mira los rayos del satélite cada minuto y escribe aquí cuando algo cambia.</p>
-      <p class="dahora" id="dahora"></p>
-      <ol class="dlista" id="dlista"></ol>
-    </section>
-    <section class="card dchat" aria-labelledby="dctit">
-      <div class="dcab"><h2 id="dctit">Pregúntale a Degú</h2></div>
-      <p class="sub">Solo sobre aluviones y clima en Chile.</p>
-      <div class="dconv" id="dconv" aria-live="polite">
-        <div class="degu-dice"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><p>Hola, soy Degú. Pregúntame por el riesgo, la lluvia o las tormentas de la quebrada.</p></div>
-      </div>
-      <div class="dchips" id="dchips">
-        <button type="button">¿Está lloviendo ahora en la quebrada?</button>
-        <button type="button">¿Hasta qué hora sigue el riesgo?</button>
-        <button type="button">¿Qué significa el número de riesgo?</button>
-        <button type="button">Windy dice otra cosa, ¿a quién le creo?</button>
-      </div>
-      <form class="dform" id="dform">
-        <label for="dpreg">Tu pregunta</label>
-        <div><input id="dpreg" type="text" maxlength="300" autocomplete="off" placeholder="¿Puedo subir al cerro mañana temprano?"><button type="submit" id="denviar" aria-label="Enviar pregunta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
-      </form>
-      <p class="sub dnota">Degú puede equivocarse. Ante cualquier alerta, sigue siempre lo que indiquen las autoridades (Senapred).</p>
-    </section>
-    <section class="card dmarca" aria-labelledby="dmtit">
-      <div class="dcab"><svg class="dico grande" aria-hidden="true"><use href="#degu-ico"/></svg><div><span>Hecho con</span><h2 id="dmtit">Degú</h2></div></div>
-      <p>Degú es la plataforma de IA para empresas y profesionales: lee tus documentos, cruza tus datos y trabaja contigo. Aquí vigila la quebrada gratis, para ayudar a la comunidad.</p>
-      <a href="https://getdegu.com" target="_blank" rel="noopener">Conoce Degú →</a>
-    </section>
-  </aside>
-
   <section class="card" id="ahora" hidden>
     <h2 id="atit">Ahora</h2>
     <div class="tiles" id="rrep"></div>
@@ -372,6 +341,38 @@ details.card > summary { font-size: 1.05rem }
       <p class="sub" style="margin-top:8px">Riesgo de cada día en la escala de 0 a 10; el color es su nivel (toca un número para ver la chance). Para comparar, un día cualquiera desde el incendio: 3,0 en la Quebrada Honda, ~2 en las quemadas a medias y 0 en las sin quemar. Toca una quebrada para elegirla.</p>
     </section>
   </div>
+
+  <aside id="degu" class="degu" aria-label="Degú" hidden>
+    <section class="card dvigia" aria-labelledby="dvtit">
+      <div class="dcab"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><h2 id="dvtit">Degú vigila la quebrada</h2><span class="envivo">en vivo</span></div>
+      <p class="sub">Mira los rayos del satélite cada minuto y escribe aquí cuando algo cambia.</p>
+      <p class="dahora" id="dahora"></p>
+      <ol class="dlista" id="dlista"></ol>
+    </section>
+    <section class="card dchat" aria-labelledby="dctit">
+      <div class="dcab"><h2 id="dctit">Pregúntale a Degú</h2></div>
+      <p class="sub">Solo sobre aluviones y clima en Chile.</p>
+      <div class="dconv" id="dconv" aria-live="polite">
+        <div class="degu-dice"><svg class="dico" aria-hidden="true"><use href="#degu-ico"/></svg><p>Hola, soy Degú. Pregúntame por el riesgo, la lluvia o las tormentas de la quebrada.</p></div>
+      </div>
+      <div class="dchips" id="dchips">
+        <button type="button">¿Está lloviendo ahora en la quebrada?</button>
+        <button type="button">¿Hasta qué hora sigue el riesgo?</button>
+        <button type="button">¿Qué significa el número de riesgo?</button>
+        <button type="button">Windy dice otra cosa, ¿a quién le creo?</button>
+      </div>
+      <form class="dform" id="dform">
+        <label for="dpreg">Tu pregunta</label>
+        <div><input id="dpreg" type="text" maxlength="300" autocomplete="off" placeholder="¿Puedo subir al cerro mañana temprano?"><button type="submit" id="denviar" aria-label="Enviar pregunta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      </form>
+      <p class="sub dnota">Degú puede equivocarse. Ante cualquier alerta, sigue siempre lo que indiquen las autoridades (Senapred).</p>
+    </section>
+    <section class="card dmarca" aria-labelledby="dmtit">
+      <div class="dcab"><svg class="dico grande" aria-hidden="true"><use href="#degu-ico"/></svg><div><span>Hecho con</span><h2 id="dmtit">Degú</h2></div></div>
+      <p>Degú es la plataforma de IA para empresas y profesionales: lee tus documentos, cruza tus datos y trabaja contigo. Aquí vigila la quebrada gratis, para ayudar a la comunidad.</p>
+      <a href="https://getdegu.com" target="_blank" rel="noopener">Conoce Degú →</a>
+    </section>
+  </aside>
 
   <details class="card" id="detalle">
     <summary id="dtit">Detalle técnico de la quebrada (para curiosos)</summary>
