@@ -369,8 +369,8 @@ body.viejo.calculando .cargando .dcorre { width: 40px; height: 40px }
         <summary>¿Qué significan los colores?</summary>
         <p>El infrarrojo mide qué tan fría está la cima de la nube: más fría, más alta y con más lluvia.</p>
         <ul class="simbolos">
-          <li><i style="--c:rgb(96,96,96)"></i><b>Gris oscuro:</b> suelo o cielo despejado.</li>
-          <li><i style="--c:rgb(190,190,190)"></i><b>Gris claro:</b> nubes bajas o medias (sobre −20 °C): lluvia débil o nada.</li>
+          <li><i style="--c:linear-gradient(90deg, rgb(226,233,242), rgb(156,173,202))"></i><b>Gris azulado</b> (en las imágenes de NOAA, las más nuevas): nubes bajas o medias, más oscuras cuanto más fría la cima; pueden dar lluvia pareja. La nieve de la alta cordillera sale igual: el infrarrojo no la distingue de una nube. Donde no hay nube se ve el mapa.</li>
+          <li><i style="--c:rgb(190,190,190)"></i><b>Gris</b> (en las de NASA, las anteriores): suelo, cielo despejado o nubes bajas, que se confunden con el suelo.</li>
           <li><i style="--c:linear-gradient(90deg, rgb(0,115,178), rgb(0,0,115))"></i><b>Azul:</b> nubes altas (−20 a −33 °C): pueden traer lluvia y, a veces, tormentas chicas con rayos, como las del 26-oct.</li>
           <li><i style="--c:linear-gradient(90deg, rgb(0,128,58), rgb(102,255,0))"></i><b>Verde:</b> nubes muy frías (−33 a −46 °C): lluvia, y tormenta si caen rayos.</li>
           <li><i style="--c:rgb(230,255,0)"></i><b>Amarillo:</b> cimas muy altas (−46 a −54 °C): tormenta fuerte.</li>
@@ -739,11 +739,24 @@ async function lutIR() { // de −100 a +60 °C, cada 0,25 °C: el color de la t
   }
   return (LUT_IR = lut);
 }
+// Las nubes bajas y medias, en gris azulado: con la tabla de NASA todo lo que está sobre −20 °C sale gris, igual que el suelo, y
+// la lluvia pareja del 31-oct no se veía (cimas a 0 °C sobre Santiago, suelo despejado a 8-10 °C). El suelo despejado es lo
+// más tibio de la imagen (el percentil 95); lo que está 3 °C o más bajo eso es nube, más opaca cuanto más fría la cima.
+// Desde −20 °C siguen los colores de NASA (azul, verde, amarillo, rojo). La nieve de la alta cordillera sale igual que una
+// nube: el infrarrojo no las distingue.
 function imagenIR(T, lut) {
   const N = 150, cv = document.createElement('canvas'); cv.width = cv.height = N;
   const cx = cv.getContext('2d'), img = cx.createImageData(N, N);
+  const tibios = Array.from(T).filter(t => t === t).sort((a, b) => a - b), suelo = tibios[Math.floor(0.95 * (tibios.length - 1))] ?? 10;
   for (let p = 0; p < N * N; p++) {
     const t = T[p]; if (!(t === t)) continue; // sin dato: transparente
+    if (t > -20) {
+      const frio = suelo - t; if (frio < 3) continue; // suelo despejado: se ve el mapa
+      // gris azulado que se oscurece con el frío: el blanco puro no se distinguía sobre el mapa claro
+      const f = Math.min(1, (frio - 3) / 22);
+      img.data[4 * p] = 226 - 70 * f; img.data[4 * p + 1] = 233 - 60 * f; img.data[4 * p + 2] = 242 - 40 * f; img.data[4 * p + 3] = Math.round(255 * (0.55 + 0.4 * f));
+      continue;
+    }
     const k = Math.max(0, Math.min(640, Math.round((t + 100) * 4))) * 3;
     img.data[4 * p] = lut[k]; img.data[4 * p + 1] = lut[k + 1]; img.data[4 * p + 2] = lut[k + 2]; img.data[4 * p + 3] = 255;
   }
@@ -764,7 +777,8 @@ async function agregarNOAA() {
   if (!timer) mostrar(frames.length - 1);
 }
 function mostrar(k) {
-  idx = k; layers.forEach((l, j) => l.setOpacity(j === k ? CAPAS[capa][3] : 0));
+  // las de NOAA traen su propia transparencia (el suelo despejado ya va vacío): se muestran más opacas que las de NASA
+  idx = k; layers.forEach((l, j) => l.setOpacity(j === k ? (capasNOAA.includes(l) ? 0.9 : CAPAS[capa][3]) : 0));
   if (frames[k]) $('frame').textContent = 'Imagen de las ' + hora(frames[k]) + (capasNOAA.includes(layers[k]) ? ' · NOAA, sobre Santiago' : ' · NASA');
 }
 $('play').onclick = () => {
