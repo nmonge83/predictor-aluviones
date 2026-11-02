@@ -1154,10 +1154,13 @@ function pintarReporte() {
     else if (fr.cerca) {
       const donde = `a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}`;
       const hacia = !dir ? 0 : (-(m.mx * fr.cerca.dx) - m.my * fr.cerca.dy) / fr.cerca.dist, tq = tormentaQueViene(c.id); // km/h hacia la quebrada
-      if (tq) { llegada = { t: tq.t, cuenta: tq.conRayos }; T('warn', 'se acerca', `Hay una tormenta ${donde} que viene hacia acá: llegaría cerca de las ${hora(tq.t)}${tq.conRayos ? ', y trae rayos' : '; por ahora sin rayos'}.`); }
+      // con rayos es una tormenta y la curva la cuenta; sin rayos es una masa de nubes altas, y decir «tormenta en camino»
+      // con la curva plana confundía (2-nov, y Degú, que sigue los rayos, decía «sin acercarse»)
+      if (tq?.conRayos) { llegada = { t: tq.t, cuenta: true }; T('warn', 'se acerca', `Hay una tormenta ${donde} que viene hacia aquí, con rayos: llegaría cerca de las ${hora(tq.t)}.`); }
+      else if (tq) T('ok', 'nubes altas', `Vienen nubes altas desde ${donde}: llegarían cerca de las ${hora(tq.t)}. Por ahora no traen rayos, así que no cuentan como tormenta; si empiezan a tirar rayos, el riesgo sube.`);
       else if (hacia < -5) T('ok', 'se aleja', `La tormenta más cercana está ${donde} y se aleja.`);
-      else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', `Está nublado sobre la quebrada: puede llover. La tormenta más cercana está ${donde}${dir ? ' y no viene hacia acá' : ''}.`);
-      else T('ok', 'lejos', `La tormenta más cercana está ${donde}${dir ? ' y no viene hacia acá' : ''}.`);
+      else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', `Está nublado sobre la quebrada: puede llover. La tormenta más cercana está ${donde}${dir ? ' y no viene hacia aquí' : ''}.`);
+      else T('ok', 'lejos', `La tormenta más cercana está ${donde}${dir ? ' y no viene hacia aquí' : ''}.`);
     } else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', 'Está nublado sobre la quebrada: puede llover, pero no se ve una tormenta grande cerca.');
     else T('ok', 'no hay', 'No hay tormentas a menos de 130 km.');
   }
@@ -1377,8 +1380,9 @@ function hoy() {
   const suma2 = ([p, q]) => inc.slice(p, q + 1).reduce((x, y) => x + y, 0), top = [...tramos].sort((u, v) => suma2(v) - suma2(u)).slice(0, 2).sort((u, v) => u[0] - v[0]);
   const lista = top.map((t, j) => txtTramo(t, j, top)), unir = l => l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' y ' + l.at(-1);
   const cuando = verDia == null ? 'en las próximas 24 horas' : verDia === 0 ? 'en lo que queda de hoy' : verDia === 1 ? 'en todo el día de mañana' : `en todo el ${nomVer.toLowerCase()}`;
-  const kLl = llegada ? T.findIndex(t => llegada.t >= t - 3600 && llegada.t < t) : -1; // hora en que llegaría la tormenta que se acerca
-  const notaLl = kLl >= 0 ? ` <b>Además viene una tormenta que llegaría cerca de las ${hora(llegada.t)}</b> (hora aproximada)` + (llegada.cuenta ? ': la curva ya la cuenta.' : ': como todavía no trae rayos cerca, la curva no la cuenta; si llega con rayos, el riesgo sube.') : '';
+  // la marca va solo si la curva cuenta la tormenta (trae rayos): una marca roja sobre una curva plana era ruido (2-nov)
+  const kLl = llegada?.cuenta ? T.findIndex(t => llegada.t >= t - 3600 && llegada.t < t) : -1; // hora en que llegaría la tormenta que se acerca
+  const notaLl = kLl >= 0 ? ` <b>Además viene una tormenta con rayos que llegaría cerca de las ${hora(llegada.t)}</b> (hora aproximada): la curva ya la cuenta.` : '';
   $('htxt').innerHTML = total < 1e-4 ? `No hay riesgo apreciable ${cuando} en esta quebrada.${notaLl}`
     : `Lo más peligroso: <b>${unir(lista)}</b>. Fuera de esas horas, el riesgo es mucho menor.${notaLl}${verDia == null ? '' : ` En total, <b>${fmtE(total)}, ${palabra(total)}</b>, ${cuando}: ${unoEn(total)}.`}`;
   // curva: la escala de cada hora sobre las franjas de los 5 niveles, dibujada al ancho real. La lluvia va solo en el
