@@ -744,10 +744,12 @@ async function lutIR() { // de −100 a +60 °C, cada 0,25 °C: el color de la t
 // más tibio de la imagen (el percentil 95); lo que está 3 °C o más bajo eso es nube, más opaca cuanto más fría la cima.
 // Desde −20 °C siguen los colores de NASA (azul, verde, amarillo, rojo). La nieve de la alta cordillera sale igual que una
 // nube: el infrarrojo no las distingue.
+// el suelo despejado: lo más tibio de la imagen (percentil 95); lo que está 3 °C o más bajo eso es nube
+const sueloDespejado = T => { const v = Array.from(T).filter(t => t === t).sort((a, b) => a - b); return v[Math.floor(0.95 * (v.length - 1))] ?? 10; };
 function imagenIR(T, lut) {
   const N = 150, cv = document.createElement('canvas'); cv.width = cv.height = N;
   const cx = cv.getContext('2d'), img = cx.createImageData(N, N);
-  const tibios = Array.from(T).filter(t => t === t).sort((a, b) => a - b), suelo = tibios[Math.floor(0.95 * (tibios.length - 1))] ?? 10;
+  const suelo = sueloDespejado(T);
   for (let p = 0; p < N * N; p++) {
     const t = T[p]; if (!(t === t)) continue; // sin dato: transparente
     if (t > -20) {
@@ -814,10 +816,16 @@ async function leerSatelite(t, T) {
     const c = clase(y * N + x);
     if (c >= 2) tormentas.push([BAS[0] + 1.5 - (y + 0.5) * paso, BAS[1] - 1.5 + (x + 0.5) * paso, c]);
   }
-  const porCuenca = {};
+  const porCuenca = {}, suelo = T ? sueloDespejado(T) : null;
   for (const cu of CU) {
     const [la, lo] = cu.centro, radio = Math.sqrt(cu.km2 / Math.PI) + 2;
-    let best = null, fuerte = null;
+    let best = null, fuerte = null, conNube = 0, total = 0;
+    // la parte de la quebrada con nubes de cualquier altura (2-nov: el cuadro decía «lluvia débil» sin que se viera nada)
+    if (T) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const v = T[y * N + x]; if (!(v === v)) continue;
+      if (Math.hypot((BAS[1] - 1.5 + (x + 0.5) * paso - lo) * 111.32 * cosLa, (BAS[0] + 1.5 - (y + 0.5) * paso - la) * 110.57) > radio) continue;
+      total++; if (suelo - v >= 3) conNube++;
+    }
     for (const [a, b, c] of tormentas) {
       const dx = (b - lo) * 111.32 * cosLa, dy = (a - la) * 110.57, dist = Math.hypot(dx, dy);
       if (!best || dist < best.dist) best = { dist, dx, dy, fuerte: c === 3 };
@@ -827,7 +835,7 @@ async function leerSatelite(t, T) {
     // no una celda (el 20-oct a las 12:20 cubría el 33 % del recuadro, sin aluvión)
     const irEncima = !!fuerte && fuerte.dist <= radio;
     // el infrarrojo solo informa: el 20-oct una capa de nubes a −52 °C se pintó amarilla sobre la cuenca sin un solo rayo
-    porCuenca[cu.id] = { best, fuerte, irEncima, encima: false, nubes: !!best && best.dist <= radio };
+    porCuenca[cu.id] = { best, fuerte, irEncima, encima: false, nubes: !!best && best.dist <= radio, cubierta: total ? conNube / total : null };
   }
   return { t, porCuenca };
 }
@@ -1143,7 +1151,27 @@ function pintarReporte() {
   // en simple: dónde está la tormenta y si viene o se va, sin porcentajes ni km/h (26-oct: «no es fácil de entender»)
   const tormenta = !!s?.rayo?.encima, nubeNota = `Satélite GOES${mv ? ` de las ${hora(mv.t1)}` : ''}: llega con ~10 min de atraso, y sobre la quebrada las nubes cambian en minutos.`;
   const T = (est, etq, txt) => tarjeta('⛈️', 'Tormenta', est, etq, txt, nubeNota);
-  if (tormenta) T('bad', 'encima', 'Hay una tormenta sobre la quebrada: caen rayos encima.');
+  // la que viene con rayos la cuenta la curva, con o sin la franja de Degú
+  const tqv = fr?.cerca && !tormenta ? tormentaQueViene(c.id) : null;
+  if (tqv?.conRayos) llegada = { t: tqv.t, cuenta: true };
+  const Lc = lugar(c.nombre), cub = s?.cubierta, alto = fr?.ahora ?? 0;
+  // Con la franja de Degú arriba, la tormenta y los rayos los cuenta solo Degú (sigue los rayos uno a uno): dos seguimientos
+  // distintos de la misma tormenta se contradecían a ratos, uno «se acerca» y el otro «se aleja» (2-nov). Aquí, lo que ve
+  // el satélite: las nubes sobre la quebrada.
+  const deguCubre = !$('dvigia').hidden;
+  if (deguCubre) {
+    let est = 'ok', etq, txt;
+    if (tormenta) { est = 'bad'; etq = 'tormenta'; txt = `Hay una tormenta sobre ${Lc.el}: caen rayos encima.`; }
+    else if (alto >= 0.15) { est = 'warn'; etq = 'nubes de tormenta'; txt = `Hay nubes altas y frías sobre ${alto >= 0.5 ? '' : 'parte de '}${Lc.el}: pueden dar chubascos.`; }
+    else if (cub == null) { etq = 'sin tormenta'; txt = `No se ven nubes de tormenta sobre ${Lc.el}.`; }
+    else if (cub >= 0.5) { etq = 'nublado'; txt = `Está nublado sobre ${Lc.el} (nubes bajas o medias): puede llover débil.`; }
+    else if (cub >= 0.15) { etq = 'algunas nubes'; txt = `Hay algunas nubes sobre ${Lc.el}.`; }
+    else { etq = 'despejado'; txt = `El satélite no ve nubes sobre ${Lc.el}.`; }
+    if (tqv?.conRayos) { est = 'warn'; txt += ` Viene una tormenta con rayos: llegaría cerca de las ${hora(tqv.t)}.`; }
+    else if (tqv) txt += ` Vienen nubes altas desde el ${rumbo(fr.cerca.dx, fr.cerca.dy)}, por ahora sin rayos: llegarían cerca de las ${hora(tqv.t)}.`;
+    tarjeta('☁️', 'Nubes', est, etq, txt, nubeNota);
+  }
+  else if (tormenta) T('bad', 'encima', 'Hay una tormenta sobre la quebrada: caen rayos encima.');
   else if (fr && fr.ahora != null) {
     // solo lo que se vio: correr la nube con su velocidad para «estimar ahora» fallaba por mucho (20-oct: a las 22:00 se
     // vio 100 % y la estimación de 20 min antes daba 32 %); sobre la quebrada las nubes nacen y se deshacen en minutos
@@ -1153,10 +1181,10 @@ function pintarReporte() {
     else if (fr.ahora >= 0.15) T('warn', 'cerca', `Hay nubes de tormenta sobre parte de la quebrada${fr.antes != null && fr.ahora - fr.antes > 0.1 ? ', y están creciendo' : ''}.`);
     else if (fr.cerca) {
       const donde = `a ${fmt(fr.cerca.dist)} km al ${rumbo(fr.cerca.dx, fr.cerca.dy)}`;
-      const hacia = !dir ? 0 : (-(m.mx * fr.cerca.dx) - m.my * fr.cerca.dy) / fr.cerca.dist, tq = tormentaQueViene(c.id); // km/h hacia la quebrada
+      const hacia = !dir ? 0 : (-(m.mx * fr.cerca.dx) - m.my * fr.cerca.dy) / fr.cerca.dist, tq = tqv; // km/h hacia la quebrada
       // con rayos es una tormenta y la curva la cuenta; sin rayos es una masa de nubes altas, y decir «tormenta en camino»
       // con la curva plana confundía (2-nov, y Degú, que sigue los rayos, decía «sin acercarse»)
-      if (tq?.conRayos) { llegada = { t: tq.t, cuenta: true }; T('warn', 'se acerca', `Hay una tormenta ${donde} que viene hacia aquí, con rayos: llegaría cerca de las ${hora(tq.t)}.`); }
+      if (tq?.conRayos) T('warn', 'se acerca', `Hay una tormenta ${donde} que viene hacia aquí, con rayos: llegaría cerca de las ${hora(tq.t)}.`);
       else if (tq) T('ok', 'nubes altas', `Hay nubes altas ${donde} que vienen hacia aquí: llegarían cerca de las ${hora(tq.t)}. Por ahora no traen rayos, así que no cuentan como tormenta; si empiezan a tirar rayos, el riesgo sube.`);
       else if (hacia < -5) T('ok', 'se aleja', `La tormenta más cercana está ${donde} y se aleja.`);
       else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', `Está nublado sobre la quebrada: puede llover. La tormenta más cercana está ${donde}${dir ? ' y no viene hacia aquí' : ''}.`);
@@ -1164,13 +1192,13 @@ function pintarReporte() {
     } else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', 'Está nublado sobre la quebrada: puede llover, pero no se ve una tormenta grande cerca.');
     else T('ok', 'no hay', 'No hay tormentas a menos de 130 km.');
   }
-  const ry = s?.rayo;
+  const ry = deguCubre ? null : s?.rayo; // con Degú arriba, los rayos los cuenta él
   const rayoNota = 'Los dos aluviones pasados vinieron con rayos encima.';
   if (ry) ry.encima ? tarjeta('⚡', 'Rayos', 'bad', 'encima', `Caen sobre la quebrada (${hora(ry.t)}): es una tormenta, como en los dos aluviones.`, rayoNota)
     : ry.tSobre && NOW - ry.tSobre < 3600 ? tarjeta('⚡', 'Rayos', 'warn', 'hace poco', `Hace ${fmt((NOW - ry.tSobre) / 60)} min caían sobre la quebrada; ahora ${ry.dist == null ? 'no hay a menos de 130 km' : `el más cercano está a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}`}. La tormenta puede volver.`, rayoNota)
     : ry.dist == null ? tarjeta('⚡', 'Rayos', 'ok', 'ninguno', 'Ninguno a menos de 130 km en los últimos 10 min.', rayoNota) /* el recuadro mide ±1,5°: ~139 km al este y al oeste */
     : tarjeta('⚡', 'Rayos', ry.dist < 25 ? 'warn' : 'ok', ry.dist < 25 ? 'cerca' : 'lejos', `El más cercano, a ${fmt(ry.dist)} km al ${rumbo(ry.dx, ry.dy)}, en los últimos 10 min.`, rayoNota);
-  else if (s) tarjeta('⚡', 'Rayos', 'warn', 'sin dato', 'La fuente de rayos no responde: no se sabe si hay rayos cerca. Si escuchas truenos, trátalo como tormenta.', rayoNota); // RealEarth caído (22-oct): antes el cuadro desaparecía
+  else if (s && !deguCubre) tarjeta('⚡', 'Rayos', 'warn', 'sin dato', 'La fuente de rayos no responde: no se sabe si hay rayos cerca. Si escuchas truenos, trátalo como tormenta.', rayoNota); // RealEarth caído (22-oct): antes el cuadro desaparecía
   const L = Array.from(o.lluviaMed.slice(0, 12), x => x ?? 0), H = R.horas.slice(0, 12), fuerza = x => x < 2 ? 'débil' : x < 6 ? 'moderada' : 'fuerte';
   // episodio: cuándo empieza (ini), cuándo termina (fin) y si vuelve después (otra), dentro de 12 h
   const ini = L.findIndex(x => x >= 0.5);
@@ -1181,9 +1209,13 @@ function pintarReporte() {
     let fin = ini; while (fin < L.length && L[fin] >= 0.5) fin++;
     const otra = L.findIndex((x, i) => i > fin && x >= 0.5);
     const hasta = fin >= L.length ? 'por al menos 12 horas más' : `hasta cerca de las ${hora(H[fin])}` + (otra < 0 ? '; después, casi nada' : `; vuelve cerca de las ${hora(H[otra])}`);
-    const f = fuerza(Math.max(...L.slice(ini, fin))), texto = `${ini ? `Empieza cerca de las ${hora(H[ini])}, ${f}` : f[0].toUpperCase() + f.slice(1)} ${hasta}.`;
+    const f = fuerza(Math.max(...L.slice(ini, fin))), texto = `Pronóstico: ${ini ? `empieza cerca de las ${hora(H[ini])}, ${f}` : f} ${hasta}.`;
+    // el cuadro decía «débil hasta las 21:00» sin que estuviera lloviendo (2-nov): es un pronóstico, y si el satélite no ve
+    // ninguna nube sobre la quebrada, lo dice
+    const nadaArriba = cub != null && cub < 0.15 && alto < 0.15;
     if (tormenta) tarjeta('🌧️', 'Lluvia', 'bad', 'tormenta', `${bajoTormenta}. Los pronósticos, que no ven tormentas tan chicas, dan lluvia ${f} ${hasta}.`, lluviaNota);
-    else tarjeta('🌧️', 'Lluvia', f === 'fuerte' ? 'warn' : 'ok', f, texto, lluviaNota);
+    else if (ini === 0 && nadaArriba) tarjeta('🌧️', 'Lluvia', 'ok', 'no se ve', `Los pronósticos dan lluvia ${f} ${hasta}, pero el satélite no ve nubes sobre ${Lc.el}: por ahora no debería estar lloviendo.`, lluviaNota);
+    else tarjeta('🌧️', 'Lluvia', f === 'fuerte' ? 'warn' : 'ok', `${f} · pronóstico`, texto, lluviaNota);
   }
   // cota de nieve: ya entra al cálculo (paso 1: solo cuenta la lluvia que cae bajo la cota); aquí se muestra en simple
   const iso = o.iso?.[0], liq = o.liq?.[0], llueve = ini === 0 || ini === 1;
@@ -1576,7 +1608,9 @@ async function verDegu() {
     $('dvtit').textContent = `Degú vigila ${d.nombre}`;
     // sin el vigía de las 15, la franja de los rayos solo va con la Honda: con otra elegida, decía «vigila la Quebrada
     // Honda» arriba de esa otra (31-oct). El chat sigue y contesta sobre la elegida.
+    const cubria = !$('dvigia').hidden;
     $('dvigia').hidden = !todas && sel !== 'honda';
+    if (cubria !== !$('dvigia').hidden) pintarReporte(); // con Degú, la tormenta y los rayos los cuenta la franja
     // los avisos, plegados; se abren solos solo si el último es de hace menos de 15 minutos (una tormenta en curso): uno de
     // hace una hora abierto se leía como lo último que sabía Degú
     $('dparte').hidden = !d.avisos.length;
