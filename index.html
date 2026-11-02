@@ -1157,7 +1157,7 @@ function pintarReporte() {
       // con rayos es una tormenta y la curva la cuenta; sin rayos es una masa de nubes altas, y decir «tormenta en camino»
       // con la curva plana confundía (2-nov, y Degú, que sigue los rayos, decía «sin acercarse»)
       if (tq?.conRayos) { llegada = { t: tq.t, cuenta: true }; T('warn', 'se acerca', `Hay una tormenta ${donde} que viene hacia aquí, con rayos: llegaría cerca de las ${hora(tq.t)}.`); }
-      else if (tq) T('ok', 'nubes altas', `Vienen nubes altas desde ${donde}: llegarían cerca de las ${hora(tq.t)}. Por ahora no traen rayos, así que no cuentan como tormenta; si empiezan a tirar rayos, el riesgo sube.`);
+      else if (tq) T('ok', 'nubes altas', `Hay nubes altas ${donde} que vienen hacia aquí: llegarían cerca de las ${hora(tq.t)}. Por ahora no traen rayos, así que no cuentan como tormenta; si empiezan a tirar rayos, el riesgo sube.`);
       else if (hacia < -5) T('ok', 'se aleja', `La tormenta más cercana está ${donde} y se aleja.`);
       else if ((fr.nubes ?? 0) >= 0.25) T('warn', 'nublado', `Está nublado sobre la quebrada: puede llover. La tormenta más cercana está ${donde}${dir ? ' y no viene hacia aquí' : ''}.`);
       else T('ok', 'lejos', `La tormenta más cercana está ${donde}${dir ? ' y no viene hacia aquí' : ''}.`);
